@@ -1,28 +1,5 @@
 import { Box, useTheme } from "@mui/material";
 
-let STATIC_ROUTE_ICONS_SPRITE;
-
-switch (process.env.REACT_APP_VERSION_CODE) {
-  case "barestan": {
-    import("Assets/svgs/sprites/barestan/light.svg").then((module) => {
-      STATIC_ROUTE_ICONS_SPRITE = module.default;
-    });
-    break;
-  }
-  case "chadormalo": {
-    import("Assets/svgs/sprites/chadormalo/duotone.svg").then((module) => {
-      STATIC_ROUTE_ICONS_SPRITE = module.default;
-    });
-    break;
-  }
-  default: {
-    import("Assets/svgs/sprites/chadormalo/duotone.svg").then((module) => {
-      STATIC_ROUTE_ICONS_SPRITE = module.default;
-    });
-    break;
-  }
-}
-
 const FILL_COLORS = {
   inherit: "currentColor",
 };
@@ -43,7 +20,7 @@ function SvgSPrite({
   hoverColor,
   MUIHoverColor,
   className,
-  sprite = STATIC_ROUTE_ICONS_SPRITE,
+  sprite,
   ...props
 }) {
   const theme = useTheme();
@@ -67,6 +44,7 @@ function SvgSPrite({
 
     return theme.palette?.[arr[0]]?.[arr[1]];
   };
+
   return (
     <Box
       onClick={handleOnClick}
@@ -89,7 +67,12 @@ function SvgSPrite({
       component="div"
     >
       <svg {...props} style={{ ...style }}>
-        <use xlinkHref={`${sprite}#${icon}`} />
+        <use
+          xlinkHref={`${
+            require(`Assets/svgs/sprites/${process.env.REACT_APP_VERSION_CODE}/sprites-icons.svg`)
+              .default
+          }#${icon}`}
+        />
       </svg>
     </Box>
   );
