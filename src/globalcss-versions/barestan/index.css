@@ -1,0 +1,68 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: YekanBakhFaNum, sans-serif;
+  box-sizing: border-box;
+}
+*:focus-visible {
+  outline: none;
+}
+
+body {
+  font-family: YekanBakhFaNum, sans-serif;
+}
+
+body #root {
+  height: 100vh;
+  direction: rtl;
+  overflow: auto;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+button {
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+@font-face {
+  font-family: "YekanBakhFaNum";
+  src: local("YekanBakhFaNum"),
+    url(Assets/font/barestan/YekanBakhFaNum-VF.ttf) format("truetype");
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #212529;
+}
+::-webkit-scrollbar-thumb {
+  background: #212529;
+}
+::-webkit-scrollbar-track {
+  background: #fff;
+  border: 3px solid #fff;
+}
+
+.input-phone-number input[type="number"]::-webkit-inner-spin-button,
+.input-phone-number input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.activeDayColor:not(.-selectedStart):not(.-selectedBetween):not(
+    .-selectedEnd
+  ):not(.-selected) {
+  border: 2px solid rgba(156, 136, 255, 0.7) !important;
+}
+
+#scroll-container {
+  border: 3px solid black;
+  border-radius: 5px;
+  overflow: hidden;
+}

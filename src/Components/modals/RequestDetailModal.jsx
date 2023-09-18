@@ -1,0 +1,338 @@
+import { Card, Grid, Stack, Typography } from "@mui/material";
+import Modal from "Components/versions/Modal";
+import {
+  enToFaNumber,
+  handleDate,
+  numberWithCommas,
+  renderPlaqueObjectToString,
+} from "Utility/utils";
+
+import Timeline from "Components/versions/Timeline";
+
+import DrivingDirection from "Components/DrivingDirection";
+import { SvgSPrite } from "Components/SvgSPrite";
+
+const CardsStyle = {
+  width: "100%",
+  height: "100%",
+  p: 2,
+  boxShadow: 1,
+};
+const historyStatusesColor = {
+  error: ["disabled", "reject"],
+  info: ["set", "add", "load"],
+  success: ["done", "enabled", "deliver"],
+};
+const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
+  const RowLabelAndData = (label, info, icon = "") => {
+    return (
+      <Stack direction={"row"} justifyContent="space-between">
+        <Typography
+          sx={{
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 0.5,
+            mr: 1,
+          }}
+        >
+          {icon}
+          {label}:
+        </Typography>
+        <Typography textAlign="justify">{info}</Typography>
+      </Stack>
+    );
+  };
+  return (
+    <Modal open={open} onClose={onClose}>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Card sx={CardsStyle}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Typography variant="h5">اطلاعات کلی</Typography>
+
+              <SvgSPrite icon="file-lines" size="large" MUIColor="info" />
+            </Stack>
+
+            <Stack spacing={1} mt={3}>
+              {RowLabelAndData(
+                "کد آگهی",
+                data.code ?? "-",
+                <SvgSPrite icon="spell-check" MUIColor="primary" />
+              )}
+
+              {RowLabelAndData(
+                "قیمت پیشنهادی",
+                `${enToFaNumber(numberWithCommas(data.proposed_price))} ریال`,
+                <SvgSPrite icon="money-bill-wave" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "حداقل قیمت سامانه",
+                `${enToFaNumber(numberWithCommas(data.low_price))} ریال`,
+                <SvgSPrite icon="scanner-keyboard" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "حداکثر قیمت سامانه",
+                `${enToFaNumber(numberWithCommas(data.high_price))} ریال`,
+                <SvgSPrite icon="scanner-gun" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "قیمت نهایی",
+                `${enToFaNumber(numberWithCommas(data.price))} ریال`,
+                <SvgSPrite icon="money-bill" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "نام فرستنده",
+                data?.sender?.first_name
+                  ? data?.sender?.first_name + " " + data?.sender?.last_name
+                  : "",
+                <SvgSPrite icon="person" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "شماره موبایل فرستنده",
+                data?.sender?.mobile ? "0" + data?.sender?.mobile : "",
+                <SvgSPrite icon="mobile" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "کد پستی مبداء",
+                data.source_zip_code ?? "-",
+                <SvgSPrite icon="hashtag" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "مبدا",
+                data.source_address ?? "-",
+                <SvgSPrite icon="location-dot" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "نام گیرنده",
+                data?.receiver?.first_name
+                  ? data?.receiver?.first_name + " " + data?.receiver?.last_name
+                  : "",
+                <SvgSPrite icon="person-simple" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "شماره موبایل گیرنده",
+                data?.receiver?.mobile ? "0" + data?.receiver?.mobile : "",
+                <SvgSPrite icon="mobile" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "کد پستی مقصد",
+                data.destination_zip_code ?? "-",
+                <SvgSPrite icon="hashtag" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "مقصد",
+                data.destination_address ?? "-",
+                <SvgSPrite icon="location-check" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "کد ناوگان",
+                data.fleet?.code ?? "-",
+                <SvgSPrite icon="hashtag" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "نوع بارگیر",
+                data.vehicle_type?.title ?? "-",
+                <SvgSPrite icon="truck-ramp" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "نام محصول",
+                data.product?.title ?? "-",
+                <SvgSPrite icon="box" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "سریال بارنامه",
+                data.waybill_serial ?? "-",
+                <SvgSPrite icon="hashtag" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "شماره بارنامه",
+                data.waybill_number ?? "-",
+                <SvgSPrite icon="hashtag" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "زمان بارگیری",
+                data.load_time_fa ?? "-",
+                <SvgSPrite icon="clock-three" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "زمان تخلیه",
+                data.discharge_time_fa ?? "-",
+                <SvgSPrite icon="clock-one" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "زمان ثبت",
+                `${
+                  handleDate(data.created_at, "YYYY/MM/DD") +
+                  "  " +
+                  handleDate(data.created_at, "HH:MM")
+                }`,
+                <SvgSPrite icon="clock-two" MUIColor="primary" />
+              )}
+              {RowLabelAndData(
+                "وزن",
+                `${
+                  data.weight
+                    ? enToFaNumber(numberWithCommas(data.weight)) + " کیلوگرم"
+                    : "-"
+                }`,
+                <SvgSPrite icon="weight-scale" MUIColor="primary" />
+              )}
+
+              <Stack direction={"row"} justifyContent="space-between">
+                <Typography
+                  sx={{
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    mr: 1,
+                  }}
+                >
+                  <SvgSPrite icon="store" MUIColor="primary" />
+                  سالن بار
+                </Typography>
+                {data?.salons?.map((item, index) => {
+                  return (
+                    <Typography key={index++} textAlign="justify">
+                      {item?.name}
+                    </Typography>
+                  );
+                })}
+              </Stack>
+
+              {RowLabelAndData(
+                "توضیحات",
+                data.description ?? "-",
+                <SvgSPrite icon="file" MUIColor="primary" />
+              )}
+            </Stack>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={CardsStyle}>
+            <DrivingDirection showModal={false} rowData={data} />
+          </Card>
+        </Grid>
+        <Grid item xs={12}>
+          <Stack direction={"row"} sx={{ width: "100%" }} spacing={2}>
+            <Card sx={{ width: "50%", padding: 2 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Typography variant="h5">اطلاعات صاحب بار</Typography>
+
+                <SvgSPrite icon="user-simple" MUIColor="warning" />
+              </Stack>
+              <Stack spacing={1} mt={3}>
+                {data.driver ? (
+                  <>
+                    {RowLabelAndData(
+                      "نام",
+                      `${
+                        data.owner.first_name
+                          ? data.owner.first_name + " " + data.owner.last_name
+                          : ""
+                      }`,
+                      <SvgSPrite icon="user" MUIColor="primary" />
+                    )}
+                    {RowLabelAndData(
+                      "شماره موبایل",
+                      enToFaNumber("0" + data.owner.mobile),
+
+                      <SvgSPrite icon="mobile" MUIColor="primary" />
+                    )}
+
+                    {RowLabelAndData(
+                      "کد ملی",
+                      enToFaNumber(data.owner?.national_code) ?? "-",
+
+                      <SvgSPrite icon="hashtag" MUIColor="primary" />
+                    )}
+                  </>
+                ) : (
+                  <Typography>راننده‌ای تخصیص داده نشده است</Typography>
+                )}
+              </Stack>
+            </Card>
+            <Card sx={{ width: "50%", padding: 2 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Typography variant="h5">اطلاعات راننده</Typography>
+                <SvgSPrite icon="car" size="large" MUIColor="warning" />
+              </Stack>
+              <Stack spacing={1} mt={3}>
+                {data.driver ? (
+                  <>
+                    {RowLabelAndData(
+                      "نام",
+                      `${
+                        data.driver.first_name ??
+                        "-" + " " + data.driver.last_name ??
+                        ""
+                      }`,
+                      <SvgSPrite icon="person" MUIColor="primary" />
+                    )}
+                    {RowLabelAndData(
+                      "شماره موبایل",
+                      enToFaNumber(data.driver.mobile),
+                      <SvgSPrite icon="mobile" MUIColor="primary" />
+                    )}
+
+                    {RowLabelAndData(
+                      "نوع کامیون",
+                      data.vehicle?.category?.title ?? "-",
+                      <SvgSPrite icon="truck" MUIColor="primary" />
+                    )}
+                    {RowLabelAndData(
+                      "نام خودرو",
+                      data.vehicle?.title ?? "-",
+                      <SvgSPrite icon="car" MUIColor="primary" />
+                    )}
+                    {RowLabelAndData(
+                      "پلاک خودرو",
+                      renderPlaqueObjectToString(data?.vehicle?.plaque),
+                      <SvgSPrite icon="input-numeric" MUIColor="primary" />
+                    )}
+                  </>
+                ) : (
+                  <Typography>راننده‌ای تخصیص داده نشده است</Typography>
+                )}
+              </Stack>
+            </Card>
+          </Stack>
+        </Grid>
+        <Grid item xs={12}>
+          <Card sx={CardsStyle}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              mb={3}
+            >
+              <Typography variant="h5">تاریخچه</Typography>
+              <SvgSPrite icon="clock" size="large" MUIColor="success" />
+            </Stack>
+
+            <Timeline
+              data={data.histories}
+              colors={historyStatusesColor}
+              historyActions={historyActions}
+            />
+          </Card>
+        </Grid>
+      </Grid>
+    </Modal>
+  );
+};
+
+export default RequestDetailModal;
