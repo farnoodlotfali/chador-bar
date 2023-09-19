@@ -23,6 +23,8 @@
     "axios": "^1.2.1",
     "chart.js": "^4.2.1",
     "chartjs-plugin-datalabels": "^2.2.0",
+    "dotenv": "^16.3.1",
+    "fs-extra": "^11.1.1",
     "jalali-moment": "^3.3.11",
     "js-cookie": "^3.0.1",
     "leaflet": "^1.9.2",
@@ -44,11 +46,12 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "set PORT=3010 && react-scripts start",
-    "build": "react-scripts build",
-    "build1": "react-app-rewired build",
+    "start": "npm run copy-replace && set PORT=3010 && react-scripts start",
+    "normal-build": "react-scripts build",
+    "build": "npm run copy-replace && react-app-rewired build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "copy-replace": "node copy-replace.js"
   },
   "eslintConfig": {
     "extends": [
