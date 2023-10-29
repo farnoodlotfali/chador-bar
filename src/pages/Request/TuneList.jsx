@@ -24,10 +24,8 @@ import {
   removeInvalidValues,
   renderWeight,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useProjectTune } from "hook/useProjectTune";
 import { useForm } from "react-hook-form";
 import { ChooseProject } from "Components/choosers/ChooseProject";
@@ -40,6 +38,9 @@ import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import ProjectDetailModal from "Components/modals/ProjectDetailModal";
 import VehicleTypeDetailModal from "Components/modals/VehicleTypeDetailModal";
 import FormTypography from "Components/FormTypography";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -105,9 +106,6 @@ export default function TuneList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -144,18 +142,19 @@ export default function TuneList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - آهنگ های حمل" />
+      <HelmetTitlePage title="آهنگ های حمل" />
 
       <SearchBoxTune />
 
       <Table
-        {...projectsTune.items}
+        {...projectsTune?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteProjectMutation.isLoading}
       >
         <TableBody>
-          {projectsTune.items.data.map((row) => {
+          {projectsTune?.items?.data.map((row) => {
             return (
               <TableRow
                 hover
@@ -205,18 +204,21 @@ export default function TuneList() {
                         color: "secondary",
                         icon: "eye",
                         onClick: () => handleShowDetail(row),
+                        name: "project-plan.index",
                       },
                       {
                         tooltip: "ویرایش",
                         color: "warning",
                         icon: "pencil",
                         link: `/request/tune/${row.id}`,
+                        name: "project-plan.update",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteProjectTune(row),
+                        name: "project-plan.destroy",
                       },
                     ]}
                   />
@@ -263,9 +265,8 @@ const SearchBoxTune = () => {
     setValue,
     watch,
     handleSubmit,
-  } = useForm({
-    defaultValues: searchParamsFilter,
-  });
+    reset,
+  } = useForm({ defaultValues: searchParamsFilter });
 
   const Inputs = [
     {
@@ -284,13 +285,13 @@ const SearchBoxTune = () => {
       customView: <ChooseContract control={control} name={"contract"} />,
     },
   ];
-
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
-
+        ...searchParamsFilter,
+        ...data,
         contract_id: data?.contract?.id,
         project_id: data?.project?.id,
         q: data?.q,
@@ -316,6 +317,16 @@ const SearchBoxTune = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>{" "}
               <Button
                 variant="contained"
                 // loading={isSubmitting}

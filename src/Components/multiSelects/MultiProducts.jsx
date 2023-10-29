@@ -16,10 +16,10 @@ import Modal from "Components/versions/Modal";
 import SearchInput from "Components/SearchInput";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInfiniteProduct } from "hook/useProduct";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiProducts = (props) => {
@@ -40,6 +40,7 @@ const MultiProducts = (props) => {
   } = useInfiniteProduct(filters, {
     enabled: showModal || !!product_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -50,29 +51,27 @@ const MultiProducts = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(product_id.length)) {
+    if (location.search.includes("product_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(product_id.length)) {
+    if (isFetched && location.search.includes("product_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== product_id.length) {
-        // reset list
-        remove();
-        allProducts?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (product_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allProducts?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (product_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [product_id.length, allProducts?.pages?.length]);
+  }, [location.search, allProducts?.pages?.length]);
 
   const getProducts = (value) => {
     setFilters({ q: value });
@@ -101,10 +100,10 @@ const MultiProducts = (props) => {
       return (length ? enToFaNumber(length) + " " : "") + "محصول";
     }
 
-    let str = fields?.[0]?.title;
+    let str = fields?.[0]?.title ?? "-";
 
     if (length > 1) {
-      str = str + ", " + (length - 1) + " محصول دیگر...";
+      str = str + ", " + enToFaNumber(length - 1) + " محصول دیگر...";
     }
 
     return str;

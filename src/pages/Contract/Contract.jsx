@@ -1,13 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
-import {
-  Card,
-  Divider,
-  Stack,
-  TableRow,
-  TableCell,
-  OutlinedInput,
-} from "@mui/material";
+import { Card, Divider, Stack, TableRow, TableCell } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { ChoosePerson } from "Components/choosers/ChoosePerson";
@@ -16,21 +9,20 @@ import { FormContainer, FormInputs } from "Components/Form";
 import NormalTable from "Components/NormalTable";
 import { useOwnerTypes } from "hook/useOwnerTypes";
 import { useTransportationTypes } from "hook/useTransportationTypes";
-import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
+import { memo, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { toast } from "react-toastify";
 import {
   enToFaNumber,
-  numberWithCommasEn,
-  removeComma,
   renderDateToCalender,
   renderSelectOptions,
 } from "Utility/utils";
 import TableActionCell from "Components/versions/TableActionCell";
 import FormTypography from "Components/FormTypography";
+import TableInput from "Components/TableInput";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -63,7 +55,7 @@ const headCells = [
   },
   {
     id: "actions",
-    label: "عملیات",
+    label: "حذف",
   },
 ];
 
@@ -219,31 +211,31 @@ const Contract = () => {
   ];
 
   // handle on submit
-  const onSubmit = (data) => {
-    data = JSON.stringify({
-      code: data.code,
-      owner_id: data.owner.id,
-      owner_type: data.owner_type,
-      transportation_type: data.transportation_type,
-      type: data.type,
-      total_amount: data.total_amount,
-      products: data?.products,
-      start_date: data.start_dateEn,
-      end_date: data.end_dateEn,
-      monthly_limit: data.monthly_limit,
-      weekly_limit: data.weekly_limit,
-    });
-    updateMutation.mutate(data);
+  const onSubmit = async (data) => {
+    try {
+      data = JSON.stringify({
+        code: data.code,
+        owner_id: data.owner.id,
+        owner_type: data.owner_type,
+        transportation_type: data.transportation_type,
+        type: data.type,
+        total_amount: data.total_amount,
+        products: data?.products,
+        start_date: data.start_dateEn,
+        end_date: data.end_dateEn,
+        monthly_limit: data.monthly_limit,
+        weekly_limit: data.weekly_limit,
+      });
+      const res = await updateMutation.mutateAsync(data);
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   // handle on change inputs
   const handleChange = (name, value) => {
     setValue(name, value);
-  };
-  const handleAddInfo = (obj, e, index) => {
-    let newProducts = watch("products");
-    newProducts[index][e.target.name] = removeComma(e.target.value);
-    handleChange("products", newProducts);
   };
 
   const handleRemoveProduct = (obj) => {
@@ -253,17 +245,11 @@ const Contract = () => {
     );
   };
 
-  const inputStyle = {
-    inputProps: {
-      style: {
-        padding: "5px",
-      },
-    },
-  };
- 
   return (
     <>
-      <Helmet title="پنل دراپ - ویرایش قرارداد" />
+      <HelmetTitlePage title="ویرایش قرارداد" />
+
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
@@ -288,27 +274,30 @@ const Contract = () => {
                       {enToFaNumber(item.unit.title)}
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        name="weight"
-                        {...inputStyle}
-                        value={numberWithCommasEn(item.weight)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.weight`,
+                          rules: {
+                            required: "وزن را وارد کنید",
+                          },
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        {...inputStyle}
-                        name="volume"
-                        value={numberWithCommasEn(item?.volume)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.volume`,
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        {...inputStyle}
-                        name="count"
-                        value={numberWithCommasEn(item?.count)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.count`,
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">

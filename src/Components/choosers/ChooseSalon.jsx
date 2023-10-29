@@ -24,36 +24,7 @@ export const GLOBAL_SALON = {
   people: [],
 };
 
-export const ChooseSalon = ({ control, name, rules }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [searchParams] = useSearchParams();
-
-  const { data: salon, isFetching } = useQuery(
-    ["salon", searchParams.get("salon")],
-    () =>
-      axiosApi({ url: `salon/${searchParams.get("salon")}` }).then(
-        (res) => res.data.Data
-      ),
-    {
-      enabled: !!searchParams.get("salon") && searchParams.get("salon") != 0,
-      staleTime: 10 * 60 * 1000,
-    }
-  );
-
-  // should render appropriate value, when url is changed
-  useEffect(() => {
-    if (salon && searchParams.get("salon")) {
-      field.onChange(salon);
-    } else {
-      field.onChange(null);
-    }
-    setTimeout(() => {
-      if (searchParams.get("salon") == 0) {
-        field.onChange(GLOBAL_SALON);
-      }
-    }, 0);
-  }, [searchParams.get("salon"), salon]);
-
+export const ChooseSalon = ({ control, name, rules, defaultGlobalSalon }) => {
   const {
     field,
     fieldState: { error },
@@ -63,6 +34,32 @@ export const ChooseSalon = ({ control, name, rules }) => {
     control,
     rules: rules,
   });
+  const [showModal, setShowModal] = useState(false);
+  const [searchParams] = useSearchParams();
+  const salon_id = searchParams.get("salon");
+  const { data: salon, isFetching } = useQuery(
+    ["salon", salon_id],
+    () => axiosApi({ url: `salon/${salon_id}` }).then((res) => res.data.Data),
+    {
+      enabled: !!salon_id && salon_id != 0,
+      staleTime: 10 * 60 * 1000,
+    }
+  );
+
+  // should render appropriate value, when url is changed
+  useEffect(() => {
+    if (salon && salon_id) {
+      field.onChange(salon);
+    } else {
+      field.onChange(GLOBAL_SALON);
+    }
+  }, [salon_id, salon]);
+
+  useEffect(() => {
+    if (defaultGlobalSalon) {
+      field.onChange(GLOBAL_SALON);
+    }
+  }, [defaultGlobalSalon]);
 
   const salonName = isFetching
     ? "بارگیری..."

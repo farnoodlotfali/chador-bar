@@ -1,18 +1,22 @@
-import { Box, CircularProgress, Skeleton, Stack } from "@mui/material";
+import { Skeleton, Stack } from "@mui/material";
 import { Link } from "react-router-dom";
-import { Suspense, memo } from "react";
-import { useVersionENV } from "hook/useVersionENV";
+import { Suspense, lazy, memo, useContext } from "react";
 
-const TableActionCell = ({ buttons = [], loading }) => {
-  const { LazyComponent } = useVersionENV("TableActionCell");
+import { loadENV } from "Utility/versions";
+import { AppContext } from "context/appContext";
+
+const LazyComponent = lazy(() =>
+  import(`Components/versions/TableActionCell/${loadENV()}TableActionCell`)
+);
+
+const TableActionCell = ({ buttons = [] }) => {
+  const { notPermissions } = useContext(AppContext);
+
   return (
     <Stack spacing={0.5} direction="row">
-      {loading ? (
-        <Box width={20} height={20}>
-          <CircularProgress color="secondary" size="1rem" />
-        </Box>
-      ) : (
-        buttons.map((button, index) => {
+      {buttons
+        .filter((item) => !notPermissions.includes(item?.name))
+        .map((button, index) => {
           return (
             <div key={`table-action-${index}`}>
               {button.link ? (
@@ -36,8 +40,7 @@ const TableActionCell = ({ buttons = [], loading }) => {
               )}
             </div>
           );
-        })
-      )}
+        })}
     </Stack>
   );
 };

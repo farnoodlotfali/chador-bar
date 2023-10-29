@@ -6,7 +6,7 @@ export const PRIMARY = {
   dark: {
     extraLight: "#F5F7F9",
     light: "#E5EFF2",
-    main: "#202C43",
+    main: "#536688",
     contrastText: whiteColor,
     100: "#c8d5ee",
     200: "#acb9d6",
@@ -37,7 +37,7 @@ export const PRIMARY = {
 export const SECONDARY = {
   dark: {
     light: "#e9ecfa",
-    main: "#1c2536",
+    main: "#8a96b0",
     contrastText: whiteColor,
     100: "#c8d2e4",
     200: "#aab4c9",

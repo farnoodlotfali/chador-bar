@@ -20,7 +20,7 @@ import { useInfinitePerson } from "hook/usePerson";
 import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiPersons = (props) => {
@@ -29,7 +29,7 @@ const MultiPersons = (props) => {
   const [searchVal, setSearchVal] = useState("");
   const { ref, inView } = useInView();
   const [searchParams] = useSearchParams();
-  const person_id = searchParams.getAll("person_id");
+  const person_id = searchParams.getAll(props.name);
   const {
     data: allPersons,
     isLoading,
@@ -41,6 +41,7 @@ const MultiPersons = (props) => {
   } = useInfinitePerson(filters, {
     enabled: showModal || !!person_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -51,29 +52,27 @@ const MultiPersons = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(person_id.length)) {
+    if (location.search.includes(props.name)) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(person_id.length)) {
+    if (isFetched && location.search.includes(props.name)) {
       // check if fields has all chosen drivers
-      if (fields.length !== person_id.length) {
-        // reset list
-        remove();
-        allPersons?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (person_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allPersons?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (person_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [person_id.length, allPersons?.pages?.length]);
+  }, [location.search, allPersons?.pages?.length]);
 
   const getPersons = (value) => {
     setFilters({ q: value });
@@ -102,8 +101,9 @@ const MultiPersons = (props) => {
       return (length ? enToFaNumber(length) + " " : "") + `${props.label}`;
     }
 
-    let str = fields?.[0]?.code;
-
+    let str = `  ${fields?.[0]?.first_name ?? "فاقد نام"} ${
+      fields?.[0]?.last_name ?? ""
+    }`;
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + `${props.label} دیگر...`;
     }

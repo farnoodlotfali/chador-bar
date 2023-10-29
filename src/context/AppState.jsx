@@ -12,6 +12,11 @@ const AppState = ({ children }) => {
       ? JSON.parse(localStorage.getItem("user"))
       : null
   );
+  const [notPermissions, setNotPermissions] = useState(
+    localStorage.getItem("not_permitted")
+      ? JSON.parse(localStorage.getItem("not_permitted"))
+      : []
+  );
   const [drawer, setDrawer] = useState(
     localStorage.getItem("drawer")
       ? JSON.parse(localStorage.getItem("drawer"))
@@ -37,6 +42,8 @@ const AppState = ({ children }) => {
         setDrawer: holdOpenMenu,
         user,
         setUser,
+        notPermissions,
+        setNotPermissions,
       }}
     >
       {children}

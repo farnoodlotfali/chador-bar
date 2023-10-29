@@ -2,10 +2,7 @@ import { useState } from "react";
 
 import {
   Button,
-  Card,
-  Collapse,
   Stack,
-  Typography,
   Grid,
   Box,
   TableBody,
@@ -24,13 +21,15 @@ import { FormContainer, FormInputs } from "Components/Form";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import { enToFaNumber, removeInvalidValues } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useVehicleCategory } from "hook/useVehicleCategory";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import CollapseForm from "Components/CollapseForm";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const HeadCells = [
   {
@@ -65,6 +64,7 @@ export default function VehicleCategory() {
     isFetching,
     isError,
   } = useVehicleCategory(searchParamsFilter);
+  const { hasPermission } = useHasPermission("vehicle-category.update");
 
   const deleteCategoryMutation = useMutation(
     (id) => axiosApi({ url: `/vehicle-category/${id}`, method: "delete" }),
@@ -90,9 +90,6 @@ export default function VehicleCategory() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -125,7 +122,7 @@ export default function VehicleCategory() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - نوع کامیون " />
+      <HelmetTitlePage title="نوع کامیون" />
 
       <AddNewVehicleCategory />
       <SearchBoxVehicleCategory />
@@ -135,9 +132,15 @@ export default function VehicleCategory() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteCategoryMutation.isLoading ||
+          updateVehicleMutation.isLoading
+        }
       >
         <TableBody>
-          {vehicleCategory.data.map((row) => {
+          {vehicleCategory?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -152,6 +155,7 @@ export default function VehicleCategory() {
                     onChange={() => {
                       changeCategoryStatus(row);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -162,6 +166,7 @@ export default function VehicleCategory() {
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteCategory(row.id),
+                        name: "vehicle-category.destroy",
                       },
                     ]}
                   />
@@ -171,7 +176,6 @@ export default function VehicleCategory() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -192,6 +196,7 @@ const SearchBoxVehicleCategory = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -205,6 +210,7 @@ const SearchBoxVehicleCategory = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
@@ -234,6 +240,16 @@ const SearchBoxVehicleCategory = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -307,6 +323,8 @@ const AddNewVehicleCategory = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن نوع کامیون"
+      name="vehicle-category.store"
+      
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

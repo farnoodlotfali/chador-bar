@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
-import { Card, Divider, Stack } from "@mui/material";
+import { Card, Divider, Grid, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
@@ -8,7 +8,6 @@ import { ChooseFleet } from "Components/choosers/ChooseFleet";
 import { ChooseProduct } from "Components/choosers/ChooseProduct";
 import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import { FormContainer, FormInputs } from "Components/Form";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -19,13 +18,22 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
-import { compareTimes } from "Utility/utils";
+import {
+  compareTimes,
+  numberWithCommas,
+  zipCodeRegexPattern,
+} from "Utility/utils";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const NewRequest = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [prices, setPrices] = useState({
+    high_price: null,
+    low_price: null,
+  });
 
   const {
     handleSubmit,
@@ -34,6 +42,7 @@ const NewRequest = () => {
     setValue,
     watch,
     control,
+    trigger,
   } = useForm();
 
   const addMutation = useMutation(
@@ -49,10 +58,12 @@ const NewRequest = () => {
   );
 
   useEffect(() => {
-    if (watch("fleet"))
+    if (watch("fleet")) {
       setValue("driver", watch("fleet")?.drivers?.[0], {
         shouldValidate: true,
       });
+      trigger("vehicle_type");
+    }
   }, [watch("fleet")]);
 
   useEffect(() => {
@@ -135,6 +146,10 @@ const NewRequest = () => {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
     {
@@ -192,6 +207,7 @@ const NewRequest = () => {
           rules={{
             required: "کد سالن را وارد کنید",
           }}
+          defaultGlobalSalon={true}
         />
       ),
       gridProps: { md: 4 },
@@ -259,7 +275,10 @@ const NewRequest = () => {
           control={control}
           name={"vehicle_type"}
           rules={{
-            required: "نوع بارگیر را وارد کنید",
+            required: {
+              value: !watch("fleet"),
+              message: "نوع بارگیر را وارد کنید",
+            },
           }}
           label="نوع بارگیر"
         />
@@ -325,6 +344,7 @@ const NewRequest = () => {
           rules={{
             required: "راننده را وارد کنید",
           }}
+          label="راننده اول"
         />
       ),
       gridProps: { md: 4 },
@@ -337,6 +357,8 @@ const NewRequest = () => {
           name={"second_driver"}
           dataArray={watch("fleet")}
           isLoadFromApi={false}
+          label="راننده دوم"
+          notAllowedDriver={watch("driver")}
         />
       ),
       gridProps: { md: 4 },
@@ -407,6 +429,10 @@ const NewRequest = () => {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
     {
@@ -431,24 +457,6 @@ const NewRequest = () => {
       rules: {
         required: { value: true, message: "مبلغ را وارد کنید" },
       },
-    },
-    {
-      type: "number",
-      name: "high_price",
-      label: "قیمت حد بالای سامانه",
-      control: control,
-      splitter: true,
-      noInputArrow: true,
-      readOnly: true,
-    },
-    {
-      type: "number",
-      name: "low_price",
-      label: "قیمت حد پایین سامانه",
-      control: control,
-      splitter: true,
-      noInputArrow: true,
-      readOnly: true,
     },
   ];
 
@@ -482,8 +490,10 @@ const NewRequest = () => {
       toast.success("عملیات با موفقیت انجام گردید.");
 
       if (res.data.Data) {
-        setValue("high_price", res.data.Data?.high_price);
-        setValue("low_price", res.data.Data?.low_price);
+        setPrices({
+          high_price: res.data.Data?.high_price,
+          low_price: res.data.Data?.low_price,
+        });
       }
     } catch (error) {
       console.log(error);
@@ -494,6 +504,7 @@ const NewRequest = () => {
 
   // handle on submit
   const onSubmit = async (data) => {
+    console.log(data);
     let {
       fleet,
       driver,
@@ -520,7 +531,9 @@ const NewRequest = () => {
     newData.project_id = project?.id;
     newData.receiver_id = receiver.id;
     newData.sender_id = sender.id;
-    newData.salon_id = salon.id ?? null;
+    newData.salon_id = salon.id === 0 ? null : salon.id;
+    newData.high_price = prices.high_price;
+    newData.low_price = prices.low_price;
 
     const loadTimeValue = load_time.load_time.replaceAll("/", "-");
     const dischargeTimeValue = discharge_time.discharge_time.replaceAll(
@@ -555,7 +568,8 @@ const NewRequest = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - درخواست جدید" />
+      <HelmetTitlePage title="درخواست‌ جدید" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
@@ -603,7 +617,29 @@ const NewRequest = () => {
 
             <FormTypography>قیمت</FormTypography>
 
-            <FormInputs inputs={PricesInputs} />
+            <FormInputs inputs={PricesInputs}>
+              <Grid item md={"auto"} xs={12}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  قیمت حد بالای سامانه
+                </Typography>
+                <Typography fontSize={14} mt={1}>
+                  {prices.high_price
+                    ? numberWithCommas(prices.high_price) + " تومان"
+                    : "بدون قیمت"}
+                </Typography>
+              </Grid>
+
+              <Grid item md={"auto"} xs={12}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  قیمت حد پایین سامانه
+                </Typography>
+                <Typography fontSize={14} mt={1}>
+                  {prices.low_price
+                    ? numberWithCommas(prices.high_price) + " تومان"
+                    : "بدون قیمت"}
+                </Typography>
+              </Grid>
+            </FormInputs>
 
             <Stack
               mt={10}

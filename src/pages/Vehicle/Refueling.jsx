@@ -10,9 +10,6 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-
-import LoadingSpinner from "Components/versions/LoadingSpinner";
-
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
@@ -23,7 +20,6 @@ import {
   removeInvalidValues,
   renderPlaqueObjectToString,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useRefueling } from "hook/useRefueling";
@@ -31,6 +27,8 @@ import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useForm } from "react-hook-form";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -84,9 +82,6 @@ export default function RefuelingList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -105,7 +100,7 @@ export default function RefuelingList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  سوخت گیری خودروها" />
+      <HelmetTitlePage title="سوخت گیری خودروها" />
 
       <SearchBoxRefueling />
 
@@ -113,10 +108,11 @@ export default function RefuelingList() {
         {...vehicleRefueling}
         headCells={HeadCells}
         filters={searchParamsFilter}
+        loading={isLoading || isFetching || deleteRefuelingMutation.isLoading}
         setFilters={setSearchParamsFilter}
       >
         <TableBody>
-          {vehicleRefueling.data.map((row) => {
+          {vehicleRefueling?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -137,14 +133,16 @@ export default function RefuelingList() {
                       {
                         tooltip: "مشاهده خودرو",
                         color: "secondary",
-                        icon: "eyes",
+                        icon: "eye",
                         link: `/vehicle/${row.vehicle_id}`,
+                        name: "vehicle.show",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteRefueling(row.id),
+                        name: "refueling.destroy",
                       },
                     ]}
                   />
@@ -154,7 +152,6 @@ export default function RefuelingList() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -175,6 +172,7 @@ const SearchBoxRefueling = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -188,12 +186,13 @@ const SearchBoxRefueling = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -217,6 +216,16 @@ const SearchBoxRefueling = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

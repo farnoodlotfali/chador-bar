@@ -13,9 +13,6 @@ import {
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
-
-
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
@@ -28,7 +25,6 @@ import {
   renderChipForInquiry,
   renderPlaqueObjectToString,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -42,6 +38,9 @@ import VehicleTypeDetailModal from "Components/modals/VehicleTypeDetailModal";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import VehicleDetailModal from "Components/modals/VehicleDetailModal";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const headCells = [
   {
@@ -102,7 +101,11 @@ export default function VehicleList() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  const { data: colors, isFetching: isFetchingColor } = useVehicleColor();
+  const {
+    data: colors,
+    isFetching: isFetchingColor,
+    isLoading: isLoadingColor,
+  } = useVehicleColor();
 
   const {
     data: vehicles,
@@ -110,6 +113,7 @@ export default function VehicleList() {
     isFetching,
     isError,
   } = useVehicle(searchParamsFilter);
+  const { hasPermission } = useHasPermission("vehicle.change-status");
 
   const updateVehicleMutation = useMutation(
     (form) =>
@@ -132,9 +136,6 @@ export default function VehicleList() {
     }
   );
 
-  if (isLoading || isFetching || isFetchingColor) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -172,7 +173,7 @@ export default function VehicleList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - خودروها" />
+      <HelmetTitlePage title="خودروها" />
 
       <AddNewVehicle />
 
@@ -183,9 +184,17 @@ export default function VehicleList() {
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          isFetchingColor ||
+          isLoadingColor ||
+          deleteVehicleMutation.isLoading ||
+          updateVehicleMutation.isLoading
+        }
       >
         <TableBody>
-          {vehicles.data.map((row) => {
+          {vehicles?.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -230,6 +239,7 @@ export default function VehicleList() {
                     onChange={() => {
                       changeVehicleStatus(row);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell align="center" scope="row">
@@ -252,12 +262,14 @@ export default function VehicleList() {
                         color: "secondary",
                         icon: "eye",
                         onClick: () => showVehicleModal(row),
+                        name: "vehicle.show",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteVehicle(row),
+                        name: "vehicle.destroy",
                       },
                     ]}
                   />
@@ -300,6 +312,7 @@ const SearchBoxVehicle = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -313,12 +326,13 @@ const SearchBoxVehicle = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -342,6 +356,16 @@ const SearchBoxVehicle = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -531,6 +555,7 @@ const AddNewVehicle = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن خودرو"
+      name="vehicle.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

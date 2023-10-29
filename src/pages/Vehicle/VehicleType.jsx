@@ -25,7 +25,6 @@ import {
   renderSelectOptions1,
   renderWeight,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -35,6 +34,9 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import Modal from "Components/versions/Modal";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import CollapseForm from "Components/CollapseForm";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const HeadCells = [
   {
@@ -82,6 +84,7 @@ export default function VehicleType() {
     isFetching,
     isError,
   } = useVehicleType(searchParamsFilter);
+  const { hasPermission } = useHasPermission("vehicle-type.update");
 
   const { data: vehicleCategory } = useVehicleCategory();
 
@@ -109,9 +112,6 @@ export default function VehicleType() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -149,7 +149,7 @@ export default function VehicleType() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  نوع بارگیر‌ها" />
+      <HelmetTitlePage title="نوع بارگیر‌ها" />
 
       <AddNewVehicleType vehicleCategory={vehicleCategory} />
       <SearchBoxVehicleType />
@@ -159,9 +159,15 @@ export default function VehicleType() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteTypeMutation.isLoading ||
+          updateVehicleMutation.isLoading
+        }
       >
         <TableBody>
-          {vehicleType.data.map((row) => {
+          {vehicleType?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -185,6 +191,7 @@ export default function VehicleType() {
                     onChange={() => {
                       changeTypeStatus(row);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -193,14 +200,16 @@ export default function VehicleType() {
                       {
                         tooltip: "ویرایش",
                         color: "warning",
-                        icon: "pencils",
+                        icon: "pencil",
                         onClick: () => handleEditType(row),
+                        name: "vehicle-type.update",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteType(row.id),
+                        name: "vehicle-type.destroy",
                       },
                     ]}
                   />
@@ -210,7 +219,6 @@ export default function VehicleType() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -236,6 +244,7 @@ const SearchBoxVehicleType = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -249,12 +258,13 @@ const SearchBoxVehicleType = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -278,6 +288,16 @@ const SearchBoxVehicleType = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -371,6 +391,7 @@ const AddNewVehicleType = ({ vehicleCategory }) => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن نوع بارگیر"
+      name="vehicle-type.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

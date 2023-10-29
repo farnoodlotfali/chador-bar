@@ -18,13 +18,17 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInfiniteFleet } from "hook/useFleet";
 import { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useForm, useFormState } from "react-hook-form";
-import { enToFaNumber, renderPlaqueObjectToString } from "Utility/utils";
-import MultiGroup from "./MultiGroup";
+import {
+  enToFaNumber,
+  renderPlaqueObjectToString,
+  stopPropagate,
+} from "Utility/utils";
 import { FormContainer, FormInputs } from "Components/Form";
 import { LoadingButton } from "@mui/lab";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import FormTypography from "Components/FormTypography";
+import MultiFleetGroup from "./MultiFleetGroup";
 
 const MultiFleets = (props) => {
   const [filters, setFilters] = useState({});
@@ -44,7 +48,7 @@ const MultiFleets = (props) => {
   } = useInfiniteFleet(filters, {
     enabled: showModal || !!fleet_id.length,
   });
-
+  const location = useLocation();
   // fetch next page when reaching to end of list
   useEffect(() => {
     if (hasNextPage && inView) {
@@ -54,29 +58,27 @@ const MultiFleets = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(fleet_id.length)) {
+    if (location.search.includes("fleet_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(fleet_id.length)) {
+    if (isFetched && location.search.includes("fleet_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== fleet_id.length) {
-        // reset list
-        remove();
-        allFleets?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (fleet_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allFleets?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (fleet_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [fleet_id.length, allFleets?.pages?.length]);
+  }, [location.search, allFleets?.pages?.length]);
 
   const getFleets = (value) => {
     setFilters({ q: value });
@@ -113,23 +115,30 @@ const MultiFleets = (props) => {
     }
 
     let str = fields?.[0]?.vehicle?.plaque;
-    console.log("fields1", fields?.[0]?.vehicle?.plaque);
+    let appropriatePlaqueNum = str
+      ? enToFaNumber(str?.firstPart) +
+        str?.letter +
+        enToFaNumber(str?.secondPart) +
+        "ایران" +
+        enToFaNumber(str?.Iran)
+      : "-";
+
     if (length > 1) {
-      let str1 = `${str?.firstPart}${str?.letter}${str?.secondPart}ایران${
-        str?.Iran
-      } و ${enToFaNumber(length - 1)} ناوگان دیگر...`;
+      let str1 = `${appropriatePlaqueNum} و ${enToFaNumber(
+        length - 1
+      )} ناوگان دیگر...`;
 
       return str1;
     }
 
-    return `${str?.firstPart}${str?.letter}${str?.secondPart}ایران${str?.Iran}`;
+    return appropriatePlaqueNum;
   };
 
   const Inputs = [
     {
       type: "custom",
       customView: (
-        <MultiGroup
+        <MultiFleetGroup
           control={control}
           name={"fleet_group"}
           label="گروه ناوگان"
@@ -181,6 +190,7 @@ const MultiFleets = (props) => {
           </FormHelperText>
         )}
       </FormControl>
+
       <Modal open={showModal} onClose={toggleShowModal}>
         <FormTypography>انتخاب ناوگان</FormTypography>{" "}
         <Grid container spacing={1}>
@@ -194,7 +204,7 @@ const MultiFleets = (props) => {
             />
           </Grid>
           <Grid item xs={12} md={8}>
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={stopPropagate(handleSubmit(onSubmit))}>
               <FormContainer
                 data={watch()}
                 setData={handleChange}

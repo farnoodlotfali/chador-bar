@@ -27,7 +27,6 @@ import {
   renderPlaqueObjectToString,
   renderTimeCalender,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 
 import { useForm } from "react-hook-form";
 import { useFleet } from "hook/useFleet";
@@ -41,6 +40,8 @@ import { toast } from "react-toastify";
 import ShowDriverFleet from "Components/modals/ShowDriverFleet";
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -103,32 +104,29 @@ export default function FreeFleetList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ناوگان آزاد  " />
+      <HelmetTitlePage title="ناوگان آزاد" />
 
       <SearchBoxFreeFleet />
 
-      {isLoading || isFetching ? (
-        <LoadingSpinner />
-      ) : (
-        <Table
-          {...fleet}
-          headCells={HeadCells}
-          filters={searchParamsFilter}
-          setFilters={setSearchParamsFilter}
-        >
-          <TableBody>
-            {fleet.items?.data.map((row, i) => {
-              return (
-                <FleetRow
-                  key={row.id}
-                  row={row}
-                  handleShowVehicleModal={handleShowVehicleModal}
-                />
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+      <Table
+        {...fleet}
+        headCells={HeadCells}
+        filters={searchParamsFilter}
+        setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching}
+      >
+        <TableBody>
+          {fleet?.items?.data.map((row, i) => {
+            return (
+              <FleetRow
+                key={row.id}
+                row={row}
+                handleShowVehicleModal={handleShowVehicleModal}
+              />
+            );
+          })}
+        </TableBody>
+      </Table>
 
       <VehicleDetailModal
         show={showVehicleModal}
@@ -149,6 +147,7 @@ const SearchBoxFreeFleet = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -199,6 +198,12 @@ const SearchBoxFreeFleet = () => {
       gridProps: { md: 4 },
     },
   ];
+
+  const { resetValues } = useLoadSearchParamsAndReset(
+    Inputs.concat(zoneInput),
+    reset
+  );
+
   // handle on change inputs
   const handleChange = (name, value) => {
     setValue(name, value);
@@ -228,6 +233,16 @@ const SearchBoxFreeFleet = () => {
             <Divider sx={{ mt: 2 }} />
             <FormInputs inputs={zoneInput} gridProps={{ md: 12 }} />
             <Stack direction="row" spacing={2} justifyContent={"end"} mt={2}>
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button variant="contained" type="submit">
                 اعمال فیلتر
               </Button>

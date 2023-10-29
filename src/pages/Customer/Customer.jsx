@@ -7,17 +7,16 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { FormContainer, FormInputs } from "Components/Form";
 import { GENDER } from "Constants";
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
-import { enToFaNumber, renderPlaqueObjectToString } from "Utility/utils";
-import { useVehicleColor } from "hook/useVehicleColor";
-import { ChooseVehicle } from "Components/choosers/vehicle/ChooseVehicle";
+import { enToFaNumber,  } from "Utility/utils";
+
 import moment from "jalali-moment";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 export default function Customer() {
   const { id } = useParams();
@@ -191,7 +190,9 @@ export default function Customer() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ویرایش مشتری" />
+      <HelmetTitlePage title="ویرایش مشتری" />
+
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

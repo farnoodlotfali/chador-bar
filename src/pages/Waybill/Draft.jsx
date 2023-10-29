@@ -19,15 +19,16 @@ import {
   renderWeight,
   removeInvalidValues,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import DraftPaper from "Components/papers/DraftPaper";
 import WayBillPaper from "Components/papers/WaybillPaper";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
+
 import { useDraft } from "hook/useDraft";
 import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useForm } from "react-hook-form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -79,23 +80,16 @@ export default function Draft() {
   const [showDraftDetails, setShowDraftDetails] = useState(false);
 
   const {
-    data: allWaybills,
+    data: allDrafts,
     isError,
     isLoading,
     isFetching,
   } = useDraft(searchParamsFilter);
 
-  // if data is loading or fetching
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
-
   // if api has got error
   if (isError) {
     return <div className="">error</div>;
   }
-
-  const { items } = allWaybills;
 
   // Logic functions
 
@@ -111,18 +105,19 @@ export default function Draft() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - حواله‌ها" />
+      <HelmetTitlePage title="حواله‌ها" />
 
       <SearchBoxDraft />
 
       <Table
-        {...items}
+        {...allDrafts?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allDrafts?.items.data.map((row) => {
             let buttons = [
               {
                 tooltip: "نمایش حواله",
@@ -130,6 +125,7 @@ export default function Draft() {
                 icon: "eye",
                 disabled: selectedRowData?.waybill === null,
                 onClick: () => toggleShowDraftDetails(row),
+                name: "draft.show",
               },
             ];
 
@@ -190,7 +186,6 @@ export default function Draft() {
           })}
         </TableBody>
       </Table>
-
       <DetailsModal
         open={showDetails}
         onClose={() => toggleShowDetails()}
@@ -215,6 +210,7 @@ const SearchBoxDraft = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -228,6 +224,7 @@ const SearchBoxDraft = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
@@ -257,6 +254,16 @@ const SearchBoxDraft = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

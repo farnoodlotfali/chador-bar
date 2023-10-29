@@ -1,5 +1,4 @@
 import { useState } from "react";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import {
   TableBody,
@@ -9,7 +8,6 @@ import {
   Box,
   Button,
 } from "@mui/material";
-
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
@@ -22,7 +20,6 @@ import {
   removeInvalidValues,
   renderSelectOptions,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { axiosApi } from "api/axiosApi";
 import { useOwnerTypes } from "hook/useOwnerTypes";
 import { useTransportationTypes } from "hook/useTransportationTypes";
@@ -35,6 +32,8 @@ import { useForm } from "react-hook-form";
 import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -113,14 +112,9 @@ export default function ContractList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
-
-  const { items } = allContract;
 
   const showModalToRemove = (request) => {
     setRequestItem(request);
@@ -141,20 +135,22 @@ export default function ContractList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - قراردادها " />
+      <HelmetTitlePage title="قراردادها" />
+
       <SearchBoxContract
         transportationTypes={transportationTypes}
         ownerTypes={ownerTypes}
       />
 
       <Table
-        {...items}
+        {...allContract?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteMutation.isLoading}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allContract?.items.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -208,12 +204,14 @@ export default function ContractList() {
                         color: "warning",
                         icon: "pencil",
                         link: `/contract/${row.id}`,
+                        name: "contract.update",
                       },
                       {
                         tooltip: "حذف کردن",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => showModalToRemove(row),
+                        name: "contract.destroy",
                       },
                     ]}
                   />
@@ -223,7 +221,6 @@ export default function ContractList() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         message="ایا مطمئن هستید؟"
         open={acceptRemoveModal}
@@ -243,16 +240,14 @@ export default function ContractList() {
 const SearchBoxContract = ({ transportationTypes, ownerTypes }) => {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [openCollapse, setOpenCollapse] = useState(false);
-
   const {
     control,
     formState: { errors },
     setValue,
     watch,
     handleSubmit,
-  } = useForm({
-    defaultValues: searchParamsFilter,
-  });
+    reset,
+  } = useForm({ defaultValues: searchParamsFilter });
 
   const Inputs = [
     {
@@ -283,12 +278,13 @@ const SearchBoxContract = ({ transportationTypes, ownerTypes }) => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -312,6 +308,16 @@ const SearchBoxContract = ({ transportationTypes, ownerTypes }) => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

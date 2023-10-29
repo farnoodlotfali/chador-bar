@@ -3,13 +3,13 @@ import LoadingButton from "@mui/lab/LoadingButton";
 
 import { FormContainer, FormInputs } from "Components/Form";
 import { GENDER, SENDER_RECEIVER } from "Constants";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const NewPerson = () => {
   const navigate = useNavigate();
@@ -150,7 +150,8 @@ const NewPerson = () => {
   };
   return (
     <>
-      <Helmet title="پنل دراپ - فرستنده/گیرنده جدید" />
+      <HelmetTitlePage title="فرستنده/گیرنده جدید" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

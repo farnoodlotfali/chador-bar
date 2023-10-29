@@ -12,11 +12,13 @@ import {
   IconButton,
   Button,
   Card,
+  Box,
 } from "@mui/material";
 
 import { enToFaNumber } from "Utility/utils";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { SvgSPrite } from "Components/SvgSPrite";
+import LoadingSpinner from "../LoadingSpinner";
 
 const sortIconsStyle = { ml: 1, fontSize: "12px" };
 
@@ -34,6 +36,7 @@ export default function BarestanTable(props) {
     current_page,
     next_page_url,
     prev_page_url,
+    loading,
   } = props;
 
   const handleChangePageLength = (event) => {
@@ -65,72 +68,88 @@ export default function BarestanTable(props) {
         handleChangePageLength={handleChangePageLength}
         handleChangePage={handleChangePage}
       />
+      <Box position="relative">
+        <TableContainer
+          component={Paper}
+          elevation={1}
+          sx={{ maxHeight: "calc(100vh - 132px)" }}
+        >
+          <MuiTable sx={{ minWidth: 650 }} stickyHeader>
+            <TableHead>
+              <TableRow>
+                {headCells?.map((cell) => {
+                  return (
+                    <TableCell
+                      key={cell.id}
+                      sx={{
+                        fontWeight: "bold",
+                        bgcolor: "background.paper",
+                        textAlign: cell.label === "عملیات" ? "start" : "center",
+                      }}
+                    >
+                      {cell.sortable ? (
+                        <Button
+                          color="secondary"
+                          sx={{ fontWeight: "bold" }}
+                          onClick={() => cell.sortable && handleSort(cell.id)}
+                        >
+                          {cell.label}
+                          {cell.sortable && (
+                            <>
+                              {filters?.[`sort[column]`] === cell.id ? (
+                                <>
+                                  {filters?.[`sort[dir]`] === "asc" ? (
+                                    <SvgSPrite
+                                      icon={"arrow-up-short-wide"}
+                                      sxStyles={sortIconsStyle}
+                                      size={16}
+                                    />
+                                  ) : (
+                                    <SvgSPrite
+                                      icon={"arrow-down-short-wide"}
+                                      sxStyles={sortIconsStyle}
+                                      size={16}
+                                    />
+                                  )}
+                                </>
+                              ) : (
+                                <SvgSPrite
+                                  icon={"bars-sort"}
+                                  sxStyles={sortIconsStyle}
+                                  size={16}
+                                />
+                              )}
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        cell.label
+                      )}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            </TableHead>
 
-      <TableContainer
-        component={Paper}
-        elevation={1}
-        sx={{ maxHeight: "calc(100vh - 132px)" }}
-      >
-        <MuiTable sx={{ minWidth: 650 }} stickyHeader>
-          <TableHead>
-            <TableRow>
-              {headCells?.map((cell) => {
-                return (
-                  <TableCell
-                    key={cell.id}
-                    sx={{
-                      fontWeight: "bold",
-                      bgcolor: "background.paper",
-                      textAlign: cell.label === "عملیات" ? "start" : "center",
-                    }}
-                  >
-                    {cell.sortable ? (
-                      <Button
-                        color="secondary"
-                        sx={{ fontWeight: "bold" }}
-                        onClick={() => cell.sortable && handleSort(cell.id)}
-                      >
-                        {cell.label}
-                        {cell.sortable && (
-                          <>
-                            {filters?.[`sort[column]`] === cell.id ? (
-                              <>
-                                {filters?.[`sort[dir]`] === "asc" ? (
-                                  <SvgSPrite
-                                    icon={"arrow-up-short-wide"}
-                                    sxStyles={sortIconsStyle}
-                                    size={16}
-                                  />
-                                ) : (
-                                  <SvgSPrite
-                                    icon={"arrow-down-short-wide"}
-                                    sxStyles={sortIconsStyle}
-                                    size={16}
-                                  />
-                                )}
-                              </>
-                            ) : (
-                              <SvgSPrite
-                                icon={"bars-sort"}
-                                sxStyles={sortIconsStyle}
-                                size={16}
-                              />
-                            )}
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      cell.label
-                    )}
-                  </TableCell>
-                );
-              })}
-            </TableRow>
-          </TableHead>
+            {children}
+          </MuiTable>
+        </TableContainer>
 
-          {children}
-        </MuiTable>
-      </TableContainer>
+        {loading && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 100,
+              bgcolor: (theme) => `${theme.palette.primary.extraLight}20`,
+              backdropFilter: "blur(2px)",
+            }}
+          >
+            <LoadingSpinner />
+          </Box>
+        )}
+      </Box>
+
       <FilterSection
         {...props}
         isTop={true}

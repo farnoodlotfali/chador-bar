@@ -5,74 +5,143 @@ import {
   IconButton,
   Collapse,
   Tooltip,
+  Rating,
 } from "@mui/material";
-import { enToFaNumber, renderTimeCalender } from "Utility/utils";
+import { enToFaNumber, renderTimeCalender, stopPropagate } from "Utility/utils";
 import { useMemo, useState } from "react";
 import { SvgSPrite } from "Components/SvgSPrite";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import DriverReportModal from "Components/modals/DriverReportModal";
 
 const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
   const [openDriverTime, setOpenDriverTime] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+
+  const toggleShowScores = () => {
+    setOpenModal("personScore");
+  };
+  const handleShowDriverReportModal = () => {
+    setOpenModal("driverReport");
+  };
+  const toggleOpenModal = () => {
+    setOpenModal(null);
+  };
 
   return (
-    <Box
-      sx={{
-        boxShadow: 1,
-        cursor: "pointer",
-        bgcolor: data?.id === driver.id ? "primary.main" : "background.paper",
-        color: (theme) =>
-          data?.id === driver.id ? theme.palette.common.white : "inherit",
-        borderRadius: 1,
-        p: 1,
-      }}
-    >
+    <>
       <Box
         sx={{
-          width: "100%",
-          p: timeLine ? 1 : 2,
-        }}
-        onClick={() => {
-          setData(driver);
+          boxShadow: 1,
+          cursor: "pointer",
+          bgcolor: data?.id === driver.id ? "primary.main" : "background.paper",
+          color: (theme) =>
+            data?.id === driver.id ? theme.palette.common.white : "inherit",
+          borderRadius: 1,
+          p: 1,
         }}
       >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{ width: "100%" }}
+        <Box
+          sx={{
+            width: "100%",
+            p: timeLine ? 1 : 2,
+          }}
+          onClick={() => {
+            setData(driver);
+          }}
         >
-          <Typography>
-            {timeLine ? driver?.first_name : driver?.person?.first_name}{" "}
-            {timeLine ? driver?.last_name : driver?.person?.last_name}
-          </Typography>
-          <Typography>{enToFaNumber(driver?.mobile)}</Typography>
-        </Stack>
-      </Box>
-      {timeLine && (
-        <>
-          <Tooltip title="مشاهده تقویم کاری راننده" placement="left" arrow>
-            <IconButton
-              size="small"
-              onClick={() => {
-                setOpenDriverTime((prev) => !prev);
-              }}
-              sx={{
-                color: (theme) =>
-                  data?.id === driver.id
-                    ? theme.palette.common.white
-                    : "inherit",
-              }}
-            >
-              {openDriverTime ? (
-                <SvgSPrite icon="chevron-up" size="small" />
-              ) : (
-                <SvgSPrite icon="chevron-down" size="small" />
-              )}
-            </IconButton>
-          </Tooltip>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{ width: "100%" }}
+          >
+            <Typography>
+              {timeLine ? driver?.first_name : driver?.person?.first_name}{" "}
+              {timeLine ? driver?.last_name : driver?.person?.last_name}
+            </Typography>
+            <Typography>{enToFaNumber(driver?.mobile)}</Typography>
+            <Stack direction="row" spacing={1}>
+              <Rating
+                precision={0.2}
+                value={driver?.rating}
+                size="small"
+                readOnly
+                color="inherit"
+                sx={{
+                  "& .MuiSvgIcon-root": {
+                    fill: (theme) =>
+                      data?.id === driver.id || theme.palette.mode === "dark"
+                        ? theme.palette.common.white
+                        : "inherit",
+                  },
+                }}
+              />
+              <Tooltip placement="top" title="مشاهده تاریخچه امتیازات">
+                <Box
+                  sx={{ cursor: "pointer" }}
+                  onClick={stopPropagate(toggleShowScores)}
+                >
+                  <SvgSPrite
+                    icon="rectangle-history-circle-user"
+                    color="inherit"
+                    size={20}
+                  />
+                </Box>
+              </Tooltip>
+            </Stack>
 
-          <DriverTimeMonth key={driver.id} row={fleet} open={openDriverTime} />
-        </>
-      )}
-    </Box>
+            <Tooltip placement="top" title="گزارش">
+              <Box
+                sx={{ cursor: "pointer" }}
+                onClick={stopPropagate(handleShowDriverReportModal)}
+              >
+                <SvgSPrite icon="memo-pad" color="inherit" size={20} />
+              </Box>
+            </Tooltip>
+          </Stack>
+        </Box>
+        {timeLine && (
+          <>
+            <Tooltip title="مشاهده تقویم کاری راننده" placement="left" arrow>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setOpenDriverTime((prev) => !prev);
+                }}
+                sx={{
+                  color: (theme) =>
+                    data?.id === driver.id
+                      ? theme.palette.common.white
+                      : "grey",
+                }}
+              >
+                {openDriverTime ? (
+                  <SvgSPrite icon="chevron-up" size="small" />
+                ) : (
+                  <SvgSPrite icon="chevron-down" size="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+
+            <DriverTimeMonth
+              key={driver.id}
+              selected={data?.id === driver.id}
+              row={fleet}
+              open={openDriverTime}
+            />
+          </>
+        )}
+      </Box>
+      <ShowPersonScoreModal
+        show={openModal === "personScore"}
+        onClose={toggleOpenModal}
+      />
+
+      <DriverReportModal
+        open={openModal === "driverReport"}
+        onClose={toggleOpenModal}
+        data={driver}
+      />
+    </>
   );
 };
 

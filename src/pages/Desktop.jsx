@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Card,
   CircularProgress,
@@ -7,7 +8,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Helmet } from "react-helmet-async";
 import PieChart from "Components/charts/PieChart";
 import { useQuery } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
@@ -16,11 +16,12 @@ import { useNavigate } from "react-router-dom";
 
 import { SvgSPrite } from "Components/SvgSPrite";
 import { enToFaNumber } from "Utility/utils";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const Desktop = () => {
   return (
     <>
-      <Helmet title="پنل بارستان - میزکار" />
+      <HelmetTitlePage title="میزکار" />
       <Grid container spacing={2} flexWrap="wrap">
         {[
           <RequestsCount />,
@@ -52,6 +53,7 @@ const Desktop = () => {
     </>
   );
 };
+const HEIGHT = 400;
 
 const RequestPerDays = () => {
   const { data, isError, isFetching, isLoading } = useQuery({
@@ -62,7 +64,7 @@ const RequestPerDays = () => {
 
   const renderBarLabels = () => {
     let arr = [];
-    Object.keys(data).forEach((e) => arr.push(e));
+    Object.keys(data).forEach((e) => arr.push(enToFaNumber(e)));
 
     return arr;
   };
@@ -80,7 +82,12 @@ const RequestPerDays = () => {
           sx={{ display: "flex", m: "auto", mt: 4 }}
         />
       ) : (
-        <BarChart labels={renderBarLabels()} dataValues={Object.values(data)} />
+        <Box height={HEIGHT} display="flex" alignItems="center">
+          <BarChart
+            labels={renderBarLabels()}
+            dataValues={Object.values(data)}
+          />
+        </Box>
       )}
     </Paper>
   );
@@ -100,8 +107,8 @@ const RequestStatuses = () => {
     return arr;
   };
   return (
-    <Paper elevation={2} sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight={600}>
+    <Paper elevation={2}>
+      <Typography variant="h5" fontWeight={600} p={3}>
         وضعیت درخواست های حمل
       </Typography>
 
@@ -113,10 +120,13 @@ const RequestStatuses = () => {
           sx={{ display: "flex", m: "auto", mt: 4 }}
         />
       ) : (
-        <PieChart
-          labels={renderPieLabels()}
-          dataValues={Object.values(data.requests)}
-        />
+        <Box height={HEIGHT} display="flex" justifyContent="center">
+          <PieChart
+            labels={renderPieLabels()}
+            dataValues={Object.values(data.requests)}
+            height={HEIGHT}
+          />
+        </Box>
       )}
     </Paper>
   );

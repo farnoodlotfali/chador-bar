@@ -14,9 +14,8 @@ import {
   Box,
   Button,
   IconButton,
+  Rating,
 } from "@mui/material";
-
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import Modal from "Components/versions/Modal";
@@ -28,7 +27,6 @@ import {
   renderChipForInquiry,
   renderPlaqueObjectToString,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useDriver } from "hook/useDriver";
 
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
@@ -37,10 +35,15 @@ import CollapseForm from "Components/CollapseForm";
 import { useForm } from "react-hook-form";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
 import VehicleDetailModal from "Components/modals/VehicleDetailModal";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import { useHasPermission } from "hook/useHasPermission";
+import DriverReportModal from "Components/modals/DriverReportModal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const headCells = [
   {
@@ -55,6 +58,11 @@ const headCells = [
   {
     id: "mobile",
     label: "موبایل",
+  },
+  {
+    id: "rating",
+    label: "امتیاز",
+    sortable: true,
   },
   {
     id: "car",
@@ -81,14 +89,15 @@ const headCells = [
 export default function DriverList() {
   const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const {
     data: allDrivers,
     isLoading,
     isFetching,
     isError,
   } = useDriver(searchParamsFilter);
-  const [showDetails, setShowDetails] = useState(false);
+  const { hasPermission } = useHasPermission("driver.inquiry");
+
+  const [openModal, setOpenModal] = useState(null);
   const [selectedRowData, setSelectedRowData] = useState();
   const inquiryMutation = useMutation(
     (id) => axiosApi({ url: `/inquiry/${id}`, method: "post" }),
@@ -115,137 +124,185 @@ export default function DriverList() {
   };
 
   const toggleShowDetails = (rowData) => {
-    setShowDetails((prev) => !prev);
+    setOpenModal("detail");
+    if (rowData) setSelectedRowData(rowData);
+  };
+
+  const toggleShowScores = (rowData) => {
+    setOpenModal("personScore");
     if (rowData) setSelectedRowData(rowData);
   };
 
   const handleShowVehicleModal = (rowData) => {
-    setShowVehicleModal((prev) => !prev);
+    setOpenModal("vehicleDetail");
     if (rowData) setSelectedRowData(rowData);
+  };
+  const handleShowDriverReportModal = (rowData) => {
+    setOpenModal("driverReport");
+    if (rowData) setSelectedRowData(rowData);
+  };
+  const toggleOpenModal = () => {
+    setOpenModal(null);
   };
 
   return (
     <>
-      <Helmet title="پنل دراپ - رانندگان" />
+      <HelmetTitlePage title="رانندگان" />
+
       <SearchBoxDriver />
 
-      {isLoading || isFetching ? (
-        <LoadingSpinner />
-      ) : (
-        <Table
-          {...allDrivers.items}
-          headCells={headCells}
-          filters={searchParamsFilter}
-          setFilters={setSearchParamsFilter}
-        >
-          <TableBody>
-            {allDrivers.items?.data?.map((row) => {
-              return (
-                <TableRow
-                  hover
-                  tabIndex={-1}
-                  key={row.id}
-                  onDoubleClick={() => toggleShowDetails(row)}
-                >
-                  <TableCell align="center" scope="row">
-                    {enToFaNumber(row.id)}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {(row.person.first_name || "فاقد نام") +
-                      " " +
-                      (row.person.last_name || " ")}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {enToFaNumber(row.mobile)}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {row.vehicle?.plaque ? (
-                      <Typography
-                        variant="clickable"
-                        onClick={() => handleShowVehicleModal(row)}
-                      >
-                        {renderPlaqueObjectToString(row.vehicle?.plaque)}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {row.created_at ? (
-                      <Typography variant="subtitle2">
-                        {handleDate(row.created_at, "YYYY/MM/DD")}
-                        {" - "}
-                        {handleDate(row.created_at, "HH:MM")}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    <Switch
-                      checked={Boolean(row.status)}
-                      onChange={() => {
-                        changeDriverStatus(row.id);
-                      }}
+      <Table
+        headCells={headCells}
+        filters={searchParamsFilter}
+        setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || inquiryMutation.isLoading}
+      >
+        <TableBody>
+          {allDrivers?.items?.data?.map((row) => {
+            return (
+              <TableRow
+                hover
+                tabIndex={-1}
+                key={row.id}
+                onDoubleClick={() => toggleShowDetails(row)}
+              >
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row.id)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {(row.person.first_name || "فاقد نام") +
+                    " " +
+                    (row.person.last_name || " ")}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row.mobile)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Rating
+                    precision={0.2}
+                    sx={{
+                      width: "fit-content",
+                    }}
+                    value={row?.rating}
+                    size="small"
+                    readOnly
+                  />
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row.vehicle?.plaque ? (
+                    <Typography
+                      variant="clickable"
+                      onClick={() => handleShowVehicleModal(row)}
+                    >
+                      {renderPlaqueObjectToString(row.vehicle?.plaque)}
+                    </Typography>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row.created_at ? (
+                    <Typography variant="subtitle2">
+                      {handleDate(row.created_at, "YYYY/MM/DD")}
+                      {" - "}
+                      {handleDate(row.created_at, "HH:MM")}
+                    </Typography>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Switch
+                    checked={Boolean(row.status)}
+                    onChange={() => {
+                      changeDriverStatus(row.id);
+                    }}
+                  />
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {renderChipForInquiry(row.person?.inquiry)}
+                  <IconButton
+                    onClick={() => changeDriverInquiry(row.id)}
+                    disabled={!hasPermission}
+                  >
+                    <SvgSPrite
+                      icon="rotate-right"
+                      MUIColor="primary"
+                      size="small"
                     />
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {renderChipForInquiry(row.person?.inquiry)}
-                    <IconButton onClick={() => changeDriverInquiry(row.id)}>
-                      <SvgSPrite
-                        icon="rotate-right"
-                        MUIColor="primary"
-                        size="small"
-                      />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>
-                    <TableActionCell
-                      buttons={[
-                        {
-                          tooltip: "نمایش جزئیات",
-                          color: "secondary",
-                          icon: "eye",
-                          onClick: () => toggleShowDetails(row),
-                        },
-                        {
-                          tooltip: "ویرایش",
-                          color: "warning",
-                          icon: "pencil",
-                          link: `/driver/${row.id}`,
-                        },
+                  </IconButton>
+                </TableCell>
+                <TableCell>
+                  <TableActionCell
+                    buttons={[
+                      {
+                        tooltip: "نمایش جزئیات",
+                        color: "secondary",
+                        icon: "eye",
+                        onClick: () => toggleShowDetails(row),
+                        name: "driver.show",
+                      },
+                      {
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        link: `/driver/${row.id}`,
+                        name: "driver.update",
+                      },
 
-                        {
-                          tooltip: "درخواست‌ها",
-                          color: "secondary",
-                          icon: "list-check",
-                          link: `/request?driver=${row.id}`,
-                        },
-                        {
-                          tooltip: "بارنامه‌ها",
-                          color: "secondary",
-                          icon: "scroll-old",
-                          link: `/waybill?driver=${row.id}`,
-                        },
-                      ]}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+                      {
+                        tooltip: "درخواست‌ها",
+                        color: "secondary",
+                        icon: "list-check",
+                        link: `/request?driver=${row.id}`,
+                        name: "request.index",
+                      },
+                      {
+                        tooltip: "بارنامه‌ها",
+                        color: "secondary",
+                        icon: "scroll-old",
+                        link: `/waybill?driver=${row.id}`,
+                        name: "waybill.index",
+                      },
+                      {
+                        tooltip: "مشاهده تاریخچه امتیازات",
+                        color: "secondary",
+                        icon: "rectangle-history-circle-user",
+                        onClick: () => toggleShowScores(row),
+                      },
+                      {
+                        tooltip: "گزارش",
+                        color: "info",
+                        icon: "memo-pad",
+                        onClick: () => handleShowDriverReportModal(row),
+                      },
+                    ]}
+                  />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
       <DetailsModal
-        open={showDetails}
-        onClose={() => toggleShowDetails()}
+        open={openModal === "detail"}
+        onClose={toggleOpenModal}
         data={selectedRowData}
       />
-
+      <DriverReportModal
+        open={openModal === "driverReport"}
+        onClose={toggleOpenModal}
+        data={selectedRowData}
+      />
+      <ShowPersonScoreModal
+        show={openModal === "personScore"}
+        data={selectedRowData}
+        onClose={toggleOpenModal}
+      />
       <VehicleDetailModal
-        show={showVehicleModal}
-        onClose={() => setShowVehicleModal((prev) => !prev)}
+        show={openModal === "vehicleDetail"}
+        onClose={toggleOpenModal}
         data={selectedRowData?.vehicle}
       />
     </>
@@ -262,6 +319,7 @@ const SearchBoxDriver = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -274,18 +332,18 @@ const SearchBoxDriver = () => {
       placeholder: "جستجو",
       control: control,
     },
-
     {
       type: "custom",
       customView: <ChooseSalon control={control} name={"salon"} />,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
         salon: data?.salon?.id,
       })
@@ -310,6 +368,16 @@ const SearchBoxDriver = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

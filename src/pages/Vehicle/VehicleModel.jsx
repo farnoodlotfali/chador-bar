@@ -20,15 +20,16 @@ import ActionConfirm from "Components/ActionConfirm";
 import { FormContainer, FormInputs } from "Components/Form";
 
 import { enToFaNumber, removeInvalidValues, renderWeight } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useVehicleModel } from "hook/useVehicleModel";
 import { ChooseVBrand } from "Components/choosers/vehicle/brand/ChooseVBrand";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const HeadCells = [
   {
@@ -75,6 +76,7 @@ export default function VehicleModel() {
     isFetching,
     isError,
   } = useVehicleModel(searchParamsFilter);
+  const { hasPermission } = useHasPermission("vehicle-model.update");
 
   const deleteModelMutation = useMutation(
     (id) => axiosApi({ url: `/vehicle-model/${id}`, method: "delete" }),
@@ -100,9 +102,6 @@ export default function VehicleModel() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -135,7 +134,7 @@ export default function VehicleModel() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  مدل خودروها" />
+      <HelmetTitlePage title="مدل خودروها" />
 
       <AddNewVehicleModel />
       <SearchBoxVehicleModel />
@@ -145,9 +144,15 @@ export default function VehicleModel() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          updateVehicleMutation.isLoading ||
+          deleteModelMutation.isLoading
+        }
       >
         <TableBody>
-          {vehicleModel.data.map((row) => {
+          {vehicleModel?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -171,6 +176,7 @@ export default function VehicleModel() {
                     onChange={() => {
                       changeModelStatus(row);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -181,6 +187,7 @@ export default function VehicleModel() {
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteModel(row.id),
+                        name: "vehicle-model.destroy",
                       },
                     ]}
                   />
@@ -211,6 +218,7 @@ const SearchBoxVehicleModel = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -224,12 +232,13 @@ const SearchBoxVehicleModel = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -253,6 +262,16 @@ const SearchBoxVehicleModel = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -362,6 +381,7 @@ const AddNewVehicleModel = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن مدل"
+      name="vehicle-model.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

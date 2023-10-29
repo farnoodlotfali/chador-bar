@@ -17,7 +17,6 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useVehicleCategory } from "hook/useVehicleCategory";
 import React, { useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
-import { enToFaNumber } from "Utility/utils";
 
 const MultiVCategory = (props) => {
   const [filters, setFilters] = useState({});
@@ -53,8 +52,7 @@ const MultiVCategory = (props) => {
       return "نوع کامیون";
     }
 
-    let str = fields?.[0]?.title;
-    // const length = Math.max(fields.length, shipping_company_id.length);
+    let str = fields?.[0]?.title ?? "-";
 
     if (fields.length > 1) {
       str = str + ", " + (fields.length - 1) + " نوع کامیون دیگر...";

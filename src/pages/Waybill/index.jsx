@@ -20,15 +20,16 @@ import {
   renderWeight,
   removeInvalidValues,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useWaybill } from "hook/useWaybill";
 import DraftPaper from "Components/papers/DraftPaper";
 import WayBillPaper from "Components/papers/WaybillPaper";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
+
 import CollapseForm from "Components/CollapseForm";
 import { useForm } from "react-hook-form";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -96,17 +97,10 @@ export default function WaybillList() {
     isFetching,
   } = useWaybill(searchParamsFilter);
 
-  // if data is loading or fetching
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
-
   // if api has got error
   if (isError) {
     return <div className="">error</div>;
   }
-
-  const { items } = allWaybills;
 
   // Logic functions
 
@@ -122,23 +116,26 @@ export default function WaybillList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - بارنامه‌ها" />
+      <HelmetTitlePage title="بارنامه‌ها" />
+
       <SearchBoxWaybill />
 
       <Table
-        {...items}
+        {...allWaybills?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allWaybills?.items.data.map((row) => {
             let buttons = [
               {
                 tooltip: "نمایش جزئیات",
                 color: "secondary",
                 icon: "eye",
                 onClick: () => toggleShowDetails(row),
+                name: "waybill.show",
               },
               {
                 tooltip: "نمایش حواله",
@@ -203,7 +200,6 @@ export default function WaybillList() {
           })}
         </TableBody>
       </Table>
-
       <DetailsModal
         open={showDetails}
         onClose={() => toggleShowDetails()}
@@ -228,6 +224,7 @@ const SearchBoxWaybill = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -241,12 +238,13 @@ const SearchBoxWaybill = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -270,6 +268,16 @@ const SearchBoxWaybill = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

@@ -37,7 +37,6 @@ import {
   renderChipForInquiry,
   renderPlaqueObjectToString,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -56,6 +55,7 @@ import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import FormTypography from "Components/FormTypography";
 import { SvgSPrite } from "Components/SvgSPrite";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -185,15 +185,17 @@ export default function NewFleet() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ثبت ناوگان" />
+      <HelmetTitlePage title="ثبت ناوگان" />
 
-      <Stepper activeStep={step} alternativeLabel sx={{ mt: 3, mb: 5 }}>
-        {stepsLabels.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+      <Card sx={{ mt: 3, mb: 5, p: 2 }}>
+        <Stepper activeStep={step} alternativeLabel>
+          {stepsLabels.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+      </Card>
 
       <CurrentStep {...stepProps} />
     </>

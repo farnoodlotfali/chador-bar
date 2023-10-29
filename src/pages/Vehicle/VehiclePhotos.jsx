@@ -22,10 +22,10 @@ import {
   renderPlaqueObjectToString,
   vehiclePhotoType,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useVehiclePhoto } from "hook/useVehiclePhoto";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -112,7 +112,7 @@ export default function VehiclePhotos() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  عکس خودروها" />
+      <HelmetTitlePage title="عکس خودروها" />
 
       <Grid container mb={2}>
         <Grid item xs={12} md={3}>

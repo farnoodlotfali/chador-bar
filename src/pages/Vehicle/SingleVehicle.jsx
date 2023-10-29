@@ -5,29 +5,21 @@ import {
   CardActions,
   CardContent,
   CardMedia,
-  Chip,
   Divider,
   Grid,
-  Paper,
   Stack,
-  TableContainer,
   Typography,
-  Table as MuiTable,
   TableCell,
-  TableHead,
   TableRow,
 } from "@mui/material";
 
-import ActionConfirm from "Components/ActionConfirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { FormContainer, FormInputs } from "Components/Form";
 import Modal from "Components/versions/Modal";
 import NormalTable from "Components/NormalTable";
-import TableActionCell from "Components/versions/TableActionCell";
-import { useVehicleModel } from "hook/useVehicleModel";
-import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
+
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
@@ -35,33 +27,16 @@ import { toast } from "react-toastify";
 import {
   checkPlaqueValidation,
   enToFaNumber,
-  numberWithCommas,
   renderChip,
   renderSelectOptions,
-  renderSelectOptions1,
   vehiclePhotoType,
 } from "Utility/utils";
 import { ChooseVColor } from "Components/choosers/vehicle/color/ChooseVColor";
 import FormTypography from "Components/FormTypography";
-// refueling
-const headCells = [
-  {
-    id: "id",
-    label: "شناسه",
-  },
-  {
-    id: "amount",
-    label: "مقدار",
-  },
-  {
-    id: "kilometer",
-    label: "کیلومتر",
-  },
-  {
-    id: "actions",
-    label: "عملیات",
-  },
-];
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseVModel } from "Components/choosers/vehicle/model/ChooseVModel";
+import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
+import { useHasPermission } from "hook/useHasPermission";
 
 // fleet
 const headCells1 = [
@@ -82,37 +57,6 @@ const headCells1 = [
     label: "استعلام",
   },
 ];
-// schematic
-const headCells2 = [
-  {
-    id: "id",
-    label: "شناسه",
-  },
-  {
-    id: "title",
-    label: "عنوان",
-  },
-  {
-    id: "rows",
-    label: "سطر",
-  },
-  {
-    id: "columns",
-    label: "ستون",
-  },
-  {
-    id: "seat_count",
-    label: "تعداد صندلی ",
-  },
-  {
-    id: "valid_seat_count",
-    label: "تعداد صندلی مجاز",
-  },
-  {
-    id: "invalid_seat_count",
-    label: "تعداد صندلی غیرمجاز",
-  },
-];
 
 const SingleVehicle = () => {
   const queryClient = useQueryClient();
@@ -127,17 +71,10 @@ const SingleVehicle = () => {
   } = useForm();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [showRefuelingModal, setShowRefuelingModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [deleteRefuelingId, setDeleteRefuelingId] = useState(null);
+  const { hasPermission } = useHasPermission("vehicle-photos.store");
 
   const params = useParams();
-  const {
-    data: vehicleModel,
-    isLoading: vModelIsLoading,
-    isFetching: vModelIsFetching,
-    isError: vModelIsError,
-  } = useVehicleModel();
+
   const {
     data: vehicle,
     isLoading,
@@ -164,19 +101,7 @@ const SingleVehicle = () => {
       },
     }
   );
-  const deleteRefuelingMutation = useMutation(
-    (id) => axiosApi({ url: `/refueling/${id}`, method: "delete" }),
-    {
-      onSuccess: () => {
-        Promise.all([
-          queryClient.invalidateQueries(["refueling"]),
-          queryClient.invalidateQueries(["vehicle"]),
-        ]);
 
-        toast.success("با موفقیت حذف شد");
-      },
-    }
-  );
   const deleteVehiclePhotoMutation = useMutation(
     (id) => axiosApi({ url: `/photos/${id}`, method: "delete" }),
     {
@@ -196,40 +121,39 @@ const SingleVehicle = () => {
     if (isSuccess) {
       setIsDataLoaded(false);
       reset(vehicle);
-      // const allDates = [
-      //   "created_at",
-      //   "deleted_at",
-      //   "end_date",
-      //   "updated_at",
-      //   "start_date",
-      // ];
-      // allDates.forEach((i) => {
-      //   if (i) {
-      //     setValue(
-      //       i,
-      //       new Date(contract[i]).toLocaleDateString("fa-IR-u-nu-latn")
-      //     );
-      //     setValue(i + "En", new Date(contract[i]).toLocaleDateString("en-US"));
-      //   }
-      // });
+
       setTimeout(() => {
         setIsDataLoaded(true);
       }, 20);
     }
   }, [isSuccess]);
 
+  const addPhotoBtn = useMemo(() => {
+    if (!hasPermission) {
+      return;
+    }
+
+    return (
+      <Button
+        onClick={() => setShowModal(true)}
+        variant="contained"
+        type="button"
+        color={"primary"}
+      >
+        افزودن عکس جدید
+      </Button>
+    );
+  }, [hasPermission]);
+
   if (
     !isDataLoaded ||
     isLoading ||
     isFetching ||
-    vModelIsLoading ||
-    vModelIsFetching ||
-    updateVehicleMutation.isLoading ||
-    deleteRefuelingMutation.isLoading
+    updateVehicleMutation.isLoading
   ) {
     return <LoadingSpinner />;
   }
-  if (isError || vModelIsError) {
+  if (isError) {
     return <div className="">isError</div>;
   }
   const DataInputs = [
@@ -260,28 +184,70 @@ const SingleVehicle = () => {
       control: control,
       rules: {
         required: "vin را وارد کنید",
+        minLength: {
+          value: 17,
+          message: "vin  باید 17 حرفی باشد",
+        },
+        maxLength: {
+          value: 17,
+          message: "vin  باید 17 حرفی باشد",
+        },
+        pattern: {
+          value: /^[A-Za-z\d]+$/i,
+          message: "vin فقط شامل عدد و حروف انگلیسی می‌باشد",
+        },
       },
     },
     {
       type: "number",
       name: "year",
-      label: "سال",
+      label: "سال تولید",
       control: control,
+      noInputArrow: true,
       rules: {
+        required: "سال تولید را وارد کنید",
+        min: {
+          value: 1350,
+          message: "سال تولید باید از 1350 بزرگتر باشد",
+        },
         required: "سال را وارد کنید",
+        minLength: {
+          value: 4,
+          message: "سال باید 4 رقمی باشد",
+        },
+        maxLength: {
+          value: 4,
+          message: "سال باید 4 رقمی باشد",
+        },
       },
     },
     {
-      type: "select",
-      name: "vehicle_model_id",
-      valueKey: "id",
-      labelKey: "title",
-      label: "مدل",
-      options: renderSelectOptions1(vehicleModel),
-      control: control,
-      rules: {
-        required: "مدل را وارد کنید",
-      },
+      type: "custom",
+      customView: (
+        <ChooseVModel
+          control={control}
+          name={"vehicle_model"}
+          rules={{
+            required: "مدل را وارد کنید",
+          }}
+          label="مدل خودرو"
+        />
+      ),
+      gridProps: { md: 4 },
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseVType
+          control={control}
+          name={"container_type"}
+          rules={{
+            required: "نوع بارگیر را وارد کنید",
+          }}
+          label="نوع بارگیر"
+        />
+      ),
+      gridProps: { md: 4 },
     },
     {
       type: "plaque",
@@ -327,112 +293,6 @@ const SingleVehicle = () => {
     },
   ];
 
-  // vehicle_model
-  const DataInputs1 = [
-    {
-      type: "text",
-      name: "vehicle_model.title",
-      label: "عنوان",
-      readOnly: true,
-      control: control,
-    },
-
-    {
-      type: "number",
-      name: "vehicle_model.max_weight",
-      splitter: true,
-      label: "حداکثر وزن",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "select",
-      name: "vehicle_model.status",
-      valueKey: "id",
-      labelKey: "title",
-      label: " وضعیت",
-      options: [
-        { id: 1, title: "فعال" },
-        { id: 0, title: "غیرفعال" },
-      ],
-      control: control,
-      gridProps: { md: 2 },
-      readOnly: true,
-    },
-  ];
-
-  // vehicle_type
-  const DataInputs2 = [
-    {
-      type: "text",
-      name: "vehicle_model.vehicle_type.title",
-      label: "عنوان",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "number",
-      name: "vehicle_model.vehicle_type.code",
-      label: "کد",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "select",
-      name: "vehicle_model.vehicle_type.status",
-      valueKey: "id",
-      labelKey: "title",
-      label: " وضعیت",
-      options: [
-        { id: 1, title: "فعال" },
-        { id: 0, title: "غیرفعال" },
-      ],
-      control: control,
-      gridProps: { md: 2 },
-      readOnly: true,
-    },
-  ];
-
-  // vehicle_brand
-  const DataInputs4 = [
-    {
-      type: "text",
-      name: "vehicle_model.vehicle_brand.title",
-      label: "عنوان",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "number",
-      name: "vehicle_model.vehicle_brand.code",
-      label: "کد",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "number",
-      name: "vehicle_model.vehicle_brand.max_weight",
-      splitter: true,
-      label: "وزن حداکثر",
-      readOnly: true,
-      control: control,
-    },
-    {
-      type: "select",
-      name: "vehicle_model.vehicle_brand.status",
-      valueKey: "id",
-      labelKey: "title",
-      label: " وضعیت",
-      options: [
-        { id: 1, title: "فعال" },
-        { id: 0, title: "غیرفعال" },
-      ],
-      control: control,
-      gridProps: { md: 2 },
-      readOnly: true,
-    },
-  ];
-
   // handle on submit
   const onSubmit = (data) => {
     if (!checkPlaqueValidation(data.plaque)) {
@@ -462,21 +322,10 @@ const SingleVehicle = () => {
     deleteVehiclePhotoMutation.mutate(id);
   };
 
-  const handleDeleteRefueling = (id) => {
-    setShowConfirmModal(true);
-    setDeleteRefuelingId(id);
-  };
-
-  // handle delete Refueling
-  const deleteRefueling = () => {
-    deleteRefuelingMutation.mutate(deleteRefuelingId);
-    setShowConfirmModal(false);
-    setDeleteRefuelingId(null);
-  };
-
   return (
     <>
-      <Helmet title="پنل دراپ -  ویرایش/مشاهده خودرو" />
+      <HelmetTitlePage title="ویرایش/مشاهده خودرو" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
@@ -494,42 +343,6 @@ const SingleVehicle = () => {
             </Stack>
 
             <Divider sx={{ my: 5 }} />
-            <FormTypography>مدل</FormTypography>
-            <FormInputs gridProps={{ md: 3 }} inputs={DataInputs1} />
-            <Divider sx={{ my: 5 }} />
-            <FormTypography>نوع بارگیر</FormTypography>
-            <FormInputs gridProps={{ md: 3 }} inputs={DataInputs2} />
-            <Divider sx={{ my: 5 }} />
-            <Typography variant="h5" mt={5} mb={3}>
-              شماتیک
-            </Typography>
-            <NormalTable headCells={headCells2}>
-              {vehicle.vehicle_model.vehicle_type.schematic.map((item) => {
-                return (
-                  <TableRow hover tabIndex={-1} key={item.id}>
-                    <TableCell scope="row">{enToFaNumber(item.id)}</TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.title)}
-                    </TableCell>
-                    <TableCell scope="row">{enToFaNumber(item.rows)}</TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.columns)}
-                    </TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.seat_count)}
-                    </TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.valid_seat_count)}
-                    </TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.invalid_seat_count)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </NormalTable>
-
-            <Divider sx={{ my: 5 }} />
             <Typography variant="h5" mt={5} mb={3}>
               ناوگان
             </Typography>
@@ -537,70 +350,22 @@ const SingleVehicle = () => {
             <NormalTable headCells={headCells1}>
               {vehicle.fleet && (
                 <TableRow hover tabIndex={-1}>
-                  <TableCell scope="row">
+                  <TableCell scope="row" align="center">
                     {enToFaNumber(vehicle.fleet.id)}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell scope="row" align="center">
                     {enToFaNumber(vehicle.fleet.code)}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell scope="row" align="center">
                     {renderChip(vehicle.fleet.status)}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell scope="row" align="center">
                     {renderChip(vehicle.fleet.inquiry)}
                   </TableCell>
                 </TableRow>
               )}
             </NormalTable>
 
-            <Divider sx={{ my: 5 }} />
-            <Typography variant="h5" mt={5} mb={3}>
-              سوخت‌گیری
-            </Typography>
-
-            <Button
-              onClick={() => setShowRefuelingModal(true)}
-              variant="contained"
-              type="button"
-              color={"primary"}
-              sx={{
-                marginBottom: 3,
-              }}
-            >
-              افزودن سوخت‌گیری جدید
-            </Button>
-
-            <NormalTable headCells={headCells}>
-              {vehicle.refueling.map((item) => {
-                return (
-                  <TableRow hover tabIndex={-1} key={item.id}>
-                    <TableCell scope="row">{enToFaNumber(item.id)}</TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(item.amount)}
-                    </TableCell>
-                    <TableCell scope="row">
-                      {enToFaNumber(numberWithCommas(item.kilometer))} کیلومتر
-                    </TableCell>
-                    <TableCell scope="row">
-                      <TableActionCell
-                        buttons={[
-                          {
-                            tooltip: "حذف",
-                            color: "error",
-                            icon: "trash-xmark",
-                            onClick: () => handleDeleteRefueling(item.id),
-                          },
-                        ]}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </NormalTable>
-
-            <Divider sx={{ my: 5 }} />
-            <FormTypography>برند</FormTypography>
-            <FormInputs gridProps={{ md: 3 }} inputs={DataInputs4} />
             <Divider sx={{ my: 5 }} />
             <FormTypography>عکس ها</FormTypography>
             <Grid container spacing={3}>
@@ -637,33 +402,14 @@ const SingleVehicle = () => {
               })}
             </Grid>
             <Stack mt={5} alignItems="flex-end">
-              <Button
-                onClick={() => setShowModal(true)}
-                variant="contained"
-                type="button"
-                color={"primary"}
-              >
-                افزودن عکس جدید
-              </Button>
+              {addPhotoBtn}
             </Stack>
           </Card>
         </FormContainer>
       </form>
 
       <AddPhotoModal onClose={() => setShowModal(false)} show={showModal} />
-      <AddRefuelingModal
-        onClose={() => setShowRefuelingModal(false)}
-        show={showRefuelingModal}
-      />
-
-      <ActionConfirm
-        open={showConfirmModal}
-        onClose={() => setShowConfirmModal((prev) => !prev)}
-        onAccept={deleteRefueling}
-        message="آیا از حذف مطمئن هستید؟"
-      />
     </>
-    // /* add new photo modal */
   );
 };
 
@@ -734,93 +480,6 @@ const AddPhotoModal = ({ show, onClose }) => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <FormInputs gridProps={{ md: 3 }} inputs={DataInputs} />
-          <Stack justifyContent="end" direction="row" spacing={3} mt={3}>
-            <LoadingButton
-              type="submit"
-              variant="contained"
-              loading={isSubmitting}
-            >
-              ثبت
-            </LoadingButton>
-            <Button
-              type="button"
-              variant="contained"
-              color="error"
-              onClick={onClose}
-            >
-              لغو
-            </Button>
-          </Stack>
-        </FormContainer>
-      </form>
-    </Modal>
-  );
-};
-
-// add new photo modal
-const AddRefuelingModal = ({ show, onClose }) => {
-  const queryClient = useQueryClient();
-  const { id } = useParams();
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-  } = useForm();
-
-  const AddRefuelingMutation = useMutation(
-    (data) => axiosApi({ url: "/refueling", method: "post", data: data }),
-    {
-      onSuccess: () => {
-        Promise.all([
-          queryClient.invalidateQueries(["vehicle"]),
-          queryClient.invalidateQueries(["refueling"]),
-        ]);
-        onClose();
-        toast.success("با موفقیت اضافه شد");
-      },
-    }
-  );
-
-  const DataInputs = [
-    {
-      type: "number",
-      name: "vehicle_id",
-      label: "شناسه خودرو",
-      control: control,
-      rules: { required: "شناسه خودرو را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "amount",
-      splitter: true,
-      label: "مقدار",
-      control: control,
-      rules: { required: "مقدار را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "kilometer",
-      label: "کیلومتر",
-      splitter: true,
-      control: control,
-      rules: { required: "کیلومتر را وارد کنید" },
-    },
-  ];
-  // handle on change inputs
-  const handleChange = (name, value) => {
-    setValue(name, value);
-  };
-  const onSubmit = (data) => {
-    data = JSON.stringify({ ...data, vehicle_id: id });
-    AddRefuelingMutation.mutate(data);
-  };
-  return (
-    <Modal maxWidth="md" open={show} onClose={onClose}>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <FormContainer data={watch()} setData={handleChange} errors={errors}>
-          <FormInputs gridProps={{ md: 4 }} inputs={DataInputs} />
           <Stack justifyContent="end" direction="row" spacing={3} mt={3}>
             <LoadingButton
               type="submit"

@@ -9,6 +9,9 @@ const BarestanTableActionCell = ({ button }) => {
         <IconButton
           {...button}
           onClick={(e) => {
+            if (button?.link) {
+              return;
+            }
             if (!e) var e = window.event; // Get the window event
             e.cancelBubble = true; // IE Stop propagation
             if (e.stopPropagation) e.stopPropagation(); // Other Broswers

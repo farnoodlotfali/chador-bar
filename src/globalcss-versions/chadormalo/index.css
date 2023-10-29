@@ -55,6 +55,11 @@ button {
   margin: 0;
 }
 
+.input-phone-number input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .activeDayColor:not(.-selectedStart):not(.-selectedBetween):not(
     .-selectedEnd
   ):not(.-selected) {

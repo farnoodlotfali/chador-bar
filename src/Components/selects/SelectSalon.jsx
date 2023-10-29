@@ -113,7 +113,9 @@ export default function SelectSalon({ data, setData }) {
                           justifyContent="space-between"
                           sx={{ width: "100%" }}
                         >
-                          <Typography>{`کد: ${salon.id || ""}`}</Typography>
+                          <Typography>{`کد: ${
+                            enToFaNumber(salon.id) || ""
+                          }`}</Typography>
                           <Typography>{salon.name}</Typography>
                         </Stack>
                       </Button>

@@ -18,7 +18,6 @@ import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 
 import { enToFaNumber, handleDate, removeInvalidValues } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
@@ -28,6 +27,9 @@ import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useForm } from "react-hook-form";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const headCells = [
   {
@@ -76,6 +78,7 @@ export default function PersonList() {
     isLoading,
     isError,
   } = usePerson(searchParamsFilter);
+  const { hasPermission } = useHasPermission("person.change-status");
 
   const updatePersonMutation = useMutation(
     (form) =>
@@ -92,9 +95,6 @@ export default function PersonList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -118,21 +118,21 @@ export default function PersonList() {
     // updatePersonMutation.mutate(id);
   };
 
-  const { items } = allPerson;
   return (
     <>
-      <Helmet title="پنل دراپ - مشتریان" />
+      <HelmetTitlePage title="مشتریان" />
 
       <SearchBoxPerson />
 
       <Table
-        {...items}
+        {...allPerson?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || updatePersonMutation.isLoading}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allPerson?.items?.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -167,6 +167,7 @@ export default function PersonList() {
                     onChange={() => {
                       changePersonStatus(row.id);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -177,6 +178,7 @@ export default function PersonList() {
                         color: "warning",
                         icon: "pencil",
                         link: `/person/${row.id}`,
+                        name: "person.update",
                       },
                     ]}
                   />
@@ -199,6 +201,7 @@ const SearchBoxPerson = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -212,12 +215,13 @@ const SearchBoxPerson = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -241,6 +245,16 @@ const SearchBoxPerson = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

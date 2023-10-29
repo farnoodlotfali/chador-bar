@@ -21,7 +21,6 @@ import {
   removeInvalidValues,
   renderSelectOptions,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { axiosApi } from "api/axiosApi";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +33,7 @@ import { LoadingButton } from "@mui/lab";
 import { useForm } from "react-hook-form";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -149,8 +149,7 @@ const BeneficiaryList = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ذینفعان " />
-
+      <HelmetTitlePage title="ذینفعان" />
       <AddNewBeneficiary
         shippingCompanies={shippingCompanies}
         vehicleTypes={vehicleTypes}
@@ -205,12 +204,14 @@ const BeneficiaryList = () => {
                         color: "warning",
                         icon: "pencil",
                         link: `/contract/${row.id}`,
+                        name: "beneficiary.update",
                       },
                       {
                         tooltip: "حذف کردن",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => showModalToRemove(row),
+                        name: "beneficiary.destroy",
                       },
                     ]}
                   />
@@ -413,6 +414,7 @@ const AddNewBeneficiary = ({ vehicleTypes, shippingCompanies }) => {
       onToggle={setOpenCollapse}
       title="افزودن ذینفعان"
       open={openCollapse}
+      name="beneficiary.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

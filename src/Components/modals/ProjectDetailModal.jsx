@@ -117,13 +117,13 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="check-to-slot"
                       size="small"
-                      MUIColor="success"
+                      MUIColor="primary"
                     />
                   )}
                   {RowLabelAndData(
                     "تعداد درخواست ‌ها",
                     enToFaNumber(data.requests_count) ?? "-",
-                    <SvgSPrite icon="hashtag" size="small" MUIColor="info" />
+                    <SvgSPrite icon="hashtag" size="small" MUIColor="primary" />
                   )}
                   {RowLabelAndData(
                     "تناژ باقیمانده",
@@ -134,7 +134,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="weight-scale"
                       size="small"
-                      MUIColor="secondary"
+                      MUIColor="primary"
                     />
                   )}
                   {RowLabelAndData(
@@ -147,7 +147,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="weight-scale"
                       size="small"
-                      MUIColor="warning"
+                      MUIColor="primary"
                     />
                   )}
                   {RowLabelAndData(
@@ -156,7 +156,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="alarm-clock"
                       size="small"
-                      MUIColor="success"
+                      MUIColor="primary"
                     />
                   )}
                   {RowLabelAndData(
@@ -165,7 +165,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="rectangle-history"
                       size="small"
-                      MUIColor="info"
+                      MUIColor="primary"
                     />
                   )}
                 </Grid>
@@ -178,7 +178,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                   {RowLabelAndData(
                     "تعداد",
                     enToFaNumber(data.count) ?? "-",
-                    <SvgSPrite icon="hashtag" size="small" MUIColor="info" />
+                    <SvgSPrite icon="hashtag" size="small" MUIColor="primary" />
                   )}
                   {RowLabelAndData(
                     "وزن",
@@ -188,13 +188,13 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     <SvgSPrite
                       icon="weight-scale"
                       size="small"
-                      MUIColor="warning"
+                      MUIColor="primary"
                     />
                   )}
                   {RowLabelAndData(
                     "حجم",
                     enToFaNumber(data.volume) ?? "-",
-                    <SvgSPrite icon="square" size="small" MUIColor="success" />
+                    <SvgSPrite icon="square" size="small" MUIColor="primary" />
                   )}
                 </Grid>
               </Card>
@@ -205,7 +205,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                   <Button
                     variant="contained"
                     color="primary"
-                    endIcon={<SvgSPrite icon="people-group" />}
+                    endIcon={<SvgSPrite icon="people-group" color="inherit" />}
                     onClick={handleShowDrivers}
                   >
                     لیست رانندگان پروژه
@@ -213,7 +213,7 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                   <Button
                     variant="contained"
                     color="secondary"
-                    endIcon={<SvgSPrite icon="cars" />}
+                    endIcon={<SvgSPrite icon="cars" color="inherit" />}
                     onClick={handleShowFleetVehicles}
                   >
                     لیست خودروهای پروژه
@@ -260,7 +260,7 @@ const DriversPerFleetVehicleModal = memo(({ drivers, show, onClose }) => {
             mb={3}
             typography={{ md: "h5", xs: "body2" }}
           >
-            لیست راننده ها در درخواست های پروژه
+            لیست راننده‌ها در درخواست های پروژه
           </Typography>
 
           <Grid container spacing={2}>
@@ -357,7 +357,7 @@ const FleetVehiclesPerDriverModal = memo(({ fleetVehicle, show, onClose }) => {
                       </Typography>
                       <Button
                         variant="outlined"
-                        color="info"
+                        color="primary"
                         onClick={() => handleShowDrivers(item)}
                       >
                         نمایش رانندگان

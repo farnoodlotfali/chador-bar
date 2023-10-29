@@ -12,7 +12,6 @@ import {
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
 
-
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
@@ -24,14 +23,14 @@ import {
   removeInvalidValues,
   renderSelectOptions,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useProductUnit } from "hook/useProductUnit";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -76,9 +75,6 @@ export default function ProductUnits() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -97,7 +93,7 @@ export default function ProductUnits() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  واحد محصولات" />
+      <HelmetTitlePage title="واحد محصولات" />
 
       <AddNewUnitProduct />
 
@@ -108,9 +104,10 @@ export default function ProductUnits() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteUnitMutation.isLoading}
       >
         <TableBody>
-          {productUnit.data.map((row) => {
+          {productUnit?.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -130,6 +127,7 @@ export default function ProductUnits() {
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteUnit(row.id),
+                        name: "product-unit.destroy",
                       },
                     ]}
                   />
@@ -139,7 +137,6 @@ export default function ProductUnits() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -160,6 +157,7 @@ const SearchBoxUnitProduct = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -173,12 +171,13 @@ const SearchBoxUnitProduct = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -202,6 +201,16 @@ const SearchBoxUnitProduct = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -292,6 +301,7 @@ const AddNewUnitProduct = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن واحد محصول"
+      name="product-unit.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

@@ -1,17 +1,21 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
-import { Card, Stack, Divider } from "@mui/material";
+import { Card, Stack, Divider, Typography, Grid } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import moment from "jalali-moment";
 import { FormContainer, FormInputs } from "Components/Form";
 import { toast } from "react-toastify";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
-import { compareTimes, enToFaNumber } from "Utility/utils";
+import {
+  compareTimes,
+  enToFaNumber,
+  numberWithCommas,
+  zipCodeRegexPattern,
+} from "Utility/utils";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
 import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import { ChooseProduct } from "Components/choosers/ChooseProduct";
@@ -22,10 +26,15 @@ import { ChooseFleet } from "Components/choosers/ChooseFleet";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 export default function Request() {
   const queryClient = useQueryClient();
   const params = useParams();
+  const [prices, setPrices] = useState({
+    high_price: null,
+    low_price: null,
+  });
   const [loading, setLoading] = useState(false);
   const {
     handleSubmit,
@@ -72,7 +81,10 @@ export default function Request() {
     if (isSuccess) {
       setIsDataLoaded(false);
       reset(requestData);
-
+      setPrices({
+        high_price: requestData?.high_price,
+        low_price: requestData?.low_price,
+      });
       if (!requestData?.proposed_price) {
         setValue("proposed_price", "قیمت توافقی");
       }
@@ -198,6 +210,10 @@ export default function Request() {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
     {
@@ -322,7 +338,10 @@ export default function Request() {
           control={control}
           name={"vehicle_type"}
           rules={{
-            required: "نوع بارگیر را وارد کنید",
+            required: {
+              value: !watch("fleet"),
+              message: "نوع بارگیر را وارد کنید",
+            },
           }}
           label="نوع بارگیر"
         />
@@ -385,6 +404,7 @@ export default function Request() {
           name={"driver"}
           dataArray={watch("fleet")}
           isLoadFromApi={false}
+          label="راننده اول"
           rules={{
             required: "راننده را وارد کنید",
           }}
@@ -398,8 +418,10 @@ export default function Request() {
         <ChooseDriver
           control={control}
           name={"second_driver"}
+          label="راننده دوم"
           dataArray={watch("fleet")}
           isLoadFromApi={false}
+          notAllowedDriver={watch("driver")}
         />
       ),
       gridProps: { md: 4 },
@@ -470,6 +492,10 @@ export default function Request() {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
     {
@@ -494,24 +520,6 @@ export default function Request() {
       rules: {
         required: { value: true, message: "مبلغ را وارد کنید" },
       },
-    },
-    {
-      type: "number",
-      name: "high_price",
-      label: "قیمت حد بالای سامانه",
-      control: control,
-      splitter: true,
-      noInputArrow: true,
-      readOnly: true,
-    },
-    {
-      type: "number",
-      name: "low_price",
-      label: "قیمت حد پایین سامانه",
-      control: control,
-      splitter: true,
-      noInputArrow: true,
-      readOnly: true,
     },
   ];
 
@@ -596,8 +604,10 @@ export default function Request() {
       toast.success("عملیات با موفقیت انجام گردید.");
 
       if (res.data.Data) {
-        setValue("high_price", res.data.Data?.high_price);
-        setValue("low_price", res.data.Data?.low_price);
+        setPrices({
+          high_price: res.data.Data?.high_price,
+          low_price: res.data.Data?.low_price,
+        });
       }
     } catch (error) {
       console.log(error);
@@ -607,7 +617,8 @@ export default function Request() {
   };
   return (
     <>
-      <Helmet title="پنل دراپ - ویرایش درخواست" />
+      <HelmetTitlePage title="ویرایش درخواست" />
+
       <RequestStepper status={requestData?.status} size={50} />
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
@@ -656,7 +667,29 @@ export default function Request() {
 
             <FormTypography>قیمت</FormTypography>
 
-            <FormInputs inputs={PricesInputs} />
+            <FormInputs inputs={PricesInputs}>
+              <Grid item md={"auto"} xs={12}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  قیمت حد بالای سامانه
+                </Typography>
+                <Typography fontSize={14} mt={1}>
+                  {prices.high_price
+                    ? numberWithCommas(prices.high_price) + " تومان"
+                    : "بدون قیمت"}
+                </Typography>
+              </Grid>
+
+              <Grid item md={"auto"} xs={12}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  قیمت حد پایین سامانه
+                </Typography>
+                <Typography fontSize={14} mt={1}>
+                  {prices.low_price
+                    ? numberWithCommas(prices.low_price) + " تومان"
+                    : "بدون قیمت"}
+                </Typography>
+              </Grid>
+            </FormInputs>
 
             <Stack
               mt={10}

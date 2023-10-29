@@ -11,38 +11,21 @@ import { AppContext } from "context/appContext";
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
-const PieChart = ({ dataValues, labels }) => {
+const PieChart = ({ dataValues, labels, height }) => {
   const { appTheme } = useContext(AppContext);
   const data = {
-    // labels: [
-    //   "Red",
-    //   "Blue",
-    //   "Yellow",
-    //   "Green",
-    //   "Purple",
-    //   "Orange",
-    //   "7",
-    //   "8",
-    //   "9",
-    //   "10",
-    //   "11",
-    //   "12",
-    //   "13",
-    //   "14",
-    // ],
-
     labels: labels,
     datasets: [
       {
         label: "# of Votes",
         data: dataValues,
-        // data: [12, 19, 3, 5, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14],
         backgroundColor: bgColorsForChart(dataValues.length),
         borderColor: borderColorsForChart(dataValues.length),
         borderWidth: 1,
       },
     ],
   };
+
   return (
     <Pie
       data={{
@@ -112,7 +95,7 @@ const PieChart = ({ dataValues, labels }) => {
 
             fullSize: false,
             rtl: true,
-            position: "right",
+            position: "bottom",
             align: "center",
 
             // reverse:true,
@@ -134,6 +117,7 @@ const PieChart = ({ dataValues, labels }) => {
           },
         },
       }}
+      height={height}
     />
   );
 };

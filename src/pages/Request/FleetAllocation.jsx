@@ -20,11 +20,11 @@ import {
   Slider,
   FormControlLabel,
   Switch,
+  Paper,
 } from "@mui/material";
 import { ChooseFleet } from "Components/choosers/ChooseFleet";
 import { FormContainer, FormInputs } from "Components/Form";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
 import DateInputWithControls from "Components/DateInputWithControls";
@@ -36,6 +36,7 @@ import {
   enToFaNumber,
   generateRandomColor,
   removeInvalidValues,
+  renderDateToCalender,
 } from "Utility/utils";
 import { Zones, LEVELS } from "@package/map";
 
@@ -65,6 +66,7 @@ import { useInView } from "react-intersection-observer";
 import RequestDetailModal from "Components/modals/RequestDetailModal";
 import FormTypography from "Components/FormTypography";
 import { SvgSPrite } from "Components/SvgSPrite";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const FleetAllocation = () => {
   const queryClient = useQueryClient();
@@ -511,7 +513,7 @@ const FleetAllocation = () => {
 
   return (
     <>
-      <Helmet title="پنل بارستان -  تخصیص ناوگان" />
+      <HelmetTitlePage title="تخصیص ناوگان" />
 
       {/*  fleet  section */}
       <Grid container spacing={1} mb={3}>
@@ -967,7 +969,7 @@ const Item = ({
               />
             </Grid>
             <Grid item>
-              {tooltipAction ? (
+              {tooltipAction && !!value ? (
                 <Tooltip title={tooltipName} placement="left" arrow>
                   <IconButton size="small" onClick={tooltipAction}>
                     {tooltipIcon}
@@ -1059,16 +1061,7 @@ const FreeMarkerMap = ({ row, hideTooltip }) => {
           )}
         </Marker>
 
-        <>
-          {/* <Polyline
-            positions={[
-              [row.source_lat, row.source_lng],
-              [row.destination_lat, row.destination_lng],
-            ]}
-            pathOptions={{ opacity: 0.1, color: "#000", weight: 5 }}
-          /> */}
-          <GeoJSON data={curved} pathOptions={{ weight: 5, color: color }} />
-        </>
+        <GeoJSON data={curved} pathOptions={{ weight: 5, color: color }} />
       </>
     );
   }, [row, hideTooltip]);
@@ -1096,22 +1089,8 @@ const GetDetailModalToAdd = ({
     if (requestFree) {
       setValue(
         "discharge_time",
-        moment(requestFree?.discharge_time, "YYYY-M-D HH:mm").format("HH:mm")
+        renderDateToCalender(requestFree?.discharge_time, "discharge_time")
       );
-
-      const EnDate = moment
-        .from(requestFree?.discharge_time, "YYYY-M-D HH:mm")
-        .format("YYYY/MM/DD");
-
-      const FnDate = moment
-        .from(requestFree?.discharge_time, "YYYY-MM-DD")
-        .format("jYYYY/jMM/jDD");
-
-      setValue("discharge_date", {
-        discharge_date: EnDate,
-        discharge_date_fa: FnDate,
-        discharge_date_text: enToFaNumber(EnDate.replaceAll("/", "-")),
-      });
     }
   }, [requestFree]);
 
@@ -1411,15 +1390,6 @@ const MapSection = ({
                   })}
                 </Fragment>
               ))}
-
-            {/* show circle on map */}
-            {/* {showCircle && radiusRange && (
-              <Circle
-                center={center}
-                radius={radiusRange * 1000}
-                pathOptions={{ color: "yellow" }}
-              />
-            )} */}
           </>
         )}
         <Box
@@ -1569,9 +1539,10 @@ const MapSection = ({
           mt={{ xs: 8, md: 0 }}
           left={15}
           top={20}
-          bgcolor="background.default"
           color="text.primary"
           p={3}
+          component={Paper}
+          borderRadius={0}
         >
           <FormControl fullWidth sx={{ width: "200px" }}>
             <InputLabel>استان</InputLabel>

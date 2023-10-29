@@ -21,8 +21,11 @@ import LoadingButton from "@mui/lab/LoadingButton";
 
 import { FormContainer, FormInputs } from "Components/Form";
 
-import { addZeroForTime, enToFaNumber } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
+import {
+  addZeroForTime,
+  enToFaNumber,
+  zipCodeRegexPattern,
+} from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useForm } from "react-hook-form";
@@ -42,6 +45,7 @@ import { toast } from "react-toastify";
 import { axiosApi } from "api/axiosApi";
 import { useNavigate } from "react-router-dom";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const stepsLabels = ["انتخاب مسیر", "تکمیل اطلاعات", "ثبت نهایی"];
 const ADDRESS_TYPES = [
@@ -74,15 +78,16 @@ const NewTune = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ثبت آهنگ پروژه" />
-
-      <Stepper activeStep={step} alternativeLabel sx={{ mt: 3, mb: 5 }}>
-        {stepsLabels.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+      <HelmetTitlePage title="ثبت آهنگ پروژه" />
+      <Card sx={{ mt: 3, mb: 5, p: 2 }}>
+        <Stepper activeStep={step} alternativeLabel>
+          {stepsLabels.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+      </Card>
 
       <CurrentStep {...stepProps} />
     </>
@@ -179,6 +184,10 @@ const StepOne = (props) => {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
     {
@@ -217,6 +226,10 @@ const StepOne = (props) => {
         minLength: {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
+        },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
         },
       },
     },

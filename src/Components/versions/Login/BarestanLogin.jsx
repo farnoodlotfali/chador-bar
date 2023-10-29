@@ -1,74 +1,22 @@
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { Card, Container, Box } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { Helmet } from "react-helmet-async";
-import { simpleAxiosApi } from "api/axiosApi";
-import { useForm } from "react-hook-form";
-import Cookies from "js-cookie";
-import { useNavigate } from "react-router-dom";
+
 import { AppContext } from "context/appContext";
-import logo_building from "Assets/images/barestan/logo_building.png";
+import logo_building from "Assets/images/barestan/logo_building.svg";
 import { FormContainer, FormInputs } from "Components/Form";
 import { blackColor, whiteColor } from "MUI/versions/barestan/Colors";
 
-export default function BarestanLogin() {
-  const { setUser, appTheme } = useContext(AppContext);
-  const navigate = useNavigate();
+export default function BarestanLogin({ Inputs, onSubmit, methods }) {
+  const { appTheme } = useContext(AppContext);
   const {
-    register,
     handleSubmit,
-    reset,
-    setValue,
+
     watch,
-    control,
     formState: { errors, isSubmitting },
-  } = useForm();
-  const onSubmit = async (data) => {
-    try {
-      const res = await simpleAxiosApi({
-        url: "/login",
-        method: "post",
-        data: JSON.stringify(data),
-      });
+  } = methods;
 
-      Cookies.set("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      setUser(res.data.user);
-      navigate("/desktop");
-    } catch (e) {
-      console.log(e);
-    }
-  };
-  // navigate to desktop if token exist
-  useEffect(() => {
-    if (Cookies.get("token")) {
-      navigate("/desktop");
-    }
-    reset();
-  }, []);
-
-  const Inputs = [
-    {
-      type: "number",
-      name: "mobile",
-      label: "نام کاربری",
-      control: control,
-      rules: { required: "شماره موبایل را وارد کنید" },
-    },
-    {
-      type: "password",
-      name: "password",
-      label: "رمز عبور",
-      control: control,
-      rules: {
-        required: "رمز را وارد کنید",
-      },
-    },
-  ];
-  // handle on change inputs
-  const handleChange = (name, value) => {
-    setValue(name, value);
-  };
   return (
     <Box
       sx={{
@@ -79,15 +27,14 @@ export default function BarestanLogin() {
         backgroundAttachment: "fixed",
         backgroundPosition: "bottom",
         backgroundSize: "contain",
-        bgcolor: (theme) =>
-          theme.palette.mode === "dark" ? whiteColor : blackColor,
+        bgcolor: "background.default",
       }}
     >
       <Helmet title="پنل بارستان - ورود" />
 
       <Container maxWidth="xs" sx={{ pt: 10 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <FormContainer data={watch()} setData={handleChange} errors={errors}>
+          <FormContainer data={watch()} setData={() => {}} errors={errors}>
             <Card sx={{ p: 3, mb: 2, boxShadow: 1, overflow: "visible" }}>
               <Box
                 sx={{
@@ -95,7 +42,7 @@ export default function BarestanLogin() {
                 }}
               >
                 <img
-                  src={require(`Assets/images/barestan/truck_text_${
+                  src={require(`Assets/images/${process.env.REACT_APP_VERSION_CODE}/truck_text_${
                     appTheme === "dark" ? "light" : "dark"
                   }.png`)}
                   width="100%"

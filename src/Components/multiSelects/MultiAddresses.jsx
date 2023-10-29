@@ -1,20 +1,14 @@
 import {
-  Box,
   Button,
   FormHelperText,
-  Grid,
   InputAdornment,
   OutlinedInput,
-  Stack,
-  Typography,
 } from "@mui/material";
-import Modal from "Components/versions/Modal";
-import SearchInput from "Components/SearchInput";
+
 import SelectAddress from "Components/selects/SelectAddress";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
-import { useProduct } from "hook/useProduct";
+
 import React, { useState } from "react";
-import { useFieldArray, useForm, useFormState } from "react-hook-form";
+import { useFieldArray, useFormState } from "react-hook-form";
 
 const MultiAddresses = (props) => {
   const [showModal, setShowModal] = useState(false);
@@ -46,7 +40,6 @@ const MultiAddresses = (props) => {
     }
 
     return str;
-    // return "str";
   };
 
   const latName = `${props.name}_lat`;
@@ -56,7 +49,6 @@ const MultiAddresses = (props) => {
     <>
       <OutlinedInput
         sx={{ width: "100%" }}
-        // inputRef={field.ref}
         name={props.name}
         value={renderValue()}
         readOnly

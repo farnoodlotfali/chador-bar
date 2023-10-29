@@ -1,6 +1,10 @@
 import { Skeleton } from "@mui/material";
-import { useVersionENV } from "hook/useVersionENV";
-import { Suspense } from "react";
+import { loadENV } from "Utility/versions";
+import { Suspense, lazy } from "react";
+
+const LazyComponent = lazy(() =>
+  import(`Components/versions/RequestStepper/${loadENV()}RequestStepper`)
+);
 
 const STEPS = [
   {
@@ -56,8 +60,6 @@ const STEPS = [
 ];
 
 const RequestStepper = ({ status, size = 30 }) => {
-  const { LazyComponent } = useVersionENV("RequestStepper");
-
   return (
     <>
       <Suspense

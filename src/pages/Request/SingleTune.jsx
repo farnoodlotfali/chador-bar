@@ -20,16 +20,20 @@ import { ChooseProject } from "Components/choosers/ChooseProject";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { axiosApi } from "api/axiosApi";
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
 import { BlueCircleMarker, greenIcon, MarkerIcon } from "Components/MarkerIcon";
-import { addZeroForTime, enToFaNumber } from "Utility/utils";
+import {
+  addZeroForTime,
+  enToFaNumber,
+  zipCodeRegexPattern,
+} from "Utility/utils";
 import { reverseRoutes } from "Components/DrivingDirection";
 import ChooseAddressModal from "Components/modals/ChooseAddressModal";
 import { toast } from "react-toastify";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const limeOptions = { color: "lime" };
 
@@ -318,6 +322,10 @@ const SingleTune = () => {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
   ];
@@ -360,6 +368,10 @@ const SingleTune = () => {
         minLength: {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
+        },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
         },
       },
     },
@@ -407,7 +419,8 @@ const SingleTune = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ویرایش آهنگ پروژه" />
+      <HelmetTitlePage title="ویرایش آهنگ پروژه" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

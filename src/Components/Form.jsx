@@ -28,6 +28,8 @@ import { MobileTimePicker } from "@mui/x-date-pickers/MobileTimePicker";
 import { useSearchParams } from "react-router-dom";
 import {
   enToFaNumber,
+  faToEnNumber,
+  numberWithCommas,
   numberWithCommasEn,
   validateNumberInput,
 } from "Utility/utils";
@@ -36,7 +38,7 @@ import { SvgSPrite } from "./SvgSPrite";
 
 const FormContext = createContext({});
 
-const FormContainer = memo(({ children, data, setData, errors }) => {
+const FormContainer = ({ children, data, setData, errors }) => {
   const [selectDateKey, setSelectDateKey] = useState();
 
   return (
@@ -52,11 +54,11 @@ const FormContainer = memo(({ children, data, setData, errors }) => {
       {children}
     </FormContext.Provider>
   );
-});
+};
 
 const typesLabel = ["checkbox", "time"];
 
-const FormInputs = memo(({ children, inputs, gridProps, sx }) => {
+const FormInputs = ({ children, inputs, gridProps, sx }) => {
   const { errors } = useContext(FormContext);
 
   return (
@@ -74,9 +76,9 @@ const FormInputs = memo(({ children, inputs, gridProps, sx }) => {
       </Grid>
     </>
   );
-});
+};
 
-const RenderInputs = memo(({ input, gridProps, errors, ref }) => {
+const RenderInputs = ({ input, gridProps, errors, ref }) => {
   if (input) {
     const inputComponent = (
       <Grid
@@ -112,9 +114,9 @@ const RenderInputs = memo(({ input, gridProps, errors, ref }) => {
     }
     return inputComponent;
   }
-});
+};
 
-const HandleInputType = memo(({ input }) => {
+const HandleInputType = ({ input }) => {
   switch (input.type) {
     case "text":
     case "email":
@@ -142,15 +144,17 @@ const HandleInputType = memo(({ input }) => {
       return <RenderTime input={input} />;
     case "checkbox":
       return <RenderCheckBox input={input} />;
+    case "color":
+      return <RenderColor input={input} />;
 
     default:
       return <></>;
   }
-});
+};
 
 export { FormContainer, FormInputs };
 
-const RenderInput = memo(({ input }) => {
+const RenderInput = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -159,9 +163,10 @@ const RenderInput = memo(({ input }) => {
     name: input.name,
     control: input.control,
     rules: input.rules ?? {},
+    defaultValue: input?.defaultValue,
   });
 
-  const handleOnChanged = useCallback((e) => {
+  const handleOnChanged = (e) => {
     if (input.rules?.maxLength) {
       if (e.target.value.length > input.rules?.maxLength.value) {
         return;
@@ -170,7 +175,7 @@ const RenderInput = memo(({ input }) => {
     } else {
       field.onChange(e);
     }
-  }, []);
+  };
 
   return (
     <OutlinedInput
@@ -189,11 +194,13 @@ const RenderInput = memo(({ input }) => {
       autoComplete={input.type === "password" ? "new-password" : undefined}
       error={error}
       readOnly={input.readOnly}
+      endAdornment={input?.endAdornment}
+      dir={input?.isLtr && "ltr"}
     />
   );
-});
+};
 
-const RenderNumberInput = memo(({ input }) => {
+const RenderNumberInput = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -204,7 +211,7 @@ const RenderNumberInput = memo(({ input }) => {
     rules: input.rules ?? {},
   });
 
-  const handleOnChanged = useCallback((e) => {
+  const handleOnChanged = (e) => {
     if (!validateNumberInput(e.target.value)) {
       return;
     }
@@ -213,19 +220,21 @@ const RenderNumberInput = memo(({ input }) => {
       if (e.target.value.length > input.rules?.maxLength.value) {
         return;
       }
-      field.onChange(e);
+      field.onChange(faToEnNumber(e.target.value.replaceAll(",", "")));
     } else {
-      field.onChange(e.target.value.replaceAll(",", ""));
+      field.onChange(faToEnNumber(e.target.value.replaceAll(",", "")));
     }
-  }, []);
+  };
 
   return (
     <OutlinedInput
       inputRef={field.ref}
       value={
-        (input.splitter ? numberWithCommasEn(field.value) : field.value) || ""
+        input.splitter
+          ? numberWithCommas(field.value)
+          : enToFaNumber(field.value)
       }
-      type={input.splitter ? "text" : "number"}
+      type={input.splitter ? "text" : "text"}
       label={input.label}
       placeholder={input.placeholder}
       sx={{
@@ -239,9 +248,9 @@ const RenderNumberInput = memo(({ input }) => {
       readOnly={input.readOnly}
     />
   );
-});
+};
 
-const RenderTime = memo(({ input }) => {
+const RenderTime = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -302,9 +311,9 @@ const RenderTime = memo(({ input }) => {
       </LocalizationProvider>
     </>
   );
-});
+};
 
-const RenderTextArea = memo(({ input }) => {
+const RenderTextArea = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -329,8 +338,8 @@ const RenderTextArea = memo(({ input }) => {
       error={error}
     />
   );
-});
-const RenderDate = memo(({ input }) => {
+};
+const RenderDate = ({ input }) => {
   const [showSelectDate, setShowSelectDate] = useState(false);
   // get from url
   const [searchParams] = useSearchParams();
@@ -394,9 +403,9 @@ const RenderDate = memo(({ input }) => {
       />
     </>
   );
-});
+};
 
-const RenderPlaque = memo(({ input }) => {
+const RenderPlaque = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -414,9 +423,9 @@ const RenderPlaque = memo(({ input }) => {
       inputRef={field.ref}
     />
   );
-});
+};
 
-const RenderSelect = memo(({ input }) => {
+const RenderSelect = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -425,6 +434,7 @@ const RenderSelect = memo(({ input }) => {
     name: input.name,
     control: input.control,
     rules: input.rules ?? {},
+    defaultValue: input.defaultValue ?? "",
   });
 
   return (
@@ -483,9 +493,9 @@ const RenderSelect = memo(({ input }) => {
       })}
     </Select>
   );
-});
+};
 
-const RenderMultiSelect = memo(({ input }) => {
+const RenderMultiSelect = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -517,9 +527,9 @@ const RenderMultiSelect = memo(({ input }) => {
       ))}
     </Select>
   );
-});
+};
 
-const RenderAddress = memo(({ input }) => {
+const RenderAddress = ({ input }) => {
   const { data, setData } = useContext(FormContext);
   const [showSelectAddress, setShowSelectAddress] = useState(false);
   return (
@@ -577,9 +587,9 @@ const RenderAddress = memo(({ input }) => {
       />
     </>
   );
-});
+};
 
-const RenderZone = memo(({ input }) => {
+const RenderZone = ({ input }) => {
   const [searchParams] = useSearchParams();
   const source_zone_id = searchParams.getAll("source_zone_id");
   const destination_zone_id = searchParams.getAll("destination_zone_id");
@@ -629,9 +639,9 @@ const RenderZone = memo(({ input }) => {
       height={input.height}
     />
   );
-});
+};
 
-const RenderWeekDays = memo(({ input }) => {
+const RenderWeekDays = ({ input }) => {
   input.options = [
     { id: 1, title: "شنبه" },
     { id: 2, title: "یک‌شنبه" },
@@ -645,9 +655,9 @@ const RenderWeekDays = memo(({ input }) => {
   input.labelKey = "title";
 
   return <RenderMultiSelect input={input} />;
-});
+};
 
-const RenderCheckBox = memo(({ input }) => {
+const RenderCheckBox = ({ input }) => {
   const {
     field,
     fieldState: { error },
@@ -677,7 +687,41 @@ const RenderCheckBox = memo(({ input }) => {
       />
     </FormGroup>
   );
-});
+};
+
+const RenderColor = ({ input }) => {
+  const {
+    field,
+    fieldState: { error },
+    formState: {},
+  } = useController({
+    name: input.name,
+    control: input.control,
+    rules: input.rules ?? {},
+    defaultValue: input?.defaultValue ?? "#000000",
+  });
+
+  return (
+    <OutlinedInput
+      type="color"
+      value={field.value || ""}
+      onChange={field.onChange}
+      fullWidth
+      startAdornment={
+        <InputAdornment position="end">
+          <Typography sx={{ width: 70, textAlign: "left" }} variant="subtitle2">
+            {field.value ?? ""}
+          </Typography>
+        </InputAdornment>
+      }
+      inputRef={field.ref}
+      label={input.label}
+      placeholder={input.placeholder}
+      error={error}
+      readOnly={input.readOnly}
+    />
+  );
+};
 
 // ui functions
 const InputTooltip = ({ title }) => {

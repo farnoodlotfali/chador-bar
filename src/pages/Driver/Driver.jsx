@@ -6,7 +6,6 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { FormContainer, FormInputs } from "Components/Form";
 import { GENDER } from "Constants";
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +16,7 @@ import { ChooseVehicle } from "Components/choosers/vehicle/ChooseVehicle";
 import moment from "jalali-moment";
 import { enToFaNumber } from "Utility/utils";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 export default function Driver() {
   const { id } = useParams();
@@ -223,7 +223,8 @@ export default function Driver() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ویرایش راننده" />
+      <HelmetTitlePage title="ویرایش راننده" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

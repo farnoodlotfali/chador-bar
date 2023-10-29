@@ -2,16 +2,12 @@ import { useState } from "react";
 
 import {
   Button,
-  Card,
-  Collapse,
   Stack,
-  Typography,
   Grid,
   Box,
   TableBody,
   TableRow,
   TableCell,
-  Switch,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
@@ -19,22 +15,17 @@ import { toast } from "react-toastify";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
-import SearchInput from "Components/SearchInput";
 import { FormContainer, FormInputs } from "Components/Form";
 
-import {
-  enToFaNumber,
-  numberWithCommas,
-  removeInvalidValues,
-} from "Utility/utils";
-import { Helmet } from "react-helmet-async";
+import { enToFaNumber, removeInvalidValues } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useProductGroup } from "hook/useProductGroup";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -79,9 +70,6 @@ export default function ProductGroups() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -100,7 +88,7 @@ export default function ProductGroups() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  دسته‌بندی محصولات" />
+      <HelmetTitlePage title="دسته‌بندی محصولات" />
 
       <AddNewGroupProduct />
 
@@ -111,9 +99,10 @@ export default function ProductGroups() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteGroupMutation.isLoading}
       >
         <TableBody>
-          {productGroup.data.map((row) => {
+          {productGroup?.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -133,6 +122,7 @@ export default function ProductGroups() {
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteGroup(row.id),
+                        name: "product-group.destroy",
                       },
                     ]}
                   />
@@ -142,7 +132,6 @@ export default function ProductGroups() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -163,6 +152,7 @@ const SearchBoxGroupProduct = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -176,12 +166,13 @@ const SearchBoxGroupProduct = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -205,6 +196,16 @@ const SearchBoxGroupProduct = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -280,6 +281,7 @@ const AddNewGroupProduct = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن دسته‌بندی محصول"
+      name="product-group.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

@@ -1,4 +1,4 @@
-import { TableBody, TableCell, TableRow, Typography } from "@mui/material";
+import { TableCell, TableRow, Typography } from "@mui/material";
 import Modal from "Components/versions/Modal";
 import { enToFaNumber, renderPlaqueObjectToString } from "Utility/utils";
 import VehicleTypeDetailModal from "./VehicleTypeDetailModal";
@@ -38,9 +38,7 @@ export default function ShowVehiclesFleet({ show, onClose, data }) {
   return (
     <>
       <Modal open={show} onClose={onClose}>
-        <FormTypography>
-          لیست خودروها
-        </FormTypography>
+        <FormTypography>لیست خودروها</FormTypography>
 
         <NormalTable headCells={headCells}>
           {data.map((row) => {

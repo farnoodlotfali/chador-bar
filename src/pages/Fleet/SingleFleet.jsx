@@ -16,7 +16,6 @@ import { FormContainer, FormInputs } from "Components/Form";
 import NormalTable from "Components/NormalTable";
 import TableActionCell from "Components/versions/TableActionCell";
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 
@@ -32,6 +31,7 @@ import Table from "Components/versions/Table";
 import { useDriver } from "hook/useDriver";
 
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -211,7 +211,8 @@ const SingleFleet = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  ناوگان" />
+      <HelmetTitlePage title="ناوگان" />
+
       <AddNewFreeDriver />
 
       <Card sx={{ p: 2, boxShadow: 1 }}>
@@ -241,12 +242,14 @@ const SingleFleet = () => {
                           color: "info",
                           icon: "alarm-plus",
                           onClick: () => handleAddShift(item),
+                          name: "driver-shift.store",
                         },
                         {
                           tooltip: "مشاهده شیفت",
                           color: "success",
                           icon: "eye",
                           onClick: () => handleShowDriverShifts(item),
+                          name: "driver-shift.index",
                         },
                         {
                           tooltip: "جزییات راننده",
@@ -259,6 +262,7 @@ const SingleFleet = () => {
                           color: "error",
                           icon: "trash-xmark",
                           onClick: () => showModalToRemoveDriverFleet(item),
+                          name: "driver-fleet.destroy",
                         },
                       ]}
                     />
@@ -370,6 +374,7 @@ const AddNewFreeDriver = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن راننده به ناوگان"
+      name="driver-fleet.store"
     >
       <Box sx={{ p: 2 }}>
         {isLoading || isFetching ? (
@@ -489,6 +494,7 @@ const ShowDriverShifts = ({ shifts = [], show, onClose }) => {
                           color: "error",
                           icon: "trash-xmark",
                           onClick: () => showModalToRemoveShift(row),
+                          name: "driver-shift.destroy",
                         },
                       ]}
                     />

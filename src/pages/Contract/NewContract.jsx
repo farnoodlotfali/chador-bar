@@ -17,7 +17,6 @@ import { FormContainer, FormInputs } from "Components/Form";
 import { useContractTypes } from "hook/useContractTypes";
 import { useOwnerTypes } from "hook/useOwnerTypes";
 import { useTransportationTypes } from "hook/useTransportationTypes";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
@@ -38,6 +37,8 @@ import TableActionCell from "Components/versions/TableActionCell";
 
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
 import FormTypography from "Components/FormTypography";
+import TableInput from "Components/TableInput";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -344,7 +345,9 @@ const NewContract = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  قرارداد جدید" />
+      <HelmetTitlePage title="قرارداد جدید" />
+
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
@@ -371,27 +374,30 @@ const NewContract = () => {
                       {enToFaNumber(item.unit.title)}
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        name="weight"
-                        {...inputStyle}
-                        value={numberWithCommasEn(item.weight)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.weight`,
+                          rules: {
+                            required: "وزن را وارد کنید",
+                          },
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        name="volume"
-                        {...inputStyle}
-                        value={numberWithCommasEn(item.volume)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.volume`,
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">
-                      <OutlinedInput
-                        name="quantity"
-                        {...inputStyle}
-                        value={numberWithCommasEn(item.quantity)}
-                        onChange={(e) => handleAddInfo(item, e, i)}
+                      <TableInput
+                        input={{
+                          control: control,
+                          name: `products.${i}.count`,
+                        }}
                       />
                     </TableCell>
                     <TableCell scope="row">
@@ -400,7 +406,7 @@ const NewContract = () => {
                           {
                             tooltip: "حذف کردن",
                             color: "error",
-                            icon:  "trash-xmark",
+                            icon: "trash-xmark",
                             onClick: () => handleRemoveProduct(item),
                           },
                         ]}

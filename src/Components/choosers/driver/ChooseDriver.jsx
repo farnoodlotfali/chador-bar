@@ -22,6 +22,8 @@ export const ChooseDriver = ({
   dataArray = [],
   isLoadFromApi = true,
   outFilters = {},
+  label = "راننده",
+  notAllowedDriver,
 }) => {
   const {
     field,
@@ -32,6 +34,7 @@ export const ChooseDriver = ({
     control,
     rules: rules,
   });
+
   const [showModal, setShowModal] = useState(false);
 
   const driverName = field.value
@@ -46,7 +49,7 @@ export const ChooseDriver = ({
   return (
     <>
       <Modal open={showModal} onClose={toggleShowModal}>
-        <FormTypography>انتخاب راننده</FormTypography>
+        <FormTypography>انتخاب {label}</FormTypography>
 
         {isLoadFromApi ? (
           <SelectDriver
@@ -58,19 +61,21 @@ export const ChooseDriver = ({
         ) : (
           <Grid container rowSpacing={3}>
             {dataArray?.drivers?.length > 0 ? (
-              dataArray?.drivers?.map((driver) => {
-                return (
-                  <Grid item xs={12} key={driver.id}>
-                    <DriverItem
-                      driver={driver}
-                      fleet={dataArray}
-                      data={field.value}
-                      setData={selectDriver}
-                      timeLine={true}
-                    />
-                  </Grid>
-                );
-              })
+              dataArray?.drivers
+                ?.filter((item) => item.id !== notAllowedDriver?.id)
+                .map((driver) => {
+                  return (
+                    <Grid item xs={12} key={driver.id}>
+                      <DriverItem
+                        driver={driver}
+                        fleet={dataArray}
+                        data={field.value}
+                        setData={selectDriver}
+                        timeLine={true}
+                      />
+                    </Grid>
+                  );
+                })
             ) : (
               <Typography pt={2} pl={2}>
                 راننده ای یافت نشد
@@ -80,12 +85,12 @@ export const ChooseDriver = ({
         )}
       </Modal>
       <FormControl variant="outlined" sx={{ width: "100%" }}>
-        <InputLabel>راننده</InputLabel>
+        <InputLabel>{label}</InputLabel>
         <OutlinedInput
           sx={{ width: "100%" }}
           inputRef={field.ref}
           name={field.name}
-          label={"راننده"}
+          label={label}
           value={driverName}
           readOnly
           error={error}

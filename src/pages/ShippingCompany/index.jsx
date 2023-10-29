@@ -9,10 +9,10 @@ import {
   TableRow,
   TableCell,
   Switch,
+  Rating,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
@@ -24,7 +24,6 @@ import {
   removeInvalidValues,
   renderSelectOptions,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -33,6 +32,10 @@ import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import { useCompanyTypes } from "hook/useCompanyTypes";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import ShippingCompanyReportModal from "Components/modals/ShippingCompanyReportModal";
 
 const HeadCells = [
   {
@@ -47,6 +50,11 @@ const HeadCells = [
   {
     id: "name",
     label: "نام",
+  },
+  {
+    id: "rating",
+    label: "امتیاز",
+    sortable: true,
   },
   {
     id: "mobile",
@@ -70,8 +78,10 @@ const HeadCells = [
 const ShippingCompanyList = () => {
   const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
-  const [deleteShippingCompanyId, setDeleteShippingCompanyId] = useState(null);
+  const [selectedShippingCompany, setSelectedShippingCompany] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [openModal, setOpenModal] = useState(null);
+
   const {
     data: shippingCompany,
     isLoading,
@@ -110,22 +120,19 @@ const ShippingCompanyList = () => {
     }
   );
 
-  if (isLoading || isFetching || isFetchingCT || isLoadingCT) {
-    return <LoadingSpinner />;
-  }
   if (isError || isErrorCT) {
     return <div className="">error</div>;
   }
 
-  const handleDeleteShippingCompany = (id) => {
+  const handleDeleteShippingCompany = (val) => {
     setShowConfirmModal(true);
-    setDeleteShippingCompanyId(id);
+    setSelectedShippingCompany(val);
   };
   // handle delete ShippingCompany
   const deleteShippingCompany = () => {
-    deleteShippingCompanyMutation.mutate(deleteShippingCompanyId);
+    deleteShippingCompanyMutation.mutate(selectedShippingCompany?.id);
     setShowConfirmModal(false);
-    setDeleteShippingCompanyId(null);
+    setSelectedShippingCompany(null);
   };
 
   // handle update ShippingCompany
@@ -140,9 +147,21 @@ const ShippingCompanyList = () => {
     updateShippingCompanyMutation.mutate(form);
   };
 
+  const toggleShowScores = (rowData) => {
+    setOpenModal("personScore");
+    if (rowData) setSelectedShippingCompany(rowData);
+  };
+  const handleShowShippingCompanyReportModal = (rowData) => {
+    setOpenModal("shippingCompanyReport");
+    if (rowData) setSelectedShippingCompany(rowData);
+  };
+
+  const toggleOpenModal = () => {
+    setOpenModal(null);
+  };
   return (
     <>
-      <Helmet title="پنل دراپ -   شرکت حمل" />
+      <HelmetTitlePage title="شرکت حمل" />
 
       <AddNewShippingSection companyTypes={companyTypes} />
 
@@ -153,19 +172,38 @@ const ShippingCompanyList = () => {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          isFetchingCT ||
+          isLoadingCT ||
+          deleteShippingCompanyMutation.isLoading ||
+          updateShippingCompanyMutation.isLoading
+        }
       >
         <TableBody>
-          {shippingCompany.data.map((row) => {
+          {shippingCompany?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.id)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.code}
+                  {enToFaNumber(row.code)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {row.name}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Rating
+                    precision={0.2}
+                    sx={{
+                      width: "fit-content",
+                    }}
+                    value={row?.rating}
+                    size="small"
+                    readOnly
+                  />
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.mobile)}
@@ -188,8 +226,22 @@ const ShippingCompanyList = () => {
                       {
                         tooltip: "حذف",
                         color: "error",
-                        icon: "trash-xmarks",
-                        onClick: () => handleDeleteShippingCompany(row.id),
+                        icon: "trash-xmark",
+                        onClick: () => handleDeleteShippingCompany(row),
+                        name: "shipping-company.destroy",
+                      },
+                      {
+                        tooltip: "تاریخچه امتیازات",
+                        color: "secondary",
+                        icon: "rectangle-history-circle-user",
+                        onClick: () => toggleShowScores(row),
+                      },
+                      {
+                        tooltip: "گزارش",
+                        color: "info",
+                        icon: "memo-pad",
+                        onClick: () =>
+                          handleShowShippingCompanyReportModal(row),
                       },
                     ]}
                   />
@@ -199,12 +251,23 @@ const ShippingCompanyList = () => {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
         onAccept={deleteShippingCompany}
-        message="آیا از حذف شماتیک  مطمئن هستید؟"
+        message="آیا از حذف شرکت حمل و نقل مطمئن هستید؟"
+      />
+
+      <ShippingCompanyReportModal
+        open={openModal === "shippingCompanyReport"}
+        onClose={toggleOpenModal}
+        data={selectedShippingCompany}
+      />
+
+      <ShowPersonScoreModal
+        show={openModal === "personScore"}
+        data={selectedShippingCompany}
+        onClose={toggleOpenModal}
       />
     </>
   );
@@ -220,6 +283,7 @@ const SearchBoxShipping = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -233,12 +297,13 @@ const SearchBoxShipping = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -262,6 +327,16 @@ const SearchBoxShipping = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -413,6 +488,7 @@ const AddNewShippingSection = ({ companyTypes }) => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن شرکت حمل و نقل"
+      name="shipping-company.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

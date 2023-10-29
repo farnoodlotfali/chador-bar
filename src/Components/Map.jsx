@@ -65,6 +65,7 @@ const Map = (props) => {
           zoomControl={false}
           doubleClickZoom={!disableScroll_controlButton}
           ref={setLeafMap}
+          attributionControl={false}
         >
           <TileLayer
             url={`https://api.cedarmaps.com/v1/tiles/cedarmaps.streets/{z}/{x}/{y}.png?access_token=${CedarmapToken}`}

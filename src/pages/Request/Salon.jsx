@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Stack,
@@ -11,14 +11,12 @@ import {
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { enToFaNumber, removeInvalidValues } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -31,6 +29,9 @@ import MultiCustomers from "Components/multiSelects/MultiCustomers";
 import Modal from "Components/versions/Modal";
 import NormalTable from "Components/NormalTable";
 import FormTypography from "Components/FormTypography";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const headCells = [
   {
@@ -122,9 +123,6 @@ export default function SalonList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -185,14 +183,23 @@ export default function SalonList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - لیست سالن بار" />
+      <HelmetTitlePage title="لیست سالن بار" />
+
       <AddNewSalon />
       <SearchBoxSalon />
+
       <Table
         {...Salon}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          addPersonSalonMutation.isLoading ||
+          deletePersonSalonMutation.isLoading ||
+          deleteSalonMutation.isLoading
+        }
       >
         <TableBody>
           {Salon?.items?.data?.map((row) => {
@@ -213,12 +220,14 @@ export default function SalonList() {
                         tooltip: "ویرایش",
                         color: "warning",
                         icon: "pencil",
+                        name: "salon.update",
                         onClick: () => handleEditSalon(row),
                       },
                       {
                         tooltip: "رانندگان",
                         color: "info",
                         icon: "people-group",
+                        name: "person-salon.index",
                         onClick: () => handleSalonDrivers(row),
                       },
 
@@ -227,18 +236,21 @@ export default function SalonList() {
                         color: "secondary",
                         icon: "family-pants",
                         onClick: () => handleSalonOwners(row),
+                        name: "person-salon.index",
                       },
                       {
                         tooltip: "درخواست ها",
                         color: "success",
                         icon: "list-check",
                         link: `/request?salon=${row.id}`,
+                        name: "request.index",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteSalon(row),
+                        name: "salon.destroy",
                       },
                     ]}
                   />
@@ -369,13 +381,12 @@ const SalonDriversModal = ({
     setValue,
     watch,
   } = useForm();
-
+  const { hasPermission } = useHasPermission("person-salon.store");
   useEffect(() => {
     if (salon?.drivers) {
       handleChange("drivers", salon?.drivers);
     }
   }, [salon]);
-
   const [showModal, setShowModal] = useState(false);
   const [SelectedDriver, setSelectedDriver] = useState(null);
 
@@ -443,6 +454,18 @@ const SalonDriversModal = ({
     setShowModal("addNewDriverSalon");
   };
 
+  const addBtn = useMemo(() => {
+    if (!hasPermission) {
+      return;
+    }
+
+    return (
+      <Button onClick={showAddNewDriverSalon} variant="contained">
+        افزودن راننده جدید
+      </Button>
+    );
+  }, [hasPermission]);
+
   return (
     <>
       {salon && (
@@ -454,30 +477,29 @@ const SalonDriversModal = ({
             alignItems="center"
           >
             <Typography variant="h5">رانندگان {salon.name}</Typography>
-
-            <Button onClick={showAddNewDriverSalon} variant="contained">
-              افزودن راننده جدید
-            </Button>
+            {addBtn}
           </Stack>
           <NormalTable headCells={driversHeadCells}>
             {salon?.drivers.map((item, i) => {
               return (
                 <TableRow hover tabIndex={-1} key={item.id}>
-                  <TableCell scope="row">{enToFaNumber(i + 1)}</TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
+                    {enToFaNumber(i + 1)}
+                  </TableCell>
+                  <TableCell align="center" scope="row">
                     {item?.person?.first_name
                       ? (item?.person?.first_name ?? "-") +
                         " " +
                         (item?.person?.last_name ?? "")
                       : "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.person.mobile) ?? "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.national_code) ?? "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.license_card) ?? "-"}
                   </TableCell>
                   <TableCell>
@@ -488,6 +510,7 @@ const SalonDriversModal = ({
                           color: "error",
                           icon: "trash-xmark",
                           onClick: () => deleteDriver(item),
+                          name: "person-salon.destroy",
                         },
                       ]}
                     />
@@ -547,6 +570,7 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
     setValue,
     watch,
   } = useForm();
+  const { hasPermission } = useHasPermission("person-salon.store");
 
   const [showModal, setShowModal] = useState(false);
   const [SelectedOwner, setSelectedOwner] = useState(null);
@@ -622,7 +646,17 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
   const showAddNewOwnerSalon = () => {
     setShowModal("addNewOwnerSalon");
   };
+  const addBtn = useMemo(() => {
+    if (!hasPermission) {
+      return;
+    }
 
+    return (
+      <Button onClick={showAddNewOwnerSalon} variant="contained">
+        افزودن صاحب بار جدید
+      </Button>
+    );
+  }, [hasPermission]);
   return (
     <>
       {salon && (
@@ -635,30 +669,30 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
           >
             <Typography variant="h5">صاحبان بار {salon.name}</Typography>
 
-            <Button onClick={showAddNewOwnerSalon} variant="contained">
-              افزودن صاحب بار جدید
-            </Button>
+            {addBtn}
           </Stack>
 
           <NormalTable headCells={driversHeadCells}>
             {salon?.owners.map((item, i) => {
               return (
                 <TableRow hover tabIndex={-1} key={item.id}>
-                  <TableCell scope="row">{enToFaNumber(i + 1)}</TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
+                    {enToFaNumber(i + 1)}
+                  </TableCell>
+                  <TableCell align="center" scope="row">
                     {item?.person?.first_name
                       ? (item?.person?.first_name ?? "-") +
                         " " +
                         (item?.person?.last_name ?? "")
                       : "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.person.mobile) ?? "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.national_code) ?? "-"}
                   </TableCell>
-                  <TableCell scope="row">
+                  <TableCell align="center" scope="row">
                     {enToFaNumber(item.license_card) ?? "-"}
                   </TableCell>
                   <TableCell>
@@ -667,8 +701,9 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
                         {
                           tooltip: "حذف",
                           color: "error",
-                          icon:  "trash-xmark",
+                          icon: "trash-xmark",
                           onClick: () => deleteOwner(item),
+                          name: "person-salon.destroy",
                         },
                       ]}
                     />
@@ -724,6 +759,7 @@ const SearchBoxSalon = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -737,12 +773,13 @@ const SearchBoxSalon = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
     setSearchParamsFilter((prev) =>
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -760,14 +797,24 @@ const SearchBoxSalon = () => {
           <FormContainer data={watch()} setData={handleChange} errors={errors}>
             <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
 
-            <Stack mt={10} alignItems="flex-end">
+            <Stack mt={4} spacing={2} justifyContent="flex-end" direction="row">
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <LoadingButton
                 variant="contained"
                 loading={isSubmitting}
                 type="submit"
                 color={Object.keys(errors).length !== 0 ? "error" : "primary"}
               >
-                افزودن
+                اعمال فیلتر
               </LoadingButton>
             </Stack>
           </FormContainer>
@@ -867,6 +914,7 @@ const AddNewSalon = () => {
       title="افزودن سالن"
       open={openCollapse}
       onToggle={setOpenCollapse}
+      name="salon.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

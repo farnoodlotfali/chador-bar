@@ -21,7 +21,6 @@ import {
   numberWithCommas,
   removeInvalidValues,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useProject } from "hook/useProject";
@@ -32,6 +31,8 @@ import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useForm } from "react-hook-form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -91,9 +92,6 @@ export default function ProjectList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -122,16 +120,19 @@ export default function ProjectList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - پروژه" />
+      <HelmetTitlePage title="پروژه" />
+
       <SearchBoxProject />
+
       <Table
-        {...projects.items}
+        {...projects?.items}
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteProjectMutation.isLoading}
       >
         <TableBody>
-          {projects.items.data.map((row) => {
+          {projects?.items?.data.map((row) => {
             return (
               <TableRow
                 hover
@@ -170,12 +171,14 @@ export default function ProjectList() {
                         color: "secondary",
                         icon: "eye",
                         onClick: () => handleShowDetail(row),
+                        name: "project.show",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteProject(row),
+                        name: "project.destroy",
                       },
                     ]}
                   />
@@ -216,9 +219,8 @@ const SearchBoxProject = () => {
     setValue,
     watch,
     handleSubmit,
-  } = useForm({
-    defaultValues: searchParamsFilter,
-  });
+    reset,
+  } = useForm({ defaultValues: searchParamsFilter });
 
   const Inputs = [
     {
@@ -229,12 +231,13 @@ const SearchBoxProject = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -258,6 +261,16 @@ const SearchBoxProject = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

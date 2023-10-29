@@ -1,11 +1,13 @@
 import { requestStatus } from "Utility/utils";
-import { useVersionENV } from "hook/useVersionENV";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
-import { Suspense } from "react";
+import { Suspense, lazy } from "react";
+import { loadENV } from "Utility/versions";
+
+const LazyComponent = lazy(() =>
+  import(`Components/versions/Timeline/${loadENV()}Timeline`)
+);
 
 export default function Timeline({ data, colors, historyActions }) {
-  const { LazyComponent } = useVersionENV("Timeline");
-
   const handleStatus = (status) => {
     return requestStatus[status];
   };

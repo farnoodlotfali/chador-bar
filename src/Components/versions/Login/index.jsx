@@ -1,16 +1,18 @@
 import LoadingSpinner from "Components/versions/LoadingSpinner";
+import { loadENV } from "Utility/versions";
 import { simpleAxiosApi } from "api/axiosApi";
 import { AppContext } from "context/appContext";
-import { useVersionENV } from "hook/useVersionENV";
 import Cookies from "js-cookie";
-import { Suspense, useContext, useEffect } from "react";
+import { Suspense, lazy, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+
+const LazyComponent = lazy(() =>
+  import(`Components/versions/Login/${loadENV()}Login`)
+);
 
 const LoginMain = () => {
-  const { LazyComponent } = useVersionENV("Login");
-
-  const { setUser } = useContext(AppContext);
+  const { setUser, setNotPermissions } = useContext(AppContext);
   const navigate = useNavigate();
   const methods = useForm();
   const { reset, control } = methods;
@@ -25,25 +27,33 @@ const LoginMain = () => {
 
       Cookies.set("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem(
+        "not_permitted",
+        JSON.stringify(res.data.not_permitted)
+      );
       setUser(res.data.user);
-      navigate("/desktop");
+      setNotPermissions(res.data.not_permitted);
+      setTimeout(() => {
+        navigate("/desktop");
+      }, 350);
     } catch (e) {
       console.log(e);
     }
   };
   // navigate to desktop if token exist
   useEffect(() => {
-    if (Cookies.get("token")) {
-      navigate("/desktop");
-    }
     reset();
   }, []);
+  if (Cookies.get("token")) {
+    return <Navigate to="/desktop" replace />;
+  }
 
   const Inputs = [
     {
       type: "number",
       name: "mobile",
       label: "نام کاربری",
+      noInputArrow: true,
       control: control,
       rules: { required: "شماره موبایل را وارد کنید" },
     },

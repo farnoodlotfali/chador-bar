@@ -3,7 +3,6 @@ import {
   FormHelperText,
   InputAdornment,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import FormTypography from "Components/FormTypography";
 import Modal from "Components/versions/Modal";
@@ -26,7 +25,7 @@ export const ChooseVehicle = ({ control, name, rules, outFilters = {} }) => {
   });
 
   const vehicleName = field.value
-    ? `${renderPlaqueObjectToString(field.value.plaque)}`
+    ? `${renderPlaqueObjectToString(field.value.plaque, "string")}`
     : `خودرو`;
 
   const selectVType = (vType) => {

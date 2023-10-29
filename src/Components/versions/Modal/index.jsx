@@ -5,12 +5,15 @@ import {
   Skeleton,
   Paper,
 } from "@mui/material";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
-import { useVersionENV } from "hook/useVersionENV";
-import { Suspense } from "react";
+import { loadENV } from "Utility/versions";
+
+import { Suspense, lazy } from "react";
+
+const LazyComponent = lazy(() =>
+  import(`Components/versions/Modal/${loadENV()}Modal`)
+);
 
 function Modal({ open, onClose, maxWidth, children }) {
-  const { LazyComponent } = useVersionENV("Modal");
   return (
     <MuiModal
       open={open}

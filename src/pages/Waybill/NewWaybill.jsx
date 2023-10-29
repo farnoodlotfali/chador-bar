@@ -3,19 +3,13 @@ import { LoadingButton } from "@mui/lab";
 import { Card, Divider, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
-import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
-import { ChooseFleet } from "Components/choosers/ChooseFleet";
-import { ChooseProduct } from "Components/choosers/ChooseProduct";
-import { ChoosePerson } from "Components/choosers/ChoosePerson";
+
 import { FormContainer, FormInputs } from "Components/Form";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ChoosePath } from "Components/choosers/ChoosePath";
-import { ChooseProject } from "Components/choosers/ChooseProject";
-import { useEffect } from "react";
-import { generateRandomNum, removeInvalidValues } from "Utility/utils";
+
+import { removeInvalidValues } from "Utility/utils";
 import { useMemo } from "react";
 import { ChooseDraft } from "Components/choosers/ChooseDraft";
 import { ChooseProvince } from "Components/choosers/ChooseProvince";
@@ -23,6 +17,7 @@ import { ChooseCity } from "Components/choosers/ChooseCity";
 import { ChooseCustomer } from "Components/choosers/ChooseCustomer";
 import { ChooseProductUnit } from "Components/choosers/ChooseProductUnit";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const NewWaybill = () => {
   const queryClient = useQueryClient();
@@ -747,7 +742,7 @@ const NewWaybill = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - بارنامه جدید" />
+      <HelmetTitlePage title="بارنامه جدید" />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer

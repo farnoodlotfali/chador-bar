@@ -1,6 +1,12 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   Box,
   IconButton,
@@ -23,25 +29,367 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { AppContext } from "context/appContext";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { deepCopy } from "Utility/utils";
+import { PAGE_TITLES } from "Constants";
 
 const HEADER_HEIGHT = 60;
 const DRAWER_WIDTH = 250;
 const DRAWER_TRANSITION = "width 0.3s ease-in-out, left 0.3s ease-in-out";
+//  links
+const DRAWER_MENU_ITEMS = [
+  {
+    id: 0,
+    text: "میزکار",
+    icon: "objects-column",
+    routeName: "/desktop",
+    name: "desktop",
+  },
+  {
+    id: 2,
+    text: "بارنامه ها",
+    icon: "receipt",
+    routeName: "null",
+    childrenLinks: [
+      {
+        text: "ثبت حواله",
+        icon: null,
+        routeName: "/waybill/NewDraft",
+        name: "draft.store",
+      },
+      {
+        text: "لیست حواله",
+        icon: null,
+        routeName: "/waybill/Draft",
+        name: "draft.index",
+      },
+      {
+        text: "ثبت بارنامه",
+        icon: null,
+        routeName: "/waybill/newWaybill",
+        name: "waybill.store",
+      },
+      {
+        text: "لیست بارنامه",
+        icon: null,
+        routeName: "/waybill",
+        name: "waybill.index",
+      },
+    ],
+  },
+  {
+    id: 10,
+    text: "قرارداد ها",
+    routeName: null,
+    icon: "handshake",
+    childrenLinks: [
+      {
+        text: "قرارداد جدید",
+        icon: null,
+        routeName: "/contract/new",
+        name: "contract.store",
+      },
+      {
+        text: "لیست",
+        icon: null,
+        routeName: "/contract",
+        name: "contract.index",
+      },
+    ],
+  },
+  {
+    id: 311,
+    text: "پروژه‌ها",
+    routeName: null,
+    icon: "briefcase-blank",
+    childrenLinks: [
+      {
+        text: "ثبت پروژه",
+        icon: null,
+        routeName: "/project/new",
+        name: "project.store",
+      },
+      {
+        text: "لیست پروژه",
+        icon: null,
+        routeName: "/project",
+        name: "project.index",
+      },
+    ],
+  },
+  {
+    id: 56,
+    text: "برنامه‌ریزی حمل",
+    routeName: null,
+    icon: "handshake-angle",
+    childrenLinks: [
+      {
+        text: "درخواست حمل جدید",
+        icon: null,
+        routeName: "/request/new",
+        name: "request.store",
+      },
+      {
+        text: "درخواست‌های حمل",
+        icon: null,
+        routeName: "/request",
+        name: "request.index",
+      },
+      {
+        text: "برنامه‌ریزی پروژه",
+        icon: null,
+        routeName: "/project/shipping-plan-new",
+        name: "request.store",
+      },
+      {
+        text: "لیست سالن بار",
+        icon: null,
+        routeName: "/request/salon",
+        name: "salon.store",
+      },
+      {
+        text: "تخصیص ناوگان",
+        icon: null,
+        routeName: "/request/fleet-allocation",
+        name: "fleet.allocation",
+      },
+      {
+        text: "ثبت آهنگ پروژه",
+        icon: null,
+        routeName: "/request/new-tune",
+        name: "project-plan.store",
+      },
+      {
+        text: "آهنگ های پروژه",
+        icon: null,
+        routeName: "/request/tune",
+        name: "project-plan.index",
+      },
+    ],
+  },
+  {
+    id: 11,
+    text: "ناوگان",
+    routeName: null,
+    icon: "car-bus",
+    childrenLinks: [
+      {
+        text: " شرکت حمل و نقل",
+        icon: null,
+        routeName: "/shippingCompany",
+        name: "shipping-company.index",
+      },
+      {
+        text: "گروه ناوگان",
+        icon: null,
+        routeName: "/fleet/group",
+        name: "fleet-group.index",
+      },
+      {
+        text: "ناوگان",
+        icon: null,
+        routeName: "/fleet",
+        name: "fleet.index",
+      },
+      {
+        text: "ناوگان جدید",
+        icon: null,
+        routeName: "/fleet/new",
+        name: "fleet.store",
+      },
+      {
+        text: "ذی‌نفعان",
+        icon: null,
+        routeName: "/beneficiary",
+        name: "beneficiary.index",
+      },
+      {
+        text: "گزارش ناوگان آزاد",
+        icon: null,
+        routeName: "/fleet/free",
+        name: "fleet.index",
+      },
+    ],
+  },
+  {
+    id: 5,
+    text: "خودروها",
+    routeName: null,
+    icon: "cars",
+    childrenLinks: [
+      {
+        text: "لیست خودروها",
+        icon: null,
+        routeName: "/vehicle",
+        name: "vehicle.index",
+      },
+      {
+        text: "نوع کامیون",
+        icon: null,
+        routeName: "/vehicle/category",
+        name: "vehicle-category.index",
+      },
+      {
+        text: "برند (مارک) ",
+        icon: null,
+        routeName: "/vehicle/brand",
+        name: "vehicle-brand.index",
+      },
+      {
+        text: "نوع بارگیر",
+        icon: null,
+        routeName: "/vehicle/type",
+        name: "vehicle-type.index",
+      },
+      {
+        text: "مدل",
+        icon: null,
+        routeName: "/vehicle/model",
+        name: "vehicle-model.index",
+      },
+      {
+        text: "سوخت گیری",
+        icon: null,
+        routeName: "/vehicle/refueling",
+        name: "refueling.index",
+      },
+    ],
+  },
+  {
+    id: 105,
+    text: " محصولات",
+    routeName: null,
+    icon: "box",
+    childrenLinks: [
+      {
+        text: "لیست محصولات",
+        icon: null,
+        routeName: "/product",
+        name: "product.index",
+      },
+      {
+        text: "دسته‌بندی ",
+        icon: null,
+        routeName: "/product/group",
+        name: "product-group.index",
+      },
+      {
+        text: "واحد شمارشی",
+        icon: null,
+        routeName: "/product/unit",
+        name: "product-unit.index",
+      },
+    ],
+  },
+  {
+    id: 42,
+    text: "افراد",
+    routeName: null,
+    icon: "users",
+    childrenLinks: [
+      {
+        text: "لیست رانندگان",
+        icon: null,
+        routeName: "/driver",
+        name: "driver.index",
+      },
+      {
+        text: "راننده جدید",
+        icon: null,
+        routeName: "/driver/new",
+        name: "driver.store",
+      },
+      {
+        text: "لیست صاحبان بار",
+        icon: null,
+        routeName: "/customer",
+        name: "customer.index",
+      },
+      {
+        text: "صاحب‌بار جدید",
+        icon: null,
+        routeName: "/customer/new",
+        name: "customer.store",
+      },
+      {
+        text: "ثبت فرستنده و گیرنده",
+        icon: null,
+        routeName: "/person/new",
+        name: "person.store",
+      },
+      {
+        text: "فرستندگان و گیرندگان",
+        icon: null,
+        routeName: "/person",
+        name: "person.index",
+      },
+    ],
+  },
+  {
+    id: 6,
+    text: "کاربران",
+    routeName: null,
+    icon: "user-group",
+    childrenLinks: [
+      {
+        text: "لیست",
+        icon: null,
+        routeName: "/user",
+        name: "user.index",
+      },
+      {
+        text: "نقش ها",
+        icon: null,
+        routeName: "/role",
+        name: "role.index",
+      },
+    ],
+  },
+  {
+    id: 7,
+    text: "مدیریت سوپر اپ",
+    routeName: null,
+    icon: "mobile",
+    childrenLinks: [
+      {
+        text: "اضافه کردن گروه",
+        icon: null,
+        routeName: "/super-app",
+        name: "group.index",
+      },
+    ],
+  },
+  {
+    id: 8,
+    text: "رویداد ها",
+    icon: "calendar-check",
+    routeName: "/event",
+    name: "event.index",
+  },
+  {
+    id: 118,
+    text: "قیمت ها",
+    icon: "circle-dollar",
+    routeName: "/prices",
+    name: "price",
+  },
+  {
+    id: 128,
+    text: "تنظیمات",
+    icon: "gear",
+    routeName: "/settings",
+    name: "setting.index",
+  },
+];
 
 const PanelLayout = () => {
-  const navigate = useNavigate();
   const { user } = useContext(AppContext);
-
-  useEffect(() => {
-    if (!Cookies.get("token")) {
-      navigate("/login");
-    }
-  }, []);
 
   const [showDrawer, setShowDrawer] = useState(true);
 
   const toggleShowDrawer = () => setShowDrawer((prev) => !prev);
-
+  if (!Cookies.get("token")) {
+    return <Navigate to="/login" replace />;
+  }
   return (
     <>
       <Box
@@ -70,344 +418,7 @@ const PanelLayout = () => {
             <Outlet />
           </Box>
         </Box>
-        <Drawer
-          showDrawer={showDrawer}
-          menu={[
-            {
-              id: 0,
-              text: "میزکار",
-              icon: "objects-column",
-              routeName: "/desktop",
-            },
-            {
-              id: 35,
-              text: "عملیات",
-              icon: "hand-pointer",
-              routeName: "null",
-              children: [
-                {
-                  text: "لیست حواله",
-                  icon: null,
-                  routeName: "/waybill/Draft",
-                },
-                {
-                  text: "لیست بارنامه",
-                  icon: null,
-                  routeName: "/waybill",
-                },
-                {
-                  text: "درخواست حمل جدید",
-                  icon: null,
-                  routeName: "/request/new",
-                },
-              ],
-            },
-            {
-              id: 2,
-              text: "بارنامه ها",
-              icon: "receipt",
-              routeName: "null",
-              children: [
-                {
-                  text: "ثبت حواله",
-                  icon: null,
-                  routeName: "/waybill/NewDraft",
-                },
-                {
-                  text: "لیست حواله",
-                  icon: null,
-                  routeName: "/waybill/Draft",
-                },
-
-                {
-                  text: "ثبت بارنامه",
-                  icon: null,
-                  routeName: "/waybill/newWaybill",
-                },
-                {
-                  text: "لیست بارنامه",
-                  icon: null,
-                  routeName: "/waybill",
-                },
-              ],
-            },
-            {
-              id: 10,
-              text: "قرارداد ها",
-              routeName: null,
-              icon: "handshake",
-              children: [
-                {
-                  text: "قرارداد جدید",
-                  icon: null,
-                  routeName: "/contract/new",
-                },
-                {
-                  text: "لیست",
-                  icon: null,
-                  routeName: "/contract",
-                },
-              ],
-            },
-            {
-              id: 311,
-              text: "پروژه‌ها",
-              routeName: null,
-              icon: "briefcase-blank",
-              children: [
-                {
-                  text: "ثبت پروژه",
-                  icon: null,
-                  routeName: "/project/new",
-                },
-                {
-                  text: "لیست پروژه",
-                  icon: null,
-                  routeName: "/project",
-                },
-              ],
-            },
-            {
-              id: 56,
-              text: "برنامه‌ریزی حمل",
-              routeName: null,
-              icon: "handshake-angle",
-              children: [
-                {
-                  text: "درخواست حمل جدید",
-                  icon: null,
-                  routeName: "/request/new",
-                },
-                {
-                  text: "درخواست‌های حمل",
-                  icon: null,
-                  routeName: "/request",
-                },
-                {
-                  text: "برنامه‌ریزی پروژه",
-                  icon: null,
-                  routeName: "/project/shipping-plan-new",
-                },
-                {
-                  text: "لیست سالن بار",
-                  icon: null,
-                  routeName: "/request/salon",
-                },
-                {
-                  text: "تخصیص ناوگان",
-                  icon: null,
-                  routeName: "/request/fleet-allocation",
-                },
-                {
-                  text: "ثبت آهنگ پروژه",
-                  icon: null,
-                  routeName: "/request/new-tune",
-                },
-                {
-                  text: "آهنگ های پروژه",
-                  icon: null,
-                  routeName: "/request/tune",
-                },
-              ],
-            },
-            {
-              id: 11,
-              text: "ناوگان",
-              routeName: null,
-              icon: "car-bus",
-              children: [
-                {
-                  text: " شرکت حمل و نقل",
-                  icon: null,
-                  routeName: "/shippingCompany",
-                },
-                {
-                  text: "گروه ناوگان",
-                  icon: null,
-                  routeName: "/fleet/group",
-                },
-                {
-                  text: "ناوگان",
-                  icon: null,
-                  routeName: "/fleet",
-                },
-                {
-                  text: "ناوگان جدید",
-                  icon: null,
-                  routeName: "/fleet/new",
-                },
-                {
-                  text: "ذی‌نفعان",
-                  icon: null,
-                  routeName: "/beneficiary",
-                },
-                {
-                  text: "گزارش ناوگان آزاد",
-                  icon: null,
-                  routeName: "/fleet/free",
-                },
-              ],
-            },
-            {
-              id: 5,
-              text: "خودروها",
-              routeName: null,
-              icon: "cars",
-              children: [
-                {
-                  text: "لیست خودروها",
-                  icon: null,
-                  routeName: "/vehicle",
-                },
-                {
-                  text: "نوع کامیون",
-                  icon: null,
-                  routeName: "/vehicle/category",
-                },
-                {
-                  text: "برند (مارک) ",
-                  icon: null,
-                  routeName: "/vehicle/brand",
-                },
-                {
-                  text: "نوع بارگیر",
-                  icon: null,
-                  routeName: "/vehicle/type",
-                },
-                {
-                  text: "مدل",
-                  icon: null,
-                  routeName: "/vehicle/model",
-                },
-                // {
-                //   text: "شماتیک",
-                //   icon: null,
-                //   routeName: "/vehicle/schematic",
-                // },
-                // {
-                //   text: "عکس خودرو",
-                //   icon: null,
-                //   routeName: "/vehicle/photo",
-                // },
-                {
-                  text: "سوخت گیری",
-                  icon: null,
-                  routeName: "/vehicle/refueling",
-                },
-              ],
-            },
-            {
-              id: 105,
-              text: " محصولات",
-              routeName: null,
-              icon: "box",
-              children: [
-                {
-                  text: "لیست محصولات",
-                  icon: null,
-                  routeName: "/product",
-                },
-                {
-                  text: "دسته‌بندی ",
-                  icon: null,
-                  routeName: "/product/group",
-                },
-                {
-                  text: "واحد شمارشی",
-                  icon: null,
-                  routeName: "/product/unit",
-                },
-              ],
-            },
-            {
-              id: 42,
-              text: "افراد",
-              routeName: null,
-              icon: "users",
-              children: [
-                {
-                  text: "لیست رانندگان",
-                  icon: null,
-                  routeName: "/driver",
-                },
-                {
-                  text: "راننده جدید",
-                  icon: null,
-                  routeName: "/driver/new",
-                },
-                {
-                  text: "لیست صاحبان بار",
-                  icon: null,
-                  routeName: "/customer",
-                },
-                {
-                  text: "صاحب‌بار جدید",
-                  icon: null,
-                  routeName: "/customer/new",
-                },
-                {
-                  text: "ثبت فرستنده و گیرنده",
-                  icon: null,
-                  routeName: "/person/new",
-                },
-                {
-                  text: "فرستندگان و گیرندگان",
-                  icon: null,
-                  routeName: "/person",
-                },
-              ],
-            },
-            {
-              id: 6,
-              text: "کاربران",
-              routeName: null,
-              icon: "user-group",
-              children: [
-                {
-                  text: "لیست",
-                  icon: null,
-                  routeName: "/user",
-                },
-                {
-                  text: "نقش ها",
-                  icon: null,
-                  routeName: "/role",
-                },
-              ],
-            },
-            {
-              id: 7,
-              text: "مدیریت سوپر اپ",
-              routeName: null,
-              icon: "mobile",
-              children: [
-                {
-                  text: "اضافه کردن گروه",
-                  icon: null,
-                  routeName: "/superApp",
-                },
-              ],
-            },
-            {
-              id: 8,
-              text: "رویداد ها",
-              icon: "calendar-check",
-              routeName: "/event",
-            },
-            {
-              id: 118,
-              text: "قیمت ها",
-              icon: "circle-dollar",
-              routeName: "/prices",
-            },
-            {
-              id: 128,
-              text: "تنظیمات",
-              icon: "gear",
-              routeName: "/settings",
-            },
-          ]}
-        />
+        <Drawer showDrawer={showDrawer} />
       </Box>
     </>
   );
@@ -449,7 +460,8 @@ const Header = ({ toggleShowDrawer, showDrawer, userData }) => {
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const { appTheme, toggleTheme, setUser } = useContext(AppContext);
+  const { appTheme, toggleTheme, setUser, setPermissions } =
+    useContext(AppContext);
   const location = useLocation();
 
   const toggleProfileMenu = (event) => {
@@ -464,7 +476,9 @@ const Header = ({ toggleShowDrawer, showDrawer, userData }) => {
   const logout = () => {
     Cookies.remove("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("not_permitted");
     setUser(null);
+    setPermissions([]);
     queryClient.clear();
     navigate("/login");
   };
@@ -617,9 +631,13 @@ const Header = ({ toggleShowDrawer, showDrawer, userData }) => {
   );
 };
 // Drawer
-const Drawer = ({ showDrawer, menu }) => {
-  const { setDrawer, drawer, appTheme } = useContext(AppContext);
+const Drawer = ({ showDrawer }) => {
+  const { setDrawer, drawer, appTheme, user } = useContext(AppContext);
   const { pathname } = useLocation();
+  const menu = useMemo(
+    () => FilterArrayOfRoutes(deepCopy(DRAWER_MENU_ITEMS)),
+    [user]
+  );
 
   const [openedItems, setOpenedItems] = useState(drawer || []);
 
@@ -632,8 +650,11 @@ const Drawer = ({ showDrawer, menu }) => {
   };
 
   const renderItems = () => {
-    return menu.map((item, index) => {
-      const isActive = pathname.startsWith(item.routeName);
+    return menu?.map((item, index) => {
+      if (!item) {
+        return;
+      }
+      const isActive = pathname.startsWith(item?.routeName);
       const isOpen = openedItems.includes(index);
 
       const button = (
@@ -642,7 +663,11 @@ const Drawer = ({ showDrawer, menu }) => {
           variant={isActive ? "contained" : "text"}
           size="large"
           sx={{ width: "100%", px: 1 }}
-          onClick={() => item.children && handleToggleCollapse(index)}
+          onClick={() => {
+            if (item.childrenLinks) {
+              handleToggleCollapse(index);
+            }
+          }}
         >
           <SvgSPrite icon={item.icon} color="inherit" />
           <Typography
@@ -652,7 +677,7 @@ const Drawer = ({ showDrawer, menu }) => {
           >
             {item.text}
           </Typography>
-          {item.children && (
+          {item.childrenLinks?.length && (
             <>
               {isOpen ? (
                 <SvgSPrite color="inherit" icon="chevron-down" size="10px" />
@@ -664,55 +689,60 @@ const Drawer = ({ showDrawer, menu }) => {
         </Button>
       );
 
-      return (
+      return !item.childrenLinks ? (
         <div key={item.id}>
-          {!item.children ? <Link to={item.routeName}>{button}</Link> : button}
-
-          {item.children && (
-            <Collapse in={isOpen} sx={{ mt: 0 }}>
-              <Stack spacing={1} mt={1}>
-                {item.children?.map((child) => {
-                  const isActive = pathname === child.routeName;
-                  return (
-                    <Link key={child.routeName} to={child.routeName}>
-                      <Button
-                        color={
-                          appTheme === "dark" && isActive
-                            ? "primary"
-                            : "secondary"
-                        }
-                        variant={isActive ? "contained" : "text"}
-                        sx={{
-                          width: "100%",
-                          pr: 1,
-                          pl: 3,
-                        }}
-                      >
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          spacing={1}
-                          sx={{ width: "100%" }}
-                          fontWeight={400}
-                        >
-                          <Typography mr={1}>
-                            <SvgSPrite
-                              icon="circle"
-                              color="inherit"
-                              size={"10px"}
-                            />
-                          </Typography>
-
-                          {child.text}
-                        </Stack>
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </Stack>
-            </Collapse>
-          )}
+          <Link to={item.routeName}>{button}</Link>
         </div>
+      ) : (
+        item.childrenLinks?.length !== 0 && (
+          <div key={item.id}>
+            {button}
+            {item.childrenLinks?.length !== 0 && (
+              <Collapse in={isOpen} sx={{ mt: 0 }}>
+                <Stack spacing={1} mt={1}>
+                  {item.childrenLinks?.map((child) => {
+                    const isActive = pathname === child.routeName;
+                    return (
+                      <Link key={child.routeName} to={child.routeName}>
+                        <Button
+                          color={
+                            appTheme === "dark" && isActive
+                              ? "primary"
+                              : "secondary"
+                          }
+                          variant={isActive ? "contained" : "text"}
+                          sx={{
+                            width: "100%",
+                            pr: 1,
+                            pl: 3,
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            sx={{ width: "100%" }}
+                            fontWeight={400}
+                          >
+                            <Typography mr={1}>
+                              <SvgSPrite
+                                icon="circle"
+                                color="inherit"
+                                size={"10px"}
+                              />
+                            </Typography>
+
+                            {child.text}
+                          </Stack>
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </Stack>
+              </Collapse>
+            )}
+          </div>
+        )
       );
     });
   };
@@ -740,7 +770,7 @@ const Drawer = ({ showDrawer, menu }) => {
             width: "100%",
             height: "100%",
           }}
-          src={require(`Assets/images/barestan/truck_text_${
+          src={require(`Assets/images/${process.env.REACT_APP_VERSION_CODE}/truck_text_${
             appTheme === "dark" ? "light" : "dark"
           }.png`)}
           alt="logo"
@@ -754,46 +784,30 @@ const Drawer = ({ showDrawer, menu }) => {
     </Paper>
   );
 };
-const PAGE_TITLES = {
-  "/desktop": "میزکار",
-  "/waybill/newWaybill": "ثبت بارنامه جدید",
-  "/waybill/NewDraft": "ثبت حواله جدید",
-  "/waybill/Draft": "لیست حواله‌ها",
-  "/waybill": "لیست بارنامه‌ها",
-  "/contract": "لیست قراردادها",
-  "/contract/new": "ثبت قرارداد جدید",
-  "/project/new": "ثبت پروژه جدید",
-  "/project": "لیست پروژه‌ها",
-  "/project/tune": "لیست آهنگ پروژه‌ها",
-  "/project/new-tune": "ثبت آهنگ پروژه",
-  "/request/new": "ثبت درخواست حمل",
-  "/request": "لیست درخواست حمل",
-  "/project/shipping-plan-new": "برنامه‌ریزی پروژه",
-  "/shippingCompany": "لیست شرکت حمل و نقل",
-  "/fleet": "لیست ناوگان",
-  "/fleet/free": "لیست ناوگان آزاد",
-  "/fleet/new": "ثبت ناوگان پروژه",
-  "/beneficiary": "ذی‌نفعان",
-  "/project/fleet-allocation": "تخصیص ناوگان",
-  "/product": "لیست محصولات",
-  "/product/group": "دسته‌بندی",
-  "/product/unit": "واحد شمارشی",
-  "/customer": "لیست صاحبان‌یار",
-  "/customer/new": "ثبت صاحب یار جدید",
-  "/driver": "لیست رانندگان",
-  "/driver/new": "ثبت راننده جدید",
-  "/person": "لیست فرستندگان و گیرندگان",
-  "/person/new": "ثبت فرستنده و گیرنده جدید",
-  "/vehicle": "لیست خودرو‌ها",
-  "/vehicle/category": "نوع کامیون",
-  "/vehicle/brand": "برند",
-  "/vehicle/type": "نوع بارگیر",
-  "/vehicle/model": "مدل خودرو",
-  "/vehicle/refueling": "سوخت‌گیری",
-  "/user": "لیست کاربران",
-  "/superApp": "مدیریت سوپر اپ",
-  "/role": "لیست نقش‌ها",
-  "/event": "رویداد‌ها",
-  "/prices": "قیمت‌ها",
-  "/settings": "تنظیمات",
+
+const FilterArrayOfRoutes = (menuItems) => {
+  const { notPermissions } = useContext(AppContext);
+  filterLinks(menuItems, notPermissions);
+  menuItems = menuItems.filter((r) => !!r);
+
+  return menuItems;
 };
+
+function filterLinks(menuItems, notPermissions) {
+  menuItems.forEach((item, i) => {
+    if (notPermissions.includes(item?.name)) {
+      const index = menuItems.findIndex((r) => r?.name === item?.name);
+      if (index > -1) {
+        menuItems[index] = null;
+      }
+    }
+
+    if (item?.childrenLinks) {
+      filterLinks(item.childrenLinks, notPermissions);
+      item.childrenLinks = item.childrenLinks.filter((r) => !!r);
+      if (item.childrenLinks.length === 0) {
+        menuItems[i] = null;
+      }
+    }
+  });
+}

@@ -84,7 +84,10 @@ export default function SelectVehicle({ data, setData, outFilters = {} }) {
                           sx={{ width: "100%" }}
                         >
                           <Typography>{`${
-                            renderPlaqueObjectToString(vehicle.plaque) || ""
+                            renderPlaqueObjectToString(
+                              vehicle.plaque,
+                              "string"
+                            ) || ""
                           }`}</Typography>
                           <Typography>{vehicle.vehicle_model.title}</Typography>
                           <Typography>
@@ -98,46 +101,8 @@ export default function SelectVehicle({ data, setData, outFilters = {} }) {
               </Fragment>
             ))
           ) : (
-            // closeableVehicle.length > 0 ? (
-            //   closeableVehicle.map((vehicle) => {
-            //     return (
-            //       <Grid item xs={12}>
-            //         <Button
-            //           sx={{
-            //             p: 3,
-            //             width: "100%",
-            //             boxShadow: 1,
-            //           }}
-            //           variant={
-            //             (data?.id ?? data) === vehicle.id ? "contained" : "text"
-            //           }
-            //           color={
-            //             (data?.id ?? data) === vehicle.id
-            //               ? "primary"
-            //               : "secondary"
-            //           }
-            //           onClick={() => setData(vehicle)}
-            //         >
-            //           <Stack
-            //             direction="row"
-            //             justifyContent="space-between"
-            //             sx={{ width: "100%" }}
-            //           >
-            //             <Typography>{`${
-            //               renderPlaqueObjectToString(vehicle.plaque) || ""
-            //             }`}</Typography>
-            //             <Typography>{vehicle.vehicle_model.title}</Typography>
-            //             <Typography>
-            //               {vehicle.fleet?.code ?? "بدون ناوگان"}
-            //             </Typography>
-            //           </Stack>
-            //         </Button>
-            //       </Grid>
-            //     );
-            //   })
-
             <Typography pt={2} pl={2}>
-              ی یافت نشد
+              خودرو یافت نشد
             </Typography>
           )}
         </Grid>

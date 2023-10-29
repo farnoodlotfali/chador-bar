@@ -22,8 +22,12 @@ import { useInfiniteVehicleType } from "hook/useVehicleType";
 import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useForm, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
-import { enToFaNumber, removeInvalidValues } from "Utility/utils";
+import { useLocation, useSearchParams } from "react-router-dom";
+import {
+  enToFaNumber,
+  removeInvalidValues,
+  stopPropagate,
+} from "Utility/utils";
 
 const MultiVTypes = (props) => {
   const [filters, setFilters] = useState({});
@@ -43,6 +47,7 @@ const MultiVTypes = (props) => {
   } = useInfiniteVehicleType(filters, {
     enabled: showModal || !!vehicle_type_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -53,29 +58,27 @@ const MultiVTypes = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(vehicle_type_id.length)) {
+    if (location.search.includes("vehicle_type_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(vehicle_type_id.length)) {
+    if (isFetched && location.search.includes("vehicle_type_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== vehicle_type_id.length) {
-        // reset list
-        remove();
-        allVTypes?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (vehicle_type_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allVTypes?.pages.forEach((page, i) =>
+        page?.data?.forEach((item) => {
+          if (vehicle_type_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [vehicle_type_id.length, allVTypes?.pages?.length]);
+  }, [location.search, allVTypes?.pages?.length]);
 
   const getVTypes = (value) => {
     setFilters({ q: value });
@@ -131,10 +134,10 @@ const MultiVTypes = (props) => {
       return (length ? enToFaNumber(length) + " " : "") + "نوع بارگیر ";
     }
 
-    let str = fields?.[0]?.title;
+    let str = enToFaNumber(fields?.[0]?.title) ?? "-";
 
     if (length > 1) {
-      str = str + " و " + (length - 1) + " نوع کامیون دیگر...";
+      str = str + " و " + enToFaNumber(length - 1) + " نوع کامیون دیگر...";
     }
 
     return str;
@@ -186,7 +189,11 @@ const MultiVTypes = (props) => {
         )}
       </FormControl>
       <Modal open={showModal} onClose={toggleShowModal}>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <Typography variant="h5" mb={2}>
+          انتخاب نوع بارگیر خودرو
+        </Typography>
+
+        <form onSubmit={stopPropagate(handleSubmit(onSubmit))}>
           <Box sx={{ p: 2 }}>
             <FormContainer
               data={watch()}
@@ -211,17 +218,8 @@ const MultiVTypes = (props) => {
             </FormContainer>
           </Box>
         </form>
-        <Typography variant="h5">انتخاب نوع بارگیر خودرو</Typography>
+
         <Grid container spacing={2}>
-          {/* <Grid item xs={12} md={4}>
-            <SearchInput
-              sx={{ width: "100%" }}
-              placeholder="جستجو نوع خودرو"
-              onEnter={getVTypes}
-              searchVal={searchVal}
-              setSearchVal={setSearchVal}
-            />
-          </Grid> */}
           <Grid item xs={12} md={4}>
             {props?.children}
           </Grid>
@@ -259,7 +257,9 @@ const MultiVTypes = (props) => {
                             justifyContent="space-between"
                             sx={{ width: "100%" }}
                           >
-                            <Typography>{`${vType.title || ""}`}</Typography>
+                            <Typography>{`${
+                              enToFaNumber(vType.title) || ""
+                            }`}</Typography>
                             <Typography>{enToFaNumber(vType.code)}</Typography>
                           </Stack>
                         </Button>

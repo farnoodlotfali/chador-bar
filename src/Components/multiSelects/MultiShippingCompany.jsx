@@ -19,7 +19,7 @@ import { useInfiniteShippingCompany } from "hook/useShippingCompany";
 import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiShippingCompanies = (props) => {
@@ -40,6 +40,7 @@ const MultiShippingCompanies = (props) => {
   } = useInfiniteShippingCompany(filters, {
     enabled: showModal || !!shipping_company_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -50,29 +51,27 @@ const MultiShippingCompanies = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(shipping_company_id.length)) {
+    if (location.search.includes("shipping_company_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(shipping_company_id.length)) {
+    if (isFetched && location.search.includes("shipping_company_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== shipping_company_id.length) {
-        // reset list
-        remove();
-        allShippingCompanies?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (shipping_company_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allShippingCompanies?.pages.forEach((page, i) =>
+        page?.data.forEach((item) => {
+          if (shipping_company_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [shipping_company_id.length, allShippingCompanies?.pages?.length]);
+  }, [location.search, allShippingCompanies?.pages?.length]);
 
   const getShippingCompanies = (value) => {
     setFilters({ q: value });
@@ -101,7 +100,7 @@ const MultiShippingCompanies = (props) => {
       return (length ? enToFaNumber(length) + " " : "") + "شرکت حمل";
     }
 
-    let str = fields?.[0]?.code;
+    let str = fields?.[0]?.name ?? "-";
 
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + " شرکت حمل دیگر...";
@@ -189,7 +188,7 @@ const MultiShippingCompanies = (props) => {
                             sx={{ width: "100%" }}
                           >
                             <Typography>{`کد: ${
-                              shippingCompany.code || ""
+                              enToFaNumber(shippingCompany.code) || ""
                             }`}</Typography>
                             <Typography>
                               {enToFaNumber(shippingCompany.name)}

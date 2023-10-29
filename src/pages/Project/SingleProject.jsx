@@ -20,7 +20,6 @@ import { useTimePeriods } from "hook/useTimePeriods";
 import { useEffect, useState } from "react";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -33,6 +32,7 @@ import TableActionCell from "Components/versions/TableActionCell";
 import { ChooseContract } from "Components/choosers/ChooseContract";
 import MultiAddresses from "Components/multiSelects/MultiAddresses";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -283,7 +283,8 @@ const SingleProject = () => {
   };
   return (
     <>
-      <Helmet title="پنل دراپ -  پروژه جدید" />
+      <HelmetTitlePage title="پروژه " />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

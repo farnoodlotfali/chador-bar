@@ -19,7 +19,7 @@ import { useInfiniteContract } from "hook/useContract";
 import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiContracts = ({ control, rules, name }) => {
@@ -40,6 +40,7 @@ const MultiContracts = ({ control, rules, name }) => {
   } = useInfiniteContract(filters, {
     enabled: showModal || !!contract_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -50,29 +51,27 @@ const MultiContracts = ({ control, rules, name }) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(contract_id.length)) {
+    if (location.search.includes("contract_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(contract_id.length)) {
+    if (isFetched && location.search.includes("contract_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== contract_id.length) {
-        // reset list
-        remove();
-        allContracts?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (contract_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allContracts?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (contract_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [contract_id.length, allContracts?.pages?.length]);
+  }, [allContracts?.pages?.length, location.search]);
 
   const getContracts = (value) => {
     setFilters({ q: value });
@@ -102,7 +101,7 @@ const MultiContracts = ({ control, rules, name }) => {
       return (length ? enToFaNumber(length) + " " : "") + "قرارداد";
     }
 
-    let str = fields?.[0]?.code;
+    let str = enToFaNumber(fields?.[0]?.code) ?? "-";
 
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + " قرارداد دیگر...";

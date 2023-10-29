@@ -5,7 +5,6 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import FormTypography from "Components/FormTypography";
 import Modal from "Components/versions/Modal";
@@ -26,7 +25,7 @@ export const ChooseShippingCompany = ({ control, name, rules }) => {
     rules: rules,
   });
 
-  const shippingCompanyName = field.value ? `${field.value.code}` : `شرکت حمل`;
+  const shippingCompanyName = field.value ? `${field.value.name}` : `شرکت حمل`;
 
   const selectShippingCompany = (shippingCompany) => {
     field.onChange(shippingCompany);

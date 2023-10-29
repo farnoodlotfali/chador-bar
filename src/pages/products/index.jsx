@@ -22,7 +22,6 @@ import {
   removeInvalidValues,
   renderSelectOptions1,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -33,6 +32,8 @@ import Modal from "Components/versions/Modal";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -100,16 +101,6 @@ export default function ProductList() {
     }
   );
 
-  if (
-    isLoading ||
-    isFetching ||
-    groupIsLoading ||
-    groupIsFetching ||
-    unitIsLoading ||
-    unitIsFetching
-  ) {
-    return <LoadingSpinner />;
-  }
   if (isError || unitIsError || groupIsError) {
     return <div className="">isError</div>;
   }
@@ -133,20 +124,29 @@ export default function ProductList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - محصولات" />
+      <HelmetTitlePage title="محصولات" />
       <AddNewProduct
         productsGroup={productsGroup}
         productsUnit={productsUnit}
       />
       <SearchBoxProduct />
       <Table
-        {...products.items}
+        {...products?.items}
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          groupIsLoading ||
+          groupIsFetching ||
+          unitIsLoading ||
+          deleteProductMutation.isLoading ||
+          unitIsFetching
+        }
       >
         <TableBody>
-          {products.items.data.map((row) => {
+          {products?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -170,14 +170,16 @@ export default function ProductList() {
                       {
                         tooltip: "ویرایش",
                         color: "warning",
-                        icon: "pencils",
+                        icon: "pencil",
                         onClick: () => handleEditProduct(row),
+                        name: "product.update",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteProduct(row.id),
+                        name: "product.destroy",
                       },
                     ]}
                   />
@@ -212,6 +214,7 @@ const SearchBoxProduct = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -225,12 +228,13 @@ const SearchBoxProduct = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -254,6 +258,16 @@ const SearchBoxProduct = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -343,6 +357,7 @@ const AddNewProduct = ({ productsUnit, productsGroup }) => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن محصول"
+      name="product.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

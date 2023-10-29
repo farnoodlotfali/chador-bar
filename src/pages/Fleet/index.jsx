@@ -21,16 +21,16 @@ import {
   removeInvalidValues,
   renderPlaqueObjectToString,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useFleet } from "hook/useFleet";
 import VehicleDetailModal from "Components/modals/VehicleDetailModal";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import ShowDriverFleet from "Components/modals/ShowDriverFleet";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -109,9 +109,6 @@ export default function FleetList() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -168,7 +165,7 @@ export default function FleetList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - ناوگان  " />
+      <HelmetTitlePage title="ناوگان" />
 
       <SearchBoxFleet />
 
@@ -177,6 +174,12 @@ export default function FleetList() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteFleetMutation.isLoading ||
+          updateVehicleMutation.isLoading
+        }
       >
         <TableBody>
           {fleet?.items?.data.map((row) => {
@@ -232,12 +235,14 @@ export default function FleetList() {
                         color: "secondary",
                         icon: "eye",
                         link: `/fleet/${row.id}`,
+                        name: "fleet.show",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteFleet(row.id),
+                        name: "fleet.destroy",
                       },
                     ]}
                   />
@@ -247,12 +252,11 @@ export default function FleetList() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
         onAccept={deleteFleet}
-        message="آیا از حذف نوع کامیون مطمئن هستید؟"
+        message="آیا از حذف ناوگان مطمئن هستید؟"
       />
       <ShowDriverFleet
         show={showModal === "driverFleet"}
@@ -278,6 +282,7 @@ const SearchBoxFleet = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -291,6 +296,7 @@ const SearchBoxFleet = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
@@ -320,6 +326,16 @@ const SearchBoxFleet = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

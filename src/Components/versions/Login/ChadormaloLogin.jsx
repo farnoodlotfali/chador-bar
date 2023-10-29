@@ -5,10 +5,10 @@ import { Helmet } from "react-helmet-async";
 import { FormContainer, FormInputs } from "Components/Form";
 
 // img
-import logo from "Assets/images/chadormalo/logo.svg";
 import { memo } from "react";
+import AdminLogo from "Components/AdminLogo";
 
- function ChadormaloLogin({ Inputs, onSubmit, methods }) {
+function ChadormaloLogin({ Inputs, onSubmit, methods }) {
   const {
     handleSubmit,
     watch,
@@ -20,7 +20,7 @@ import { memo } from "react";
       sx={{
         minHeight: "100vh",
         height: "100%",
-        bgcolor: "primary.main",
+        bgcolor: "primary.900",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -64,7 +64,7 @@ import { memo } from "react";
                   m: "auto",
                 }}
               >
-                <img src={logo} width="100%" alt="logo" title="AdminLogo" />
+                <AdminLogo />
               </Box>
               <Typography
                 fontWeight={700}
@@ -93,4 +93,4 @@ import { memo } from "react";
     </Box>
   );
 }
-export default memo(ChadormaloLogin)
+export default memo(ChadormaloLogin);

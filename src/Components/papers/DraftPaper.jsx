@@ -50,7 +50,7 @@ const DraftPaper = ({ data }) => {
               variant="contained"
             >
               <Typography>پرینت</Typography>
-              <SvgSPrite icon="print" />
+              <SvgSPrite icon="print" color="inherit" />
             </Button>
           );
         }}

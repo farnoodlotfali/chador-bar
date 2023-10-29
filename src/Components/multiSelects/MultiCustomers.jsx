@@ -19,7 +19,7 @@ import { useInfiniteCustomer } from "hook/useCustomer";
 import { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiCustomers = (props) => {
@@ -28,7 +28,7 @@ const MultiCustomers = (props) => {
   const [searchVal, setSearchVal] = useState("");
   const { ref, inView } = useInView();
   const [searchParams] = useSearchParams();
-  const customer_id = searchParams.getAll("customer_id");
+  const owner_id = searchParams.getAll("owner_id");
   const {
     data: allCustomers,
     isLoading,
@@ -38,8 +38,9 @@ const MultiCustomers = (props) => {
     isFetchingNextPage,
     isFetched,
   } = useInfiniteCustomer(filters, {
-    enabled: showModal || !!customer_id.length,
+    enabled: showModal || !!owner_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -50,29 +51,27 @@ const MultiCustomers = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(customer_id.length)) {
+    if (location.search.includes("owner_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(customer_id.length)) {
+    if (isFetched && location.search.includes("owner_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== customer_id.length) {
-        // reset list
-        remove();
-        allCustomers?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (customer_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allCustomers?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (owner_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [customer_id.length, allCustomers?.pages?.length]);
+  }, [location.search, allCustomers?.pages?.length]);
 
   const getCustomers = (value) => {
     setFilters({ q: value });
@@ -96,7 +95,7 @@ const MultiCustomers = (props) => {
     if (isFetching) {
       return "";
     }
-    const length = Math.max(fields.length, customer_id.length);
+    const length = Math.max(fields.length, owner_id.length);
 
     if (!fields.length) {
       return (length ? enToFaNumber(length) + " " : "") + "صاحب بار";
@@ -108,7 +107,7 @@ const MultiCustomers = (props) => {
       (fields?.[0]?.person?.last_name ?? "");
 
     if (length > 1) {
-      str = str + ", " + (length - 1) + " صاحب بار دیگر...";
+      str = str + ", " + enToFaNumber(length - 1) + " صاحب بار دیگر...";
     }
 
     return str;

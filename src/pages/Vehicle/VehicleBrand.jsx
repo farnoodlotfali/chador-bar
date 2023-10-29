@@ -2,10 +2,7 @@ import { useState } from "react";
 
 import {
   Button,
-  Card,
-  Collapse,
   Stack,
-  Typography,
   Grid,
   Box,
   TableBody,
@@ -15,26 +12,22 @@ import {
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
-import SearchInput from "Components/SearchInput";
 import { FormContainer, FormInputs } from "Components/Form";
 
-import {
-  enToFaNumber,
-  numberWithCommas,
-  removeInvalidValues,
-} from "Utility/utils";
-import { Helmet } from "react-helmet-async";
+import { enToFaNumber, removeInvalidValues } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { useVehicleBrand } from "hook/useVehicleBrand";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useHasPermission } from "hook/useHasPermission";
 
 const HeadCells = [
   {
@@ -68,6 +61,7 @@ export default function VehicleBrand() {
     isFetching,
     isError,
   } = useVehicleBrand(searchParamsFilter);
+  const { hasPermission } = useHasPermission("vehicle-brand.update");
 
   const deleteBrandMutation = useMutation(
     (id) => axiosApi({ url: `/vehicle-brand/${id}`, method: "delete" }),
@@ -93,9 +87,6 @@ export default function VehicleBrand() {
     }
   );
 
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -128,7 +119,8 @@ export default function VehicleBrand() {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  برند خودروها" />
+      <HelmetTitlePage title="برند خودرو" />
+
       <AddNewVehicleBrand />
       <SearchBoxVehicleBrand />
 
@@ -137,9 +129,15 @@ export default function VehicleBrand() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          updateVehicleMutation.isLoading ||
+          deleteBrandMutation.isLoading
+        }
       >
         <TableBody>
-          {vehicleBrand.data.map((row) => {
+          {vehicleBrand?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -154,6 +152,7 @@ export default function VehicleBrand() {
                     onChange={() => {
                       changeBrandStatus(row);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -164,6 +163,7 @@ export default function VehicleBrand() {
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteBrand(row.id),
+                        name: "vehicle-brand.destroy",
                       },
                     ]}
                   />
@@ -173,7 +173,6 @@ export default function VehicleBrand() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -194,6 +193,7 @@ const SearchBoxVehicleBrand = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -207,12 +207,13 @@ const SearchBoxVehicleBrand = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -236,6 +237,16 @@ const SearchBoxVehicleBrand = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -309,6 +320,7 @@ const AddNewVehicleBrand = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن برند "
+      name="vehicle-brand.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

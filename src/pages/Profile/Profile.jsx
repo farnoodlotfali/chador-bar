@@ -1,12 +1,29 @@
-import { Card, Grid, Button } from "@mui/material";
+import {
+  Card,
+  Grid,
+  Button,
+  Tab,
+  Box,
+  CardContent,
+  Stack,
+  Typography,
+  TableRow,
+  TableCell,
+} from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 
 import { FormContainer, FormInputs } from "Components/Form";
 import { useContext, useEffect, useState } from "react";
 import Modal from "Components/versions/Modal";
-import { Helmet } from "react-helmet-async";
 import { AppContext } from "context/appContext";
 import { useForm } from "react-hook-form";
+import { TabContext, TabList, TabPanel } from "@mui/lab";
+import { GENDER } from "Constants";
+import { renderChip } from "Utility/utils";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import NormalTable from "Components/NormalTable";
+import TableActionCell from "Components/versions/TableActionCell";
+import MultiAddresses from "Components/multiSelects/MultiAddresses";
 
 const ProfileInputsDefaultValues = {
   mobile: "",
@@ -20,7 +37,122 @@ const ResetPasswordInputsDefaultValues = {
 };
 
 export default function Profile() {
+  const [tab, setTab] = useState(0);
+
+  const handleChangeTabs = (event, newValue) => {
+    setTab(newValue);
+  };
+
+  return (
+    <>
+      <HelmetTitlePage title="پروفایل" />
+
+      <Card>
+        <CardContent>
+          <TabContext value={tab}>
+            <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+              <TabList onChange={handleChangeTabs} variant="fullWidth">
+                <Tab label="اطلاعات کاربری" value={0} />
+                <Tab label="مکان های منتخب" value={1} />
+              </TabList>
+            </Box>
+            <TabPanel value={0}>
+              <UserTab />
+            </TabPanel>
+            <TabPanel value={1}>
+              <UserChosenPlaces />
+            </TabPanel>
+          </TabContext>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+const headCells = [
+  {
+    id: "address",
+    label: "آدرس",
+  },
+  {
+    id: "actions",
+    label: "عملیات",
+  },
+];
+const UserChosenPlaces = () => {
+  const {
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    control,
+  } = useForm({});
+
+  const DataInputs1 = [
+    {
+      type: "custom",
+      customView: (
+        <MultiAddresses control={control} name={"places"} label="آدرس" />
+      ),
+      gridProps: { md: 6 },
+    },
+  ];
+
+  // handle on submit
+  const onSubmit = (data) => {};
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  const handleRemoveAddress = (obj) => {
+    handleChange(
+      "places",
+      watch("places")?.filter((item) => item.id !== obj.id)
+    );
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormContainer data={watch()} setData={handleChange} errors={errors}>
+          <FormInputs gridProps={{ md: 4 }} inputs={DataInputs1} />
+
+          <NormalTable headCells={headCells} sx={{ mt: 3 }}>
+            {watch("places")?.map((item) => {
+              return (
+                <TableRow hover tabIndex={-1} key={item.id}>
+                  <TableCell scope="row">{item.address}</TableCell>
+                  <TableCell>
+                    <TableActionCell
+                      buttons={[
+                        {
+                          tooltip: "حذف کردن",
+                          color: "error",
+                          icon: "trash-xmark",
+                          onClick: () => handleRemoveAddress(item),
+                        },
+                      ]}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </NormalTable>
+        </FormContainer>
+      </form>
+    </>
+  );
+};
+
+const UserTab = () => {
   const { user } = useContext(AppContext);
+  const [processing, setProcessing] = useState(false);
+
+  const [showModal, setShowModal] = useState(false);
+
+  const toggleShowModal = () => setShowModal((prev) => !prev);
+
   const {
     control,
     handleSubmit,
@@ -29,11 +161,6 @@ export default function Profile() {
     setValue,
     watch,
   } = useForm({ defaultValues: ProfileInputsDefaultValues });
-
-  const [processing, setProcessing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-
-  const toggleShowModal = () => setShowModal((prev) => !prev);
 
   const onSubmit = (data) => {
     setProcessing(true);
@@ -62,18 +189,40 @@ export default function Profile() {
       },
     },
     {
+      type: "text",
+      name: "last_name",
+      label: "نام خانوادگی",
+      control: control,
+    },
+    {
+      type: "text",
+      name: "father_name",
+      label: "نام پدر",
+      control: control,
+    },
+    {
+      type: "number",
+      name: "SecondDriverNationalCode",
+      label: "کدملی",
+      control: control,
+      noInputArrow: true,
+    },
+    {
       type: "number",
       name: "mobile",
       label: "موبایل",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "شماره موبایل معتبر نیست",
-        pattern: {
-          value: /^^(\+98|0)?9\d{9}$$/,
-          message: "شماره موبایل معتبر نیست",
-        },
-      },
+      readOnly: true,
+    },
+    {
+      type: "select",
+      name: "gender",
+      label: "جنسیت",
+      options: GENDER,
+      labelKey: "name",
+      valueKey: "value",
+      control: control,
     },
     {
       type: "email",
@@ -96,41 +245,57 @@ export default function Profile() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - پروفایل" />
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
-          <Card sx={{ p: 2 }}>
-            <FormInputs inputs={ProfileInputs} />
+          <FormInputs inputs={ProfileInputs}>
+            <Grid item xs={12} />
 
-            <Grid container justifyContent="flex-end" mt={3} spacing={1}>
-              <Grid item xs={12} md={1.5}>
-                <Button
-                  sx={{ width: "100%" }}
-                  variant="outlined"
-                  onClick={toggleShowModal}
-                >
-                  تغییر رمز عبور
-                </Button>
-              </Grid>
-              <Grid item xs={12} md={1.5}>
-                <LoadingButton
-                  sx={{ width: "100%" }}
-                  variant="contained"
-                  loading={processing}
-                  type="submit"
-                >
-                  ذخیره تغییرات
-                </LoadingButton>
-              </Grid>
+            <Grid item xs={12} md={3}>
+              <Stack spacing={1} justifyContent="space-between">
+                <Typography variant="subtitle2" fontWeight={600}>
+                  وضعیت
+                </Typography>
+                {renderChip(user?.status)}
+              </Stack>
             </Grid>
-          </Card>
+
+            <Grid item xs={12} md={3}>
+              <Stack spacing={1} justifyContent="space-between">
+                <Typography variant="subtitle2" fontWeight={600}>
+                  وضعیت استعلام
+                </Typography>
+                {renderChip(1)}
+              </Stack>
+            </Grid>
+          </FormInputs>
+
+          <Grid container justifyContent="flex-end" mt={3} spacing={1}>
+            <Grid item xs={12} md={1.5}>
+              <Button
+                sx={{ width: "100%" }}
+                variant="outlined"
+                onClick={toggleShowModal}
+              >
+                تغییر رمز عبور
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={1.5}>
+              <LoadingButton
+                sx={{ width: "100%" }}
+                variant="contained"
+                loading={processing}
+                type="submit"
+              >
+                ذخیره تغییرات
+              </LoadingButton>
+            </Grid>
+          </Grid>
         </FormContainer>
       </form>
-
       <UpdatePassword open={showModal} onClose={toggleShowModal} />
     </>
   );
-}
+};
 
 const UpdatePassword = ({ open, onClose }) => {
   const {

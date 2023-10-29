@@ -18,6 +18,8 @@ import {
   Box,
   Tab,
   Divider,
+  Rating,
+  Tooltip,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 
@@ -35,11 +37,11 @@ import {
   renderWeight,
   renderSelectOptions,
   requestStatus,
+  faToEnNumber,
 } from "Utility/utils";
 import DrivingDirection from "Components/DrivingDirection";
-import { Helmet } from "react-helmet-async";
 import { axiosApi, uncontrolledAxiosApi } from "api/axiosApi";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRequest } from "hook/useRequest";
 import { toast } from "react-toastify";
 import WayBillPaper from "Components/papers/WaybillPaper";
@@ -73,6 +75,10 @@ import { TabContext, TabList, TabPanel } from "@mui/lab";
 import FormTypography from "Components/FormTypography";
 import { ChooseFleet } from "Components/choosers/ChooseFleet";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import { RATE_TYPE } from "Constants";
 
 const headCells = [
   {
@@ -165,6 +171,7 @@ export default function RequestList() {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showOwnerDetail, setShowOwnerDetail] = useState(false);
   const [showCreatorDetail, setShowCreatorDetail] = useState(false);
+  const [showAllScores, setShowAllScores] = useState(false);
   const [showVehicleTypeDetail, setShowVehicleTypeDetail] = useState(false);
   const [showNewDraftModal, setShowNewDraftModal] = useState(false);
   const {
@@ -193,22 +200,6 @@ export default function RequestList() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["request"]);
-        toast.success("درخواست شما با موفقیت انجام شد");
-      },
-    }
-  );
-
-  const setDriverMutation = useMutation(
-    (form) =>
-      axiosApi({
-        url: `/set-driver/${form.id}`,
-        method: "post",
-        data: form.data,
-      }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["request"]);
-        setChangeStatusModal(null);
         toast.success("درخواست شما با موفقیت انجام شد");
       },
     }
@@ -279,7 +270,7 @@ export default function RequestList() {
     setChangeStatusData({ id: request.id, request: request });
 
     const status = request.status;
-    // alert(status);
+
     if (allRequest?.need_payment_modal.includes(status)) {
       setChangeStatusModal("payment");
     } else if (allRequest?.need_waybill_modal.includes(status)) {
@@ -307,17 +298,9 @@ export default function RequestList() {
     setShowDraftDetails((prev) => !prev);
     if (draft) setDraftDoc(draft);
   };
-
-  // Set driver for enabled requests
-  const setDriver = () => {
-    let form = {
-      id: changeStatusData.id,
-      data: {
-        driver_id: changeStatusData.driver.id,
-      },
-    };
-
-    setDriverMutation.mutate(form);
+  const toggleShowAllScores = (rowData) => {
+    setShowAllScores((prev) => !prev);
+    if (rowData) setSelectedRowData(rowData);
   };
 
   // check if written draft number is valid or not
@@ -354,217 +337,225 @@ export default function RequestList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - درخواست‌ ها" />
-
+      <HelmetTitlePage title="درخواست‌ ها" />
       <SearchBox
         statuses={allRequest?.statuses}
         registerTypes={allRequest?.register_types}
       />
 
-      {isLoading || isFetching ? (
-        <LoadingSpinner />
-      ) : (
-        <Table
-          {...allRequest?.items}
-          headCells={headCells}
-          filters={searchParamsFilter}
-          setFilters={setSearchParamsFilter}
-        >
-          <TableBody>
-            {allRequest?.items.data.map((row) => {
-              const canSetDriver = allRequest?.can_set_driver.includes(
-                row.status
-              );
-              let buttons_1 = [
-                {
-                  tooltip: "رد کردن",
-                  color: "error",
-                  icon: "xmark",
-                  disabled: !allRequest?.rejectable.includes(row.status),
-                  onClick: () => handleRejectRequest(row),
-                },
-              ];
-              // "trash-xmark"
-              const status = requestStatus[row.next_status];
+      <Table
+        {...allRequest?.items}
+        headCells={headCells}
+        filters={searchParamsFilter}
+        setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteMutation.isLoading ||
+          changeStatusMutation.isLoading
+        }
+      >
+        <TableBody>
+          {allRequest?.items.data.map((row) => {
+            const canSetDriver = allRequest?.can_set_driver.includes(
+              row.status
+            );
+            let buttons_1 = [
+              {
+                tooltip: "رد کردن",
+                color: "error",
+                icon: "xmark",
+                name: "customer.change-status",
+                disabled: !allRequest?.rejectable.includes(row.status),
+                onClick: () => handleRejectRequest(row),
+              },
+            ];
 
-              // next_status
-              !canSetDriver
-                ? buttons_1.unshift({
-                    tooltip: status?.title ?? "پذیرفتن",
-                    color: status?.color ?? "success",
-                    icon: status?.icon ?? "check",
-                    disabled: !allRequest?.acceptable.includes(row.status),
-                    onClick: () => handleAcceptRequest(row),
-                  })
-                : buttons_1.unshift({
-                    tooltip: "انتخاب راننده",
-                    color: "info",
-                    icon: "user-nurse",
-                    onClick: () => handleAcceptRequest(row),
-                  });
+            const status = requestStatus[row.next_status];
 
-              let buttons = [
-                {
-                  tooltip: "نمایش جزئیات",
-                  color: "secondary",
-                  icon: "eye",
-                  onClick: () => toggleShowDetails(row),
-                },
-                {
-                  tooltip: "ویرایش",
-                  color: "warning",
-                  icon: "pencil",
-                  link: `/request/${row.id}`,
-                },
-                {
-                  tooltip: "آدرس",
-                  color: "success",
-                  icon: "map",
-                  onClick: () => toggleShowMap(row),
-                },
+            // next_status
+            !canSetDriver
+              ? buttons_1.unshift({
+                  tooltip: status?.title ?? "پذیرفتن",
+                  color: status?.color ?? "success",
+                  icon: status?.icon ?? "check",
+                  name: "customer.change-status",
+                  disabled: !allRequest?.acceptable.includes(row.status),
+                  onClick: () => handleAcceptRequest(row),
+                })
+              : buttons_1.unshift({
+                  tooltip: "انتخاب راننده",
+                  color: "info",
+                  icon: "user-nurse",
+                  name: "request.set-driver",
+                  onClick: () => handleAcceptRequest(row),
+                });
 
-                {
-                  tooltip: "نمایش بارنامه",
-                  color: "secondary",
-                  icon: "receipt",
-                  onClick: () => toggleShowWayBillDetails(row),
-                  disabled: !row.waybill,
-                },
-                {
-                  tooltip: "نمایش حواله",
-                  color: "secondary",
-                  icon: "scroll-old",
-                  onClick: () => getDraftDetail(row.draft_number),
-                  disabled: !row.draft_number,
-                },
-              ];
+            let buttons = [
+              {
+                tooltip: "نمایش جزئیات",
+                color: "secondary",
+                icon: "eye",
+                name: "request.show",
+                onClick: () => toggleShowDetails(row),
+              },
+              {
+                tooltip: "ویرایش",
+                color: "warning",
+                icon: "pencil",
+                link: `/request/${row.id}`,
+                name: "request.update",
+              },
+              {
+                tooltip: "آدرس",
+                color: "success",
+                icon: "map",
+                onClick: () => toggleShowMap(row),
+              },
+              {
+                tooltip: "نمایش بارنامه",
+                color: "secondary",
+                icon: "receipt",
+                onClick: () => toggleShowWayBillDetails(row),
+                disabled: !row.waybill,
+              },
+              {
+                tooltip: "نمایش حواله",
+                color: "secondary",
+                icon: "scroll-old",
+                onClick: () => getDraftDetail(row.draft_number),
+                disabled: !row.draft_number,
+              },
+            ];
 
-              return (
-                <TableRow
-                  hover
-                  tabIndex={-1}
-                  key={row.id}
-                  onDoubleClick={() => toggleShowDetails(row)}
-                >
-                  <TableCell align="center" scope="row">
-                    {enToFaNumber(row.id)}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {row.project?.code ? (
-                      <Typography
-                        variant="clickable"
-                        onClick={() => toggleShowProjectDetails(row)}
-                      >
-                        {enToFaNumber(row.project.code)}
-                      </Typography>
-                    ) : (
-                      "آگهی"
-                    )}
-                  </TableCell>
-                  <TableCell align="center" scope="row">
-                    {row.driver ? (
-                      <Typography
-                        variant="clickable"
-                        onClick={() => toggleShowDriverDetails(row)}
-                      >
-                        {`${row.driver?.first_name ?? "فاقد نام"} ${
-                          row.driver?.last_name ?? "-"
-                        } (${enToFaNumber(row.driver?.mobile) ?? ""})`}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    {row.product?.title ?? "-"}
-                  </TableCell>
-                  <TableCell align="center">
+            if (row.status === "done") {
+              buttons.push({
+                tooltip: "امتیازات",
+                color: "secondary",
+                icon: "stars",
+                onClick: () => toggleShowAllScores(row),
+              });
+            }
+            return (
+              <TableRow
+                hover
+                tabIndex={-1}
+                key={row.id}
+                onDoubleClick={() => toggleShowDetails(row)}
+              >
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row.id)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row.project?.code ? (
                     <Typography
                       variant="clickable"
-                      onClick={() => toggleShowOwnerDetails(row)}
+                      onClick={() => toggleShowProjectDetails(row)}
                     >
-                      {`${row.owner?.first_name || ""} ${
-                        row.owner?.last_name || ""
-                      }`}
+                      {enToFaNumber(row.project.code)}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    {renderWeight(row.weight)}
-                  </TableCell>
-                  <TableCell align="center">
-                    {row.vehicle ? (
-                      <Typography
-                        variant="clickable"
-                        onClick={() => toggleShowVehicleDetails(row)}
-                      >
-                        {renderPlaqueObjectToString(row.vehicle?.plaque)}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    {row.vehicle_type ? (
-                      <Typography
-                        variant="clickable"
-                        onClick={() => toggleShowVehicleTypeDetails(row)}
-                      >
-                        {row.vehicle_type?.title}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
+                  ) : (
+                    "آگهی"
+                  )}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row.driver ? (
                     <Typography
                       variant="clickable"
-                      onClick={() => toggleShowCreatorDetails(row)}
+                      onClick={() => toggleShowDriverDetails(row)}
                     >
-                      {`${row.creator?.first_name || ""} ${
-                        row.creator?.last_name || ""
-                      }`}
+                      {`${row.driver?.first_name ?? "فاقد نام"} ${
+                        row.driver?.last_name ?? "-"
+                      } (${enToFaNumber(row.driver?.mobile) ?? ""})`}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    {row.register_type ?? "-"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {row?.proposed_price
-                      ? enToFaNumber(numberWithCommas(row.proposed_price)) +
-                        " ریال"
-                      : "قیمت توافقی"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {row.load_time ? (
-                      <Typography variant="subtitle2">
-                        {handleDate(row.load_time, "YYYY/MM/DD")}
-                        {" - "}
-                        {handleDate(row.load_time, "HH:MM")}
-                      </Typography>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  {row.product?.title ?? "-"}
+                </TableCell>
+                <TableCell align="center">
+                  <Typography
+                    variant="clickable"
+                    onClick={() => toggleShowOwnerDetails(row)}
+                  >
+                    {`${row.owner?.first_name || ""} ${
+                      row.owner?.last_name || ""
+                    }`}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">{renderWeight(row.weight)}</TableCell>
+                <TableCell align="center">
+                  {row.vehicle ? (
+                    <Typography
+                      variant="clickable"
+                      onClick={() => toggleShowVehicleDetails(row)}
+                    >
+                      {renderPlaqueObjectToString(row.vehicle?.plaque)}
+                    </Typography>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  {row.vehicle_type ? (
+                    <Typography
+                      variant="clickable"
+                      onClick={() => toggleShowVehicleTypeDetails(row)}
+                    >
+                      {row.vehicle_type?.title}
+                    </Typography>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  <Typography
+                    variant="clickable"
+                    onClick={() => toggleShowCreatorDetails(row)}
+                  >
+                    {`${row.creator?.first_name || ""} ${
+                      row.creator?.last_name || ""
+                    }`}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">{row.register_type ?? "-"}</TableCell>
+                <TableCell align="center">
+                  {row?.proposed_price
+                    ? enToFaNumber(numberWithCommas(row.proposed_price)) +
+                      " ریال"
+                    : "قیمت توافقی"}
+                </TableCell>
+                <TableCell align="center">
+                  {row.load_time ? (
+                    <Typography variant="subtitle2">
+                      {handleDate(row.load_time, "YYYY/MM/DD")}
+                      {" - "}
+                      {handleDate(row.load_time, "HH:MM")}
+                    </Typography>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
 
-                  <TableCell>
-                    <TableActionCell buttons={buttons_1} />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={handleRequestStatus(row.status)}
-                      color={handleRequestStatusColor(row.status)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TableActionCell buttons={buttons} />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
-
+                <TableCell>
+                  <TableActionCell buttons={buttons_1} />
+                </TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={handleRequestStatus(row.status)}
+                    color={handleRequestStatusColor(row.status)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <TableActionCell buttons={buttons} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
       {/* show owner */}
       <OwnerDetailModal
         owner={selectedRowData?.owner}
@@ -583,7 +574,6 @@ export default function RequestList() {
         onClose={() => setShowProjectDetail(false)}
         data={selectedRowData?.project}
       />
-
       <DriverDetailModal
         show={showDriverDetail}
         onClose={() => setShowDriverDetail(false)}
@@ -594,13 +584,11 @@ export default function RequestList() {
         onClose={() => setShowVehicleTypeDetail(false)}
         data={selectedRowData?.vehicle_type}
       />
-
       <VehicleDetailModal
         show={showVehicleModal}
         onClose={() => setShowVehicleModal((prev) => !prev)}
         data={selectedRowData?.vehicle}
       />
-
       {/* show driving routes */}
       {selectedRowData && (
         <DrivingDirection
@@ -609,7 +597,6 @@ export default function RequestList() {
           rowData={selectedRowData}
         />
       )}
-
       {/* Reject request modal */}
       <Modal
         open={changeStatusModal === "reject"}
@@ -639,7 +626,6 @@ export default function RequestList() {
           </LoadingButton>
         </Stack>
       </Modal>
-
       {/* Accept request with payment modal */}
       <Modal
         open={changeStatusModal === "payment"}
@@ -678,9 +664,10 @@ export default function RequestList() {
               onChange={(e) => {
                 setChangeStatusData((prev) => ({
                   ...prev,
-                  draft_number: e.target.value,
+                  draft_number: faToEnNumber(e.target.value),
                 }));
               }}
+              value={enToFaNumber(changeStatusData?.draft_number)}
             />
           </Grid>
 
@@ -733,7 +720,6 @@ export default function RequestList() {
           </LoadingButton>
         </Stack>
       </Modal>
-
       {/* Accept request with waybill modal */}
       <Modal
         open={["waybill", "load", "load_permit", "load_confirm"].includes(
@@ -781,16 +767,13 @@ export default function RequestList() {
           </LoadingButton>
         </Stack>
       </Modal>
-
       {/* Set request driver and fleet modal */}
-
       <ChooseDriverAndFleetModal
         open={changeStatusModal === "driver"}
         changeStatusData={changeStatusData}
         setChangeStatusData={setChangeStatusData}
         onClose={() => setChangeStatusModal(null)}
       />
-
       <Modal
         open={showNewDraftModal}
         onClose={() => {
@@ -799,14 +782,12 @@ export default function RequestList() {
       >
         <NewDraft />
       </Modal>
-
       <ActionConfirm
         message="ایا مطمئن هستید؟"
         open={changeStatusModal === "accept"}
         onClose={() => setChangeStatusModal(null)}
         onAccept={() => changeRequestStatus("accept")}
       />
-
       <DetailsModal
         open={showDetails}
         onClose={() => toggleShowDetails()}
@@ -818,6 +799,11 @@ export default function RequestList() {
         onClose={() => toggleShowWayBillDetails()}
         data={selectedRowData?.waybill ?? {}}
       />
+      <AllScoresModal
+        open={showAllScores}
+        onClose={() => toggleShowAllScores()}
+        data={selectedRowData}
+      />
       <DraftDetailsModal
         open={showDraftDetails}
         onClose={() => toggleShowDraftDetails()}
@@ -826,6 +812,97 @@ export default function RequestList() {
     </>
   );
 }
+
+const AllScoresModal = ({ open, onClose, data = {} }) => {
+  const [showScoredHistory, setShowScoredHistory] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const {
+    data: ratings,
+    isLoading,
+    isFetching,
+  } = useQuery(
+    ["rating", "ratable_id", data?.id],
+    () =>
+      axiosApi({ url: `rating?ratable_id=${data?.id}` }).then(
+        (res) => res.data.Data?.items?.data
+      ),
+    {
+      enabled: open && !!data?.id,
+      staleTime: 24 * 60 * 60 * 100,
+    }
+  );
+
+  const toggleShowScoredHistory = () => {
+    setShowScoredHistory((prev) => !prev);
+  };
+
+  return (
+    <>
+      <Modal open={open} onClose={onClose}>
+        <Typography variant="h5" mb={5}>
+          امتیازات کسب شده در این آگهی
+        </Typography>
+
+        {isLoading || isFetching ? (
+          <LoadingSpinner />
+        ) : (
+          <Grid container spacing={2}>
+            {ratings.map((item) => {
+              return (
+                <Grid key={item.id} item xs={12} md={4}>
+                  <Card
+                    sx={{
+                      p: 2,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                    }}
+                  >
+                    <Typography variant="subtitle2">
+                      {RATE_TYPE[item.rated_type]}
+                    </Typography>
+
+                    <Stack direction="row" spacing={1}>
+                      <Rating
+                        precision={0.2}
+                        value={item?.score}
+                        size="small"
+                        readOnly
+                        color="inherit"
+                      />
+
+                      <Tooltip placement="top" title="مشاهده تاریخچه امتیازات">
+                        <Box
+                          sx={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setSelectedId(item.rated_id);
+                            toggleShowScoredHistory();
+                          }}
+                        >
+                          <SvgSPrite
+                            icon="rectangle-history-circle-user"
+                            color="inherit"
+                            size={20}
+                          />
+                        </Box>
+                      </Tooltip>
+                    </Stack>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
+      </Modal>
+
+      <ShowPersonScoreModal
+        show={showScoredHistory}
+        onClose={toggleShowScoredHistory}
+        dataId={selectedId}
+      />
+    </>
+  );
+};
 
 const ChooseDriverAndFleetModal = ({
   open,
@@ -910,6 +987,8 @@ const ChooseDriverAndFleetModal = ({
       customView: (
         <ChooseDriver
           control={control}
+          isLoadFromApi={false}
+          dataArray={watch("fleet")}
           name={"driver"}
           rules={{
             required: "راننده را وارد کنید",
@@ -922,7 +1001,15 @@ const ChooseDriverAndFleetModal = ({
   const SecondDriverInputs = [
     {
       type: "custom",
-      customView: <ChooseDriver control={control} name={"second_driver"} />,
+      customView: (
+        <ChooseDriver
+          control={control}
+          dataArray={watch("fleet")}
+          isLoadFromApi={false}
+          name={"second_driver"}
+          notAllowedDriver={watch("driver")}
+        />
+      ),
     },
   ];
 
@@ -1024,9 +1111,9 @@ const SearchBox = ({ statuses, registerTypes }) => {
     setValue,
     watch,
     control,
-  } = useForm({
-    defaultValues: searchParamsFilter,
-  });
+    reset,
+  } = useForm({ defaultValues: searchParamsFilter });
+
   const [openCollapse, setOpenCollapse] = useState(hasData);
 
   const Inputs = [
@@ -1169,17 +1256,18 @@ const SearchBox = ({ statuses, registerTypes }) => {
       label: "نمایش درخواست های منقضی شده",
       control: control,
     },
-    {
-      type: "zone",
-      name: "zones",
-      control: control,
-      rules: {
-        required: "zones را وارد کنید",
-      },
-      gridProps: { md: 12 },
-      height: "400px",
-    },
+    // {
+    //   type: "zone",
+    //   name: "zones",
+    //   control: control,
+    //   rules: {
+    //     required: "zones را وارد کنید",
+    //   },
+    //   gridProps: { md: 12 },
+    //   height: "400px",
+    // },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
@@ -1218,6 +1306,16 @@ const SearchBox = ({ statuses, registerTypes }) => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

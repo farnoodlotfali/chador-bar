@@ -5,6 +5,7 @@ import {
   Grid,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
   Stack,
   Typography,
@@ -22,10 +23,10 @@ const dColor = "green";
 const bColor = "blue";
 
 const StyButton = {
-  bgcolor: "#f2f2f2",
   width: "40px",
   border: "0.5px solid #c4c4c4",
-  "& :hover": {
+  ":hover": {
+    bgcolor: "primary.700",
     color: "white",
   },
 };
@@ -125,49 +126,39 @@ const ZoneMap = ({
                   <Button
                     variant="contained"
                     disableElevation={true}
-                    sx={{
-                      ...StyButton,
-                      bgcolor:
-                        addressType === "destination_zones"
-                          ? "#2E7D32"
-                          : "#f2f2f2",
-                      color:
-                        addressType === "destination_zones" ? "#fff" : "#000",
-                    }}
+                    color={
+                      addressType === "destination_zones"
+                        ? "success"
+                        : "tertiary"
+                    }
+                    sx={StyButton}
                     onClick={() => {
                       data = { ...data, destination_zones: [] };
                       setData(data);
                     }}
                   >
-                    <SvgSPrite icon="xmark" color={"inherit"} />
+                    <SvgSPrite icon="xmark" color="inherit" />
                   </Button>
                   <Button
                     variant="contained"
-                    sx={{
-                      ...StyButton,
-                      bgcolor:
-                        addressType === "destination_zones"
-                          ? "#2E7D32"
-                          : "#f2f2f2",
-                    }}
+                    color={
+                      addressType === "destination_zones"
+                        ? "success"
+                        : "tertiary"
+                    }
+                    sx={StyButton}
                     disableElevation={true}
                     onClick={() => {
                       setAddressType("destination_zones");
                     }}
                   >
-                    <Typography
-                      variant="caption"
-                      color={
-                        addressType === "destination_zones" ? "#fff" : "#000"
-                      }
-                    >
-                      مقصد
-                    </Typography>
+                    <Typography variant="caption">مقصد</Typography>
                   </Button>
                   <Button
                     variant="contained"
                     disableElevation={true}
-                    sx={{ color: "text.primary", ...StyButton, mx: 1 }}
+                    color="tertiary"
+                    sx={{ ...StyButton, mx: 1 }}
                     onClick={() => {
                       if (addressType === "source_zones") {
                         setAddressType("destination_zones");
@@ -192,33 +183,24 @@ const ZoneMap = ({
                   </Button>
                   <Button
                     variant="contained"
-                    sx={{
-                      ...StyButton,
-                      bgcolor:
-                        addressType === "source_zones" ? "#EF5350" : "#f2f2f2",
-                    }}
+                    color={
+                      addressType === "source_zones" ? "error" : "tertiary"
+                    }
+                    sx={StyButton}
                     disableElevation={true}
                     onClick={() => {
                       setAddressType("source_zones");
                     }}
                   >
-                    <Typography
-                      variant="caption"
-                      color={addressType === "source_zones" ? "#fff" : "#000"}
-                    >
-                      مبدا
-                    </Typography>
+                    <Typography variant="caption">مبدا</Typography>
                   </Button>
                   <Button
                     variant="contained"
                     disableElevation={true}
-                    sx={{
-                      ...StyButton,
-                      bgcolor:
-                        addressType === "source_zones" ? "#EF5350" : "#f2f2f2",
-                      color:
-                        addressType === "source_zones" ? "#fff" : "#000",
-                    }}
+                    color={
+                      addressType === "source_zones" ? "error" : "tertiary"
+                    }
+                    sx={StyButton}
                     onClick={() => {
                       data = { ...data, source_zones: [] };
                       setData(data);
@@ -234,9 +216,10 @@ const ZoneMap = ({
                   zIndex={499}
                   left={0}
                   top={0}
-                  bgcolor="background.default"
                   color="text.primary"
                   p={3}
+                  component={Paper}
+                  borderRadius={0}
                 >
                   <FormControl
                     variant="outlined"

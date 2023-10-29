@@ -3,21 +3,17 @@ import { LoadingButton } from "@mui/lab";
 import { Card, Divider, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
-import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
-import { ChooseFleet } from "Components/choosers/ChooseFleet";
-import { ChooseProduct } from "Components/choosers/ChooseProduct";
-import { ChoosePerson } from "Components/choosers/ChoosePerson";
+
 import { FormContainer, FormInputs } from "Components/Form";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ChoosePath } from "Components/choosers/ChoosePath";
-import { ChooseProject } from "Components/choosers/ChooseProject";
-import { useEffect, useMemo } from "react";
-import { generateRandomNum } from "Utility/utils";
+
 import { ChooseProductUnit } from "Components/choosers/ChooseProductUnit";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useMemo } from "react";
+import { loadFarsiVersion } from "Utility/versions";
 
 const NewDraft = () => {
   const queryClient = useQueryClient();
@@ -804,7 +800,7 @@ const NewDraft = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - حواله جدید" />
+      <HelmetTitlePage title="حواله جدید" />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer
@@ -847,7 +843,7 @@ const NewDraft = () => {
                 type="submit"
                 color={Object.keys(errors).length !== 0 ? "error" : "primary"}
               >
-                ثبت در سامانه دراپ
+                ثبت در سامانه {loadFarsiVersion()}
               </LoadingButton>
               <LoadingButton
                 variant="contained"

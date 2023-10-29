@@ -3,7 +3,8 @@ import moment from "jalali-moment";
 import IranFlag from "Assets/images/iran-flag.png";
 import { Fragment } from "react";
 
-var numberRegex = /^\d+$/;
+export const zipCodeRegexPattern =
+  /\b(?!(\d)\1{3})[13-9]{4}[1346-9][013-9]{5}\b/i;
 
 // should return farsi number with giver input
 export function enToFaNumber(number) {
@@ -36,27 +37,17 @@ export function enToFaNumber(number) {
 export function faToEnNumber(number) {
   if (number === "۰") return 0;
   if (!number) return null;
-  const data = {
-    "۱": 1,
-    "۲": 2,
-    "۳": 3,
-    "۴": 4,
-    "۵": 5,
-    "۶": 6,
-    "۷": 7,
-    "۸": 8,
-    "۹": 9,
-    "۰": 0,
-  };
-  let result = "";
+
   number = number.toString();
 
-  for (var i = 0; i < number.length; i++) {
-    if (data[number[i]]) result += data[number[i]];
-    else result += number[i];
+  const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+  const englishDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+  for (let i = 0; i < farsiDigits.length; i++) {
+    number = number.replace(new RegExp(farsiDigits[i], "g"), englishDigits[i]);
   }
 
-  return result;
+  return number;
 }
 
 // separate 3 by 3 digits of number with comma in farsi
@@ -67,8 +58,20 @@ export function numberWithCommas(number) {
   number = faToEnNumber(number);
 
   number = number.toString().replaceAll(",", "");
-  number = number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return enToFaNumber(number);
+  // number = number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  var separatedNumber = "";
+  var count = 0;
+  for (var i = number.length - 1; i >= 0; i--) {
+    separatedNumber = number[i] + separatedNumber;
+    count++;
+    if (count === 3 && i !== 0) {
+      separatedNumber = "," + separatedNumber;
+      count = 0;
+    }
+  }
+
+  return enToFaNumber(separatedNumber);
 }
 
 // separate 3 by 3 digits of number with comma in english
@@ -217,14 +220,15 @@ export const genderType = (val) => {
 };
 
 export const renderDateToCalender = (date, name) => {
+  const dateConvert = new Date(date);
+  const year = dateConvert.getFullYear().toString();
+  const month = (dateConvert.getMonth() + 1).toString().padStart(2, "0");
+  const day = dateConvert.getDate().toString().padStart(2, "0");
+
   return {
-    [name]: new Date(date)
-      .toLocaleDateString("en-US")
-      .split("/")
-      .reverse()
-      .join("/"),
-    [`${name}_fa`]: new Date(date).toLocaleDateString("fa-IR-u-nu-latn"),
-    [`${name}_text`]: new Date(date)
+    [name]: `${year}/${month}/${day}`,
+    [`${name}_fa`]: dateConvert.toLocaleDateString("fa-IR-u-nu-latn"),
+    [`${name}_text`]: dateConvert
       .toLocaleDateString("fa-IR")
       .replaceAll("/", "-"),
   };
@@ -420,6 +424,7 @@ export const borderColorsForChart = (count) => {
 
 // remove null value or remove invalid values in object
 export function removeInvalidValues(obj) {
+  const SHOULD_BE_ACCOUNT_ID = ["driver_id", "owner_id"];
   for (var propName in obj) {
     if (
       obj[propName] === null ||
@@ -432,9 +437,13 @@ export function removeInvalidValues(obj) {
     }
 
     if (Array.isArray(obj[propName])) {
+      let curser = "id";
+      if (SHOULD_BE_ACCOUNT_ID.includes(propName)) {
+        curser = "account_id";
+      }
       let newArr = [];
       obj[propName].forEach((item) => {
-        newArr.push(item.id ?? item);
+        newArr.push(item?.[curser] ?? item);
       });
 
       obj[propName] = newArr;
@@ -493,13 +502,11 @@ export const renderWeight = (weight) => {
 
 // validate number input
 export const validateNumberInput = (val) => {
-  const valueInput = val.replaceAll(",", "").replaceAll(" ", "");
+  const valueInput = Number(
+    faToEnNumber(val.replaceAll(",", "").replaceAll(" ", ""))
+  );
 
-  if (!numberRegex.test(valueInput) && valueInput.length > 1) {
-    return false;
-  }
-
-  return true;
+  return !isNaN(valueInput);
 };
 
 // will remove Commas
@@ -624,10 +631,12 @@ export const renderTimeCalender = (
       sx={{
         width: 35,
         height: 35,
-        border: "1px solid",
+        border: `1px solid ${hasRequest ? "white" : ""}`,
         textAlign: "center",
         p: 1,
         borderRadius: 1,
+        bgcolor: hasRequest ? "primary.main" : "inherit",
+        color: hasRequest ? "white" : "grey",
       }}
     >
       {enToFaNumber(dayOfMonth)}
@@ -645,4 +654,21 @@ export const renderTimeCalender = (
       )}
     </Fragment>
   );
+};
+
+// deep copy
+export const deepCopy = (obj) => {
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+
+  const copy = Array.isArray(obj) ? [] : {};
+
+  for (let key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      copy[key] = deepCopy(obj[key]);
+    }
+  }
+
+  return copy;
 };

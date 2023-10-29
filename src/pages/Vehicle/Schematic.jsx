@@ -28,7 +28,6 @@ import {
   numberWithCommas,
   renderSelectOptions1,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -37,6 +36,7 @@ import { useSchematic } from "hook/useSchematic";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import FormTypography from "Components/FormTypography";
 import { SvgSPrite } from "Components/SvgSPrite";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const HeadCells = [
   {
@@ -233,7 +233,8 @@ const SchematicList = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  شماتیک خودروها" />
+      <HelmetTitlePage title="شماتیک خودروها" />
+
       <Card sx={{ overflow: "hidden", mb: 2 }}>
         <Button
           color="secondary"

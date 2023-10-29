@@ -1,10 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 import {
   Button,
-  Card,
-  Collapse,
   Stack,
   Typography,
   Grid,
@@ -16,21 +14,17 @@ import {
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
-import SearchInput from "Components/SearchInput";
 import { FormContainer, FormInputs } from "Components/Form";
 
 import {
   enToFaNumber,
   removeInvalidValues,
-  renderSelectOptions,
   renderSelectOptions1,
 } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useUser } from "hook/useUser";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -38,13 +32,15 @@ import { axiosApi } from "api/axiosApi";
 import Modal from "Components/versions/Modal";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
-import MultiFleets from "Components/multiSelects/MultiFleets";
-import { useShippingCompany } from "hook/useShippingCompany";
-import { useFleetGroup } from "hook/useFleetGroup";
-import MultiGroup from "Components/multiSelects/MultiGroup";
+
 import { useRole } from "hook/useRole";
-import MultiShippingCompany from "Components/multiSelects/MultiShippingCompany";
 import FormTypography from "Components/FormTypography";
+import { ChooseFleetGroup } from "Components/choosers/ChooseFleetGroup";
+import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseRole } from "Components/choosers/ChooseRole";
+import { useHasPermission } from "hook/useHasPermission";
 
 const TABLE_HEAD_CELLS = [
   {
@@ -94,14 +90,8 @@ export default function UserList() {
     isFetching,
     isError,
   } = useUser(searchParamsFilter);
+  const { hasPermission } = useHasPermission("user.change-status");
 
-  const {
-    data: allFleetGroup,
-    isLoading: isLoadingGroup,
-    isError: isErrorGroup,
-  } = useFleetGroup(searchParamsFilter);
-  const { data: shippingCompanies, isLoading: ShCIsLoading } =
-    useShippingCompany();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [user, setUser] = useState({});
@@ -118,20 +108,11 @@ export default function UserList() {
     }
   );
 
-  if (
-    isLoading ||
-    isFetching ||
-    isLoadingGroup ||
-    ShCIsLoading ||
-    deleteUserMutation.isLoading
-  ) {
-    return <LoadingSpinner />;
-  }
-  if (isError || isErrorGroup || deleteUserMutation.isError) {
+  if (isError || deleteUserMutation.isError) {
     return <div className="">isError</div>;
   }
 
-  const { items, roles } = allUsers;
+  // const { items, roles } = allUsers;
 
   const changeUserStatus = (id) => {
     // Inertia.visit(`user-change-status/${id}`, {
@@ -159,26 +140,20 @@ export default function UserList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - کاربران" />
+      <HelmetTitlePage title="کاربران" />
 
       <AddNewUser />
       <SearchBoxUser />
-      <GroupModal
-        open={showDetails}
-        shippingCompanies={shippingCompanies}
-        onClose={() => {
-          setShowDetails(false);
-        }}
-        groupData={allFleetGroup}
-      />
+
       <Table
-        {...items}
+        {...allUsers?.items}
         headCells={TABLE_HEAD_CELLS}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || deleteUserMutation.isLoading}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allUsers?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -199,6 +174,7 @@ export default function UserList() {
                     onChange={() => {
                       changeUserStatus(row.id);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -209,12 +185,14 @@ export default function UserList() {
                         color: "warning",
                         icon: "pencil",
                         onClick: () => handleEditUser(row),
+                        name: "user.update",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
                         onClick: () => handleDeleteUser(row.id),
+                        name: "user.destroy",
                       },
                     ]}
                   />
@@ -224,14 +202,18 @@ export default function UserList() {
           })}
         </TableBody>
       </Table>
-
+      <GroupModal
+        open={showDetails}
+        onClose={() => {
+          setShowDetails(false);
+        }}
+      />
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
         onAccept={deleteUser}
         message="آیا از حذف کاربر مطمئن هستید؟"
       />
-
       <EditUserModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -251,6 +233,7 @@ const SearchBoxUser = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -264,12 +247,13 @@ const SearchBoxUser = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -293,6 +277,16 @@ const SearchBoxUser = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button variant="contained" type="submit">
                 اعمال فیلتر
               </Button>
@@ -304,10 +298,7 @@ const SearchBoxUser = () => {
   );
 };
 
-const GroupModal = ({ open, onClose, data, shippingCompanies }) => {
-  const shippingCompany = shippingCompanies?.data.find(
-    (item) => item.id === data?.shipping_company_id
-  );
+const GroupModal = ({ open, onClose, data }) => {
   return (
     <Modal open={open} onClose={onClose}>
       <FormTypography>گروه ناوگان</FormTypography>
@@ -337,7 +328,10 @@ const GroupModal = ({ open, onClose, data, shippingCompanies }) => {
                       sx={{ justifyContent: "space-between", padding: 2 }}
                     >
                       <Typography>نام شرکت حمل</Typography>
-                      <Typography> {shippingCompany?.name ?? "-"}</Typography>
+                      <Typography>
+                        {" "}
+                        {data?.shipping_company?.name ?? "-"}
+                      </Typography>
                     </Stack>
                   </Button>
                 </Stack>
@@ -365,7 +359,6 @@ const AddNewUser = () => {
     watch,
   } = useForm();
 
-  const { data: allRoles } = useRole();
   const AddUserMutation = useMutation(
     (data) => axiosApi({ url: "/user", method: "post", data: data }),
     {
@@ -396,6 +389,7 @@ const AddNewUser = () => {
       type: "number",
       name: "mobile",
       label: "شماره موبایل",
+      noInputArrow: true,
       control: control,
       rules: { required: "شماره موبایل را وارد کنید" },
     },
@@ -407,20 +401,23 @@ const AddNewUser = () => {
       rules: { required: "ایمیل را وارد کنید" },
     },
     {
-      type: "select",
-      name: "roles",
-      valueKey: "id",
-      labelKey: "title",
-      label: "نقش",
-      options: renderSelectOptions1(allRoles?.items, "slug"),
-      control: control,
-      rules: { required: "نقش را وارد کنید" },
+      type: "custom",
+      customView: (
+        <ChooseRole
+          control={control}
+          name={"role"}
+          rules={{
+            required: "نقش را انتخاب کنید",
+          }}
+        />
+      ),
+
       gridProps: { md: 4 },
     },
     {
       type: "custom",
       customView: (
-        <MultiShippingCompany
+        <ChooseShippingCompany
           control={control}
           name={"shipping_company"}
           label="شرکت حمل و نقل"
@@ -433,7 +430,7 @@ const AddNewUser = () => {
     {
       type: "custom",
       customView: (
-        <MultiGroup
+        <ChooseFleetGroup
           control={control}
           name={"fleet_group"}
           label="گروه ناوگان"
@@ -460,22 +457,26 @@ const AddNewUser = () => {
   ];
 
   // handle on submit new user
-  const onSubmit = (data) => {
-    console.log("data222", data);
+  const onSubmit = async (data) => {
     data = {
       ...data,
       fleet_group_id: data?.fleet_group?.id,
       shipping_company_id: data?.shipping_company?.id,
-      role: data?.roles,
+      role: data?.role?.name,
     };
-    console.log("data222", data);
     if (data.password_confirmation !== data.password) {
       toast.error("عدم تطابق رمز با تایید رمز");
       return;
     }
     data.status = "1";
     data = JSON.stringify(data);
-    AddUserMutation.mutate(data);
+    try {
+      const res = await AddUserMutation.mutateAsync(data);
+
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   // handle on change inputs
@@ -488,6 +489,7 @@ const AddNewUser = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن کاربر "
+      name="user.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>
@@ -526,9 +528,8 @@ const EditUserModal = ({ user, open, onClose }) => {
   } = useForm();
   const { data: allRoles } = useRole();
   useEffect(() => {
-    console.log("user", user);
     reset(user);
-    setValue("roles", user?.roles?.length > 0 ? user?.roles[0]?.id : 0);
+    setValue("role", user?.roles?.length > 0 ? user?.roles[0] : 0);
   }, [user]);
 
   const editUserMutation = useMutation(
@@ -549,44 +550,43 @@ const EditUserModal = ({ user, open, onClose }) => {
       name: "first_name",
       label: "نام",
       control: control,
-      rules: {},
     },
     {
       type: "text",
       name: "last_name",
       label: "نام خانوادگی",
       control: control,
-      rules: {},
     },
     {
       type: "number",
       name: "mobile",
       label: "شماره موبایل",
       control: control,
-      rules: {},
     },
     {
       type: "email",
       name: "email",
       label: "ایمیل",
       control: control,
-      rules: {},
     },
     {
-      type: "select",
-      name: "roles",
-      valueKey: "id",
-      labelKey: "title",
-      label: "نقش",
-      options: renderSelectOptions1(allRoles?.items, "slug"),
-      control: control,
-      rules: { required: "نقش را وارد کنید" },
+      type: "custom",
+      customView: (
+        <ChooseRole
+          control={control}
+          name={"role"}
+          rules={{
+            required: "نقش را انتخاب کنید",
+          }}
+        />
+      ),
+
       gridProps: { md: 4 },
     },
     {
       type: "custom",
       customView: (
-        <MultiShippingCompany
+        <ChooseShippingCompany
           control={control}
           name={"shipping_company"}
           label="شرکت حمل و نقل"
@@ -599,11 +599,10 @@ const EditUserModal = ({ user, open, onClose }) => {
     {
       type: "custom",
       customView: (
-        <MultiGroup
+        <ChooseFleetGroup
           control={control}
           name={"fleet_group"}
           label="گروه ناوگان"
-          needMoreInfo={true}
         />
       ),
       gridProps: { md: 4 },
@@ -624,52 +623,6 @@ const EditUserModal = ({ user, open, onClose }) => {
       rules: { required: "تایید رمز را وارد کنید" },
     },
   ];
-  // const Inputs = [
-  //   {
-  //     type: "text",
-  //     name: "first_name",
-  //     label: "نام",
-  //     control: control,
-  //     rules: {},
-  //   },
-  //   {
-  //     type: "text",
-  //     name: "last_name",
-  //     label: "نام خانوادگی",
-  //     control: control,
-  //     rules: {},
-  //   },
-  //   {
-  //     type: "number",
-  //     name: "mobile",
-  //     label: "شماره موبایل",
-  //     control: control,
-  //     rules: {},
-  //   },
-  //   {
-  //     type: "password",
-  //     name: "password",
-  //     label: "رمز",
-  //     control: control,
-  //     rules: {},
-  //   },
-  //   {
-  //     type: "password",
-  //     name: "password_confirmation",
-  //     label: "تایید رمز",
-  //     control: control,
-  //     rules: {},
-  //   },
-  //   {
-  //     type: "email",
-  //     name: "email",
-  //     label: "ایمیل",
-  //     control: control,
-  //     rules: {},
-  //   },
-  // ];
-
-  // handle on submit new user
   const onSubmit = (data) => {
     data = {
       ...data,

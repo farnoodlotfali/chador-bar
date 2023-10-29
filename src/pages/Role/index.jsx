@@ -22,7 +22,6 @@ import SearchInput from "Components/SearchInput";
 import { FormContainer, FormInputs } from "Components/Form";
 
 import { enToFaNumber, removeInvalidValues } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { usePermission } from "hook/usePermission";
 import { useRole } from "hook/useRole";
 import { useForm } from "react-hook-form";
@@ -32,6 +31,8 @@ import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import FormTypography from "Components/FormTypography";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const TABLE_HEAD_CELLS = [
   {
@@ -140,14 +141,7 @@ const SelectPermissions = ({ data = [], setData, name }) => {
 
 export default function Role() {
   const queryClient = useQueryClient();
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-  } = useForm();
+
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -175,9 +169,6 @@ export default function Role() {
     axiosApi({ url: `/role/${role.id}`, method: "put", data: data })
   );
 
-  // if (isLoading || isFetching) {
-  //   return <LoadingSpinner />;
-  // }
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -200,7 +191,7 @@ export default function Role() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - نقش ها" />
+      <HelmetTitlePage title="نقش ها" />
 
       <AddNewRole />
       <SearchBoxRole />
@@ -210,14 +201,15 @@ export default function Role() {
         headCells={TABLE_HEAD_CELLS}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteRoleMutation.isLoading ||
+          editRoleMutation.isLoading
+        }
       >
         <TableBody>
-          {allRoles?.items.data.map((row) => {
-            const loading =
-              deleteRoleMutation.isLoading ||
-              editRoleMutation.isLoading ||
-              isLoading ||
-              isFetching;
+          {allRoles?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -231,18 +223,19 @@ export default function Role() {
                 </TableCell>
                 <TableCell scope="row">
                   <TableActionCell
-                    loading={role?.id === row.id && loading}
                     buttons={[
                       {
                         tooltip: "ویرایش",
                         color: "warning",
                         icon: "pencil",
                         onClick: () => handleEditRole(row),
+                        name: "role.update",
                       },
                       {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
+                        name: "role.destroy",
                         onClick: () => handleDeleteRole(row),
                       },
                     ]}
@@ -281,6 +274,7 @@ const SearchBoxRole = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -294,12 +288,13 @@ const SearchBoxRole = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -323,6 +318,16 @@ const SearchBoxRole = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}
@@ -406,6 +411,7 @@ const AddNewRole = () => {
       onToggle={setOpenCollapse}
       open={openCollapse}
       title="افزودن نقش"
+      name="role.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

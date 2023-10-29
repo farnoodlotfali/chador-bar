@@ -19,7 +19,7 @@ import { useInfiniteProject } from "hook/useProject";
 import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber, numberWithCommas } from "Utility/utils";
 
 const MultiProjects = (props) => {
@@ -40,6 +40,7 @@ const MultiProjects = (props) => {
   } = useInfiniteProject(filters, {
     enabled: showModal || !!project_id.length,
   });
+  const location = useLocation();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -50,29 +51,28 @@ const MultiProjects = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(project_id.length)) {
+    if (location.search.includes("project_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
-    if (isFetched && Boolean(project_id.length)) {
+    if (isFetched && location.search.includes("project_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== project_id.length) {
-        // reset list
-        remove();
-        allProjects?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (project_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+
+      // reset list
+      remove();
+      allProjects?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (project_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [project_id.length, allProjects?.pages?.length]);
+  }, [location.search, allProjects?.pages?.length]);
 
   const getProjects = (value) => {
     setFilters({ q: value });
@@ -101,12 +101,11 @@ const MultiProjects = (props) => {
       return (length ? enToFaNumber(length) + " " : "") + "پروژه";
     }
 
-    let str = fields?.[0]?.code;
+    let str = enToFaNumber(fields?.[0]?.code) ?? "-";
 
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + " پروژه دیگر...";
     }
-
     return str;
   };
 

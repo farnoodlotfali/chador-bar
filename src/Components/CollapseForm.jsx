@@ -1,12 +1,20 @@
 import { Button, Card, Collapse, Stack, Typography } from "@mui/material";
 import { SvgSPrite } from "./SvgSPrite";
+import { AppContext } from "context/appContext";
+import { useContext } from "react";
 
 const CollapseForm = ({
   children,
   open,
   onToggle,
   title = "جستجوی پیشرفته",
+  name = "",
 }) => {
+  const { notPermissions } = useContext(AppContext);
+
+  if (notPermissions.includes(name)) {
+    return;
+  }
   return (
     <>
       <Card sx={{ overflow: "hidden", mb: 2 }}>

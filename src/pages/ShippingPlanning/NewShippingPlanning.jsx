@@ -22,7 +22,6 @@ import { axiosApi } from "api/axiosApi";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
 import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import { FormContainer, FormInputs } from "Components/Form";
-import { Helmet } from "react-helmet-async";
 import { useController, useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,6 +34,7 @@ import {
   renderChipForInquiry,
   renderPlaqueObjectToString,
   renderSelectOptions2,
+  zipCodeRegexPattern,
 } from "Utility/utils";
 import { Calendar } from "@amir04lm26/react-modern-calendar-date-picker";
 import { useProject } from "hook/useProject";
@@ -48,6 +48,7 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { FLEET_FREE_TYPE } from "Constants";
 import { BlueCircleMarker, MarkerIcon } from "Components/MarkerIcon";
 import ChooseAddressModal from "Components/modals/ChooseAddressModal";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const sColor = "red";
 const dColor = "green";
@@ -237,6 +238,10 @@ const NewShippingPlanning = () => {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
         },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
+        },
       },
     },
   ];
@@ -266,6 +271,10 @@ const NewShippingPlanning = () => {
         minLength: {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
+        },
+        pattern: {
+          value: zipCodeRegexPattern,
+          message: "فرمت کد پستی معتبر نیست",
         },
       },
     },
@@ -459,7 +468,7 @@ const NewShippingPlanning = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - درخواست جدید" />
+      <HelmetTitlePage title="شرکت حمل جدید" />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>

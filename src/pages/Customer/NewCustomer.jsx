@@ -1,15 +1,15 @@
-import { Card, Typography, Stack, Divider } from "@mui/material";
+import { Card,  Stack, Divider } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 
 import { FormContainer, FormInputs } from "Components/Form";
 import { GENDER } from "Constants";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const NewCustomer = () => {
   const navigate = useNavigate();
@@ -140,7 +140,9 @@ const NewCustomer = () => {
   };
   return (
     <>
-      <Helmet title="پنل دراپ - صاحب‌بار جدید" />
+      <HelmetTitlePage title="صاحب‌بار جدید" />
+
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

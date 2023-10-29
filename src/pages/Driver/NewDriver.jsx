@@ -3,7 +3,6 @@ import LoadingButton from "@mui/lab/LoadingButton";
 
 import { FormContainer, FormInputs } from "Components/Form";
 import { GENDER } from "Constants";
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import { toast } from "react-toastify";
 
 import { ChooseVehicle } from "Components/choosers/vehicle/ChooseVehicle";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const NewDriver = () => {
   const navigate = useNavigate();
@@ -165,7 +165,8 @@ const NewDriver = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ - راننده جدید" />
+      <HelmetTitlePage title="راننده جدید" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

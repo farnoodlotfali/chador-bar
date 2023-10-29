@@ -23,11 +23,29 @@ ChartJS.register(
   Legend
 );
 
+const findPassedDays = () => {
+  const dates = [];
+  const today = new Date();
+  // Loop through days of week starting from Sunday
+  for (let i = 0; i < 7; i++) {
+    // Create a date for the day
+    const dayDate = new Date();
+
+    // Set day of week
+    dayDate.setDate(today.getDate() - i);
+
+    // Add date to array
+    dates.unshift(dayDate.toLocaleDateString("fa-IR"));
+  }
+
+  return dates;
+};
+
 const BarChart = ({ labels, dataValues }) => {
   return (
     <Bar
       data={{
-        labels,
+        labels: labels.length ? labels : findPassedDays(),
         datasets: [
           {
             label: "درخواست‌ها",

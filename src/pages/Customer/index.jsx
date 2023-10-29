@@ -9,25 +9,26 @@ import {
   Box,
   Stack,
   Button,
+  Rating,
 } from "@mui/material";
-
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import { enToFaNumber, handleDate, removeInvalidValues } from "Utility/utils";
-import { Helmet } from "react-helmet-async";
 import { useCustomer } from "hook/useCustomer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
-import { useSalon } from "hook/useSalon";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useForm } from "react-hook-form";
 import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import { useHasPermission } from "hook/useHasPermission";
 
 const headCells = [
   {
@@ -46,6 +47,11 @@ const headCells = [
   {
     id: "mobile",
     label: "موبایل",
+  },
+  {
+    id: "rating",
+    label: "امتیاز",
+    sortable: true,
   },
   {
     id: "gender",
@@ -75,7 +81,8 @@ export default function CustomerList() {
     isLoading,
     isError,
   } = useCustomer(searchParamsFilter);
-  const { data: Salon } = useSalon();
+  const { hasPermission } = useHasPermission("customer.change-status");
+
   const updateCustomerMutation = useMutation(
     (form) =>
       axiosApi({
@@ -90,10 +97,8 @@ export default function CustomerList() {
       },
     }
   );
-
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
+  const [showScoreHistory, setShowScoreHistory] = useState(false);
+  const [selectedRowData, setSelectedRowData] = useState();
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -116,22 +121,25 @@ export default function CustomerList() {
     };
     updateCustomerMutation.mutate(form);
   };
-
-  const { items } = allCustomer;
+  const toggleShowScores = (rowData) => {
+    setShowScoreHistory((prev) => !prev);
+    if (rowData) setSelectedRowData(rowData);
+  };
   return (
     <>
-      <Helmet title="پنل دراپ - مشتریان" />
+      <HelmetTitlePage title="مشتریان" />
 
-      <SearchBoxCustomer Salon={Salon} />
+      <SearchBoxCustomer />
 
       <Table
-        {...items}
+        {...allCustomer?.items}
         headCells={headCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
+        loading={isLoading || isFetching || updateCustomerMutation.isLoading}
       >
         <TableBody>
-          {items.data.map((row) => {
+          {allCustomer?.items?.data.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -145,6 +153,17 @@ export default function CustomerList() {
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.mobile)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Rating
+                    precision={0.2}
+                    sx={{
+                      width: "fit-content",
+                    }}
+                    value={row?.rating}
+                    size="small"
+                    readOnly
+                  />
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {handleGender(row.person.gender)}
@@ -166,6 +185,7 @@ export default function CustomerList() {
                     onChange={() => {
                       changeCustomerStatus(row.id);
                     }}
+                    disabled={!hasPermission}
                   />
                 </TableCell>
                 <TableCell scope="row">
@@ -176,18 +196,27 @@ export default function CustomerList() {
                         color: "warning",
                         icon: "pencil",
                         link: `/customer/${row.id}`,
+                        name: "customer.update",
                       },
                       {
                         tooltip: "درخواست‌ها",
                         color: "secondary",
                         icon: "list-check",
                         link: `/request?customer=${row.id}`,
+                        name: "request.index",
                       },
                       {
                         tooltip: "بارنامه‌ها",
                         color: "secondary",
                         icon: "scroll-old",
                         link: `/waybill?customer=${row.id}`,
+                        name: "waybill.index",
+                      },
+                      {
+                        tooltip: "مشاهده تاریخچه امتیازات",
+                        color: "secondary",
+                        icon: "rectangle-history-circle-user",
+                        onClick: () => toggleShowScores(row),
                       },
                     ]}
                   />
@@ -197,10 +226,16 @@ export default function CustomerList() {
           })}
         </TableBody>
       </Table>
+
+      <ShowPersonScoreModal
+        show={showScoreHistory}
+        data={selectedRowData}
+        onClose={toggleShowScores}
+      />
     </>
   );
 }
-const SearchBoxCustomer = ({ Salon }) => {
+const SearchBoxCustomer = () => {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [openCollapse, setOpenCollapse] = useState(false);
 
@@ -210,6 +245,7 @@ const SearchBoxCustomer = ({ Salon }) => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -227,12 +263,13 @@ const SearchBoxCustomer = ({ Salon }) => {
       customView: <ChooseSalon control={control} name={"salon"} />,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -256,6 +293,16 @@ const SearchBoxCustomer = ({ Salon }) => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
               <Button
                 variant="contained"
                 // loading={isSubmitting}

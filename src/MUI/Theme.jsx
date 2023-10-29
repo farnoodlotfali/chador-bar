@@ -5,8 +5,8 @@ import rtlPlugin from "stylis-plugin-rtl";
 import { prefixer } from "stylis";
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../context/appContext";
-import { useVersionENV } from "hook/useVersionENV";
 import { Box, Typography } from "@mui/material";
+import { loadENV } from "Utility/versions";
 
 // Create rtl cache
 const cacheRtl = createCache({
@@ -17,16 +17,18 @@ const cacheRtl = createCache({
 export default function Theme({ children }) {
   const [theme, setTheme] = useState(null);
   const { appTheme } = useContext(AppContext);
-  const { version, CapVersion } = useVersionENV();
 
   useEffect(() => {
-    import(`./versions/${version}`).then((module) => {
-      const finalTheme = module[`${CapVersion}Theme`];
+    console.log(loadENV());
+    import(`./versions/${process.env.REACT_APP_VERSION_CODE}`).then(
+      (module) => {
+        const finalTheme = module[`${loadENV()}Theme`];
 
-      setTheme(
-        appTheme === "light" ? finalTheme.lightTheme : finalTheme.darkTheme
-      );
-    });
+        setTheme(
+          appTheme === "light" ? finalTheme.lightTheme : finalTheme.darkTheme
+        );
+      }
+    );
   }, [appTheme]);
 
   if (theme === null) {

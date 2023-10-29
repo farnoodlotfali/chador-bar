@@ -15,8 +15,8 @@ import ShowScore from "Components/ShowScore";
 import Modal from "Components/versions/Modal";
 import { enToFaNumber, numberWithCommas } from "Utility/utils";
 import { fake12 } from "./fake12";
-import { Helmet } from "react-helmet-async";
 import { SvgSPrite } from "Components/SvgSPrite";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -65,7 +65,7 @@ export default function Survey() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - نظرسنجی" />
+      <HelmetTitlePage title="نظرسنجی" />
 
       <Table
         {...items}

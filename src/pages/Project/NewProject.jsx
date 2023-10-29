@@ -18,7 +18,6 @@ import { useDateStatuses } from "hook/useDateStatuses";
 
 import { useTimePeriods } from "hook/useTimePeriods";
 
-import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -32,6 +31,7 @@ import { ChooseContract } from "Components/choosers/ChooseContract";
 
 import MultiAddresses from "Components/multiSelects/MultiAddresses";
 import FormTypography from "Components/FormTypography";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const headCells = [
   {
@@ -236,7 +236,8 @@ const NewProject = () => {
 
   return (
     <>
-      <Helmet title="پنل دراپ -  پروژه جدید" />
+      <HelmetTitlePage title="پروژه جدید" />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>

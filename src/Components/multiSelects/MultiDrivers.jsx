@@ -19,7 +19,7 @@ import { useInfiniteDriver } from "hook/useDriver";
 import { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiDrivers = (props) => {
@@ -28,6 +28,7 @@ const MultiDrivers = (props) => {
   const [searchVal, setSearchVal] = useState("");
   const [searchParams] = useSearchParams();
   const driver_id = searchParams.getAll("driver_id");
+  const location = useLocation();
 
   const { ref, inView } = useInView();
   const {
@@ -44,30 +45,28 @@ const MultiDrivers = (props) => {
 
   useEffect(() => {
     // reset list
-    if (Boolean(driver_id.length)) {
+    if (location.search.includes("driver_id")) {
       remove();
     }
-  }, []);
+  }, [location.search]);
 
   // should render appropriate value, when url is changed
   useEffect(() => {
     // check if infinite list is fetched
 
-    if (isFetched && Boolean(driver_id.length)) {
+    if (isFetched && location.search.includes("driver_id")) {
       // check if fields has all chosen drivers
-      if (fields.length !== driver_id.length) {
-        // reset list
-        remove();
-        allDrivers?.pages.forEach((page, i) =>
-          page?.items.data.forEach((item) => {
-            if (driver_id.includes(item.id.toString())) {
-              append(item);
-            }
-          })
-        );
-      }
+      // reset list
+      remove();
+      allDrivers?.pages.forEach((page, i) =>
+        page?.items.data.forEach((item) => {
+          if (driver_id.includes(item.id.toString())) {
+            append(item);
+          }
+        })
+      );
     }
-  }, [driver_id.length, allDrivers?.pages?.length]);
+  }, [location.search, allDrivers?.pages?.length]);
 
   // fetch next page when reaching to end of list
   useEffect(() => {

@@ -73,7 +73,7 @@ export default function SelectShippingCompany({ data, setData }) {
                       sx={{ width: "100%" }}
                     >
                       <Typography>{`کد: ${
-                        ShippingCompany.code || ""
+                        enToFaNumber(ShippingCompany.code) || ""
                       }`}</Typography>
                       <Typography>
                         {enToFaNumber(ShippingCompany.name)}

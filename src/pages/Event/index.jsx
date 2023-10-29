@@ -12,14 +12,14 @@ import {
 } from "@mui/material";
 
 import Table from "Components/versions/Table";
-import SearchInput from "Components/SearchInput";
 import { enToFaNumber, handleDate, removeInvalidValues } from "Utility/utils";
 import { fake10 } from "./fake10";
-import { Helmet } from "react-helmet-async";
 import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import { useForm } from "react-hook-form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import HelmetTitlePage from "Components/HelmetTitlePage";
 
 const TABLE_HEAD_CELLS = [
   {
@@ -64,7 +64,7 @@ export default function EventList() {
 
   return (
     <>
-      <Helmet title="پنل دراپ - رویداد ها" />
+      <HelmetTitlePage title="رویداد" />
 
       <SearchBoxEvent />
 
@@ -123,6 +123,7 @@ const SearchBoxEvent = () => {
     setValue,
     watch,
     handleSubmit,
+    reset,
   } = useForm({
     defaultValues: searchParamsFilter,
   });
@@ -136,12 +137,13 @@ const SearchBoxEvent = () => {
       control: control,
     },
   ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setSearchParamsFilter((prev) =>
+    setSearchParamsFilter(
       removeInvalidValues({
-        ...prev,
+        ...searchParamsFilter,
         ...data,
       })
     );
@@ -165,6 +167,16 @@ const SearchBoxEvent = () => {
               direction="row"
               fontSize={14}
             >
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>{" "}
               <Button
                 variant="contained"
                 // loading={isSubmitting}
