@@ -4,7 +4,7 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import { Helmet } from "react-helmet-async";
 
 import { AppContext } from "context/appContext";
-import logo_building from "Assets/images/barestan/logo_building.svg";
+import logo_building from "Assets/images/baarestanV2/logo_building.svg";
 import { FormContainer, FormInputs } from "Components/Form";
 
 export default function BaarestanV2Login({ Inputs, onSubmit, methods }) {
