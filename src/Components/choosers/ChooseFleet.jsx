@@ -27,7 +27,13 @@ import { ChooseShippingCompany } from "./ChooseShippingCompany";
 import { useEffect } from "react";
 import FormTypography from "Components/FormTypography";
 
-export const ChooseFleet = ({ control, name, rules, filterData = {} }) => {
+export const ChooseFleet = ({
+  control,
+  name,
+  rules,
+  filterData = {},
+  container_type_id,
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [openFilterModal, setOpenFilterModal] = useState(false);
   const [filters, setFilters] = useState({});

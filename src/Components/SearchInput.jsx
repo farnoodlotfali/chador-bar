@@ -8,14 +8,14 @@ const SearchInput = (props) => {
   const inputRef = useRef();
 
   const onKeyDown = (e) => {
-    const value = e.target.value;
+    const value = e?.target?.value;
 
-    if (e.key === "Enter") {
+    if (e?.key === "Enter") {
       onEnter(value);
     }
   };
   const onClickSearch = () => {
-    onEnter(inputRef.current.value);
+    onEnter(inputRef?.current?.value);
   };
 
   return (
@@ -25,7 +25,9 @@ const SearchInput = (props) => {
       placeholder={placeholder}
       onKeyDown={onKeyDown}
       value={searchVal}
-      onChange={(e) => setSearchVal(e.target.value)}
+      onChange={(e) => {
+        setSearchVal(e?.target?.value);
+      }}
       endAdornment={
         <InputAdornment position="end">
           <IconButton color="secondary" onClick={onClickSearch}>

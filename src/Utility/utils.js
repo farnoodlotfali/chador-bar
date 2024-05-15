@@ -1,10 +1,10 @@
-import { Chip, Box, Typography, Tooltip } from "@mui/material";
+import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import moment from "jalali-moment";
 import IranFlag from "Assets/images/iran-flag.png";
 import { Fragment } from "react";
+import { MESSAGE_TEMPLATE_TYPE, MESSAGE_TYPE } from "Constants";
 
-export const zipCodeRegexPattern =
-  /\b(?!(\d)\1{3})[13-9]{4}[1346-9][013-9]{5}\b/i;
+export const zipCodeRegexPattern = /^(?!0)\d+$/i;
 
 // should return farsi number with giver input
 export function enToFaNumber(number) {
@@ -25,7 +25,7 @@ export function enToFaNumber(number) {
   let result = "";
   number = number.toString();
 
-  for (var i = 0; i < number.length; i++) {
+  for (var i = 0; i < number?.length; i++) {
     if (data[number[i]]) result += data[number[i]];
     else result += number[i];
   }
@@ -55,9 +55,11 @@ export function numberWithCommas(number) {
   if (number === 0) return "۰";
   if (!number) return null;
 
+  const numberIsNegative = number < 0;
   number = faToEnNumber(number);
-
-  number = number.toString().replaceAll(",", "");
+  let decimals = number.toString()?.split(".")[1];
+  if (parseFloat(decimals)) number -= parseFloat("0." + decimals);
+  number = number.toString().replaceAll(",", "").replace("-", "");
   // number = number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
   var separatedNumber = "";
@@ -70,6 +72,12 @@ export function numberWithCommas(number) {
       count = 0;
     }
   }
+  if (decimals)
+    separatedNumber += parseFloat("0." + decimals)
+      .toString()
+      ?.split("0")[1];
+
+  if (numberIsNegative) separatedNumber += "-";
 
   return enToFaNumber(separatedNumber);
 }
@@ -213,13 +221,47 @@ export const vehiclePhotoType = {
   general: "کلی",
 };
 
+// will give gender name with given id(value)
 export const genderType = (val) => {
   let genders = { male: "مرد", female: "زن" };
 
   return genders[val] ?? "-";
 };
 
+// will give message name with given id(value)
+export const messageType = (val) => {
+  let str = "-";
+
+  for (let i = 0; i < MESSAGE_TYPE.length; i++) {
+    if (MESSAGE_TYPE[i].value === val) {
+      str = MESSAGE_TYPE[i].name;
+
+      break;
+    }
+  }
+
+  return str;
+};
+
+// will give template name with given id(value)
+export const renderMessageTemplateType = (val) => {
+  let str = "-";
+
+  for (let i = 0; i < MESSAGE_TEMPLATE_TYPE.length; i++) {
+    if (MESSAGE_TEMPLATE_TYPE[i].value === val) {
+      str = MESSAGE_TEMPLATE_TYPE[i].name;
+
+      break;
+    }
+  }
+
+  return str;
+};
+
 export const renderDateToCalender = (date, name) => {
+  if (!date) {
+    return null;
+  }
   const dateConvert = new Date(date);
   const year = dateConvert.getFullYear().toString();
   const month = (dateConvert.getMonth() + 1).toString().padStart(2, "0");
@@ -232,6 +274,18 @@ export const renderDateToCalender = (date, name) => {
       .toLocaleDateString("fa-IR")
       .replaceAll("/", "-"),
   };
+};
+// render mobile format that number should start zero
+export const renderMobileFormat = (mobileNum) => {
+  if (!mobileNum) {
+    return null;
+  }
+  mobileNum = faToEnNumber(mobileNum.toString());
+
+  if (mobileNum.startsWith("0")) {
+    return mobileNum;
+  }
+  return enToFaNumber("0" + mobileNum);
 };
 
 // return string of plaque object
@@ -246,7 +300,9 @@ export const renderPlaqueObjectToString = (obj, type = "obj") => {
   }
 
   if (type === "string") {
-    return enToFaNumber(Iran + "" + secondPart + "" + letter + "" + firstPart);
+    return enToFaNumber(
+      "ایران" + Iran + " - " + secondPart + " " + letter + " " + firstPart
+    );
   }
 
   const plaque = [firstPart, letter, secondPart, Iran];
@@ -344,15 +400,17 @@ export const CalenderToDate = (value) => {
 export const renderChip = (val) => {
   let find = null;
   switch (val) {
-    case 1:
+    case 1 || "enable":
       find = { color: "success", text: "فعال" };
       break;
-    case 0:
+    case 0 || "disable":
       find = { color: "error", text: "غیرفعال" };
       break;
-
+    case "preregister":
+      find = { color: "default", text: "پیش ثبت نام" };
+      break;
     default:
-      find = { color: "secondary", text: "نامشخص" };
+      find = { color: "default", text: "نامشخص" };
       break;
   }
 
@@ -371,7 +429,7 @@ export const renderChipForInquiry = (val) => {
       break;
 
     default:
-      find = { color: "secondary", text: "نا مشخص" };
+      find = { color: "default", text: "نامشخص" };
       break;
   }
 
@@ -424,26 +482,27 @@ export const borderColorsForChart = (count) => {
 
 // remove null value or remove invalid values in object
 export function removeInvalidValues(obj) {
-  const SHOULD_BE_ACCOUNT_ID = ["driver_id", "owner_id"];
   for (var propName in obj) {
     if (
       obj[propName] === null ||
       obj[propName] === undefined ||
-      obj[propName].length === 0 ||
-      obj[propName] === "all" ||
-      (!Array.isArray(obj[propName]) && typeof obj[propName] === "object")
+      obj[propName] === "undefined" ||
+      obj[propName]?.length === 0 ||
+      obj[propName] === "all"
     ) {
       delete obj[propName];
     }
-
-    if (Array.isArray(obj[propName])) {
-      let curser = "id";
-      if (SHOULD_BE_ACCOUNT_ID.includes(propName)) {
-        curser = "account_id";
+    if (typeof obj[propName] === "object" && !Array.isArray(obj[propName])) {
+      if (!!obj[propName]?.id) {
+        obj[propName] = obj[propName]?.id;
+      } else {
+        delete obj[propName];
       }
+    }
+    if (Array.isArray(obj[propName])) {
       let newArr = [];
       obj[propName].forEach((item) => {
-        newArr.push(item?.[curser] ?? item);
+        newArr.push(item?.["id"] ?? item);
       });
 
       obj[propName] = newArr;
@@ -465,7 +524,7 @@ export const addZeroForTime = (val) => {
   }
 
   let time = [];
-  val.split(":").forEach((item) => {
+  val?.split(":").forEach((item) => {
     if (item.length === 1) {
       time.push("0" + item);
     } else {
@@ -491,7 +550,7 @@ export const renderWeight = (weight) => {
   if (!weight) {
     return "-";
   }
-  if (weight >= 1000) {
+  if (Math.abs(weight) >= 1000) {
     return `${enToFaNumber(
       numberWithCommas(Number((weight / 1000).toFixed(2)))
     )} تن`;
@@ -588,14 +647,49 @@ export const requestStatus = {
   },
   expired: {
     icon: "calendar-xmark",
-    title: "غیرفعال",
+    title: "منقصی شده",
     color: "error",
+  },
+  at_destination: {
+    icon: "location-check",
+    title: "درمقصد",
+    color: "info",
+  },
+  at_source: {
+    icon: "location-dot",
+    title: "درمبداء",
+    color: "info",
+  },
+  commission_paid: {
+    title: "پرداخت کمیسیون",
+    icon: "coins",
+    color: "success",
+  },
+  driver_accept: {
+    icon: "user-check",
+    title: "تایید راننده",
+    color: "success",
+  },
+  on_the_way: {
+    icon: "location-arrow",
+    title: "در مسیر",
+    color: "info",
+  },
+  paid: {
+    icon: "receipt",
+    title: "پرداخت شده",
+    color: "success",
+  },
+  wait_for_price_approve: {
+    icon: "money-check-dollar-pen",
+    title: "منتظر تایید قیمت",
+    color: "info",
   },
 };
 
 export const compareTimes = (timeOne, timeTwo) => {
-  let timeArrOne = timeOne.split(":");
-  let timeArrTwo = timeTwo.split(":");
+  let timeArrOne = timeOne?.split(":");
+  let timeArrTwo = timeTwo?.split(":");
   let numOne = Number(timeArrOne[0]) + Number(timeArrOne[1]) / 60;
   let numTwo = Number(timeArrTwo[0]) + Number(timeArrTwo[1]) / 60;
   return numOne < numTwo;
@@ -610,6 +704,16 @@ export function stopPropagate(callback) {
   };
 }
 
+// remove params and return exact url pathname
+export const pathnameParam = (params, location) => {
+  if (Object.keys(params).length === 0) {
+    return "";
+  }
+  let arr = location.pathname?.split("/").slice(0, -1);
+  arr.push(`:${Object.keys(params)[0]}`);
+  return arr.join("/");
+};
+
 //  renderTimeCalender of (driver, fleet, ....)
 export const renderTimeCalender = (
   day,
@@ -623,7 +727,7 @@ export const renderTimeCalender = (
   )
 ) => {
   const hasRequest = Boolean(requests?.length);
-  const dayOfMonth = Number(day.split("/")[2]);
+  const dayOfMonth = Number(day?.split("/")[2]);
 
   const BoxDay = (
     <Box
@@ -672,3 +776,104 @@ export const deepCopy = (obj) => {
 
   return copy;
 };
+
+// truncate String with given length
+export const truncateString = (str, num = 20) => {
+  if (str.length > num) {
+    return str.slice(0, num) + "...";
+  } else {
+    return str;
+  }
+};
+
+// convert date to appropriate data for date range picker
+export const convertToRangeDate = (name, start, end) => {
+  return {
+    [`${name}_from`]: moment(start).format("YYYY-MM-DD"),
+    [`${name}_from_fa`]: moment(start).locale("fa").format("YYYY-MM-DD"),
+    [`${name}_from_text`]: enToFaNumber(
+      moment(start).locale("fa").format("YYYY/MM/DD")
+    ),
+    [`${name}_to`]: moment(end).format("YYYY-MM-DD"),
+    [`${name}_to_fa`]: moment(end).locale("fa").format("YYYY-MM-DD"),
+    [`${name}_to_text`]: enToFaNumber(
+      moment(end).locale("fa").format("YYYY/MM/DD")
+    ),
+  };
+};
+
+// convert date to set time picker
+export const convertToTime = (date) => {
+  return moment(date).format("HH:mm");
+};
+
+// render utc-time to time-picker format (timeFormInput)
+export const renderUtcToTime = (val) => {
+  if (!val) {
+    return null;
+  }
+
+  return moment(val).utc().locale("en").format("HH:mm");
+};
+
+// render date to date-picker (dataFormInput)
+export const renderDataFormat = (name, val, locale = "en") => {
+  if (!val) {
+    return;
+  }
+
+  if (locale === "fa") {
+    return {
+      [name]: moment
+        .from(val, "fa", "YYYY-MM-DD")
+        .locale("en")
+        .format("YYYY/MM/DD"),
+      [`${name}_fa`]: moment(val).format("YYYY/MM/DD"),
+      [`${name}_text`]: enToFaNumber(moment(val).format("YYYY/MM/DD")),
+    };
+  }
+
+  return {
+    [name]: moment(val).locale("en").format("YYYY/MM/DD"),
+    [`${name}_fa`]: moment(val).locale("fa").format("YYYY/MM/DD"),
+    [`${name}_text`]: enToFaNumber(
+      moment(val).locale("fa").format("YYYY/MM/DD")
+    ),
+  };
+};
+
+// search in filter object to find if a input which is in the Inputs array, is exist or not.
+export const hasInputsInFilters = (inputs = [], filter = {}) => {
+  for (const item of inputs) {
+    if (item?.customView) {
+      if (!!filter?.[item?.customView?.props?.name]) {
+        return true;
+      }
+    } else if (!!filter?.[item.name]) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// find distance between two points in map
+export function findDistanceBetweenPoints(
+  lat1,
+  lng1,
+  lat2,
+  lng2,
+  toKM = false
+) {
+  let COSINE_FACTOR = Math.PI / 180;
+  let ONE_DEGREE_LATITUDE_DISTANCE_KM = 111320;
+
+  let latDistance = Math.abs(lat1 - lat2) * ONE_DEGREE_LATITUDE_DISTANCE_KM;
+  let lngDistance =
+    Math.abs(lng1 - lng2) *
+    ONE_DEGREE_LATITUDE_DISTANCE_KM *
+    Math.cos(lat1 * COSINE_FACTOR);
+
+  const res = Math.sqrt(latDistance * latDistance + lngDistance * lngDistance);
+  return toKM ? res / 1000 : res;
+}

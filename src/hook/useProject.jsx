@@ -18,7 +18,7 @@ export const useProject = (filters = {}, options = {}) => {
 export const useInfiniteProject = (filters = {}, options = {}) => {
   const infiniteProject = useInfiniteQuery(
     ["project", filters, { infinite: true }],
-    ({ pageParam = filters.page ?? 1 }) => {
+    ({ pageParam = filters?.page ?? 1 }) => {
       const queryParams = filteringMethod({ page: pageParam, ...filters });
 
       return axiosApi({ url: `/project${queryParams}` }).then(
@@ -27,8 +27,8 @@ export const useInfiniteProject = (filters = {}, options = {}) => {
     },
     {
       getNextPageParam: (lastPage, allPages) => {
-        return lastPage.items.current_page !== lastPage.items.last_page
-          ? lastPage.items.current_page + 1
+        return lastPage?.items?.current_page !== lastPage?.items?.last_page
+          ? lastPage?.items?.current_page + 1
           : undefined;
       },
       staleTime: 1 * 60 * 1000,

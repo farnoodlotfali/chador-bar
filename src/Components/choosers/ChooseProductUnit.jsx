@@ -28,7 +28,7 @@ export const ChooseProductUnit = ({ control, name, rules }) => {
 
   const ProductUnitName = field.value
     ? `${field.value.title}`
-    : `نوع دسته‌بندی`;
+    : `واحد شمارشی`;
 
   const selectProductUnit = (ProductUnit) => {
     field.onChange(ProductUnit);
@@ -39,18 +39,18 @@ export const ChooseProductUnit = ({ control, name, rules }) => {
   return (
     <>
       <Modal open={showModal} onClose={toggleShowModal}>
-        <FormTypography>انتخاب نوع دسته‌بندی</FormTypography>
+        <FormTypography>انتخاب واحد شمارشی</FormTypography>
 
         <SelectProductUnit data={field.value} setData={selectProductUnit} />
       </Modal>
       <FormControl variant="outlined" sx={{ width: "100%" }}>
-        <InputLabel>نوع دسته‌بندی</InputLabel>
+        <InputLabel>واحد شمارشی</InputLabel>
         <OutlinedInput
           sx={{ width: "100%" }}
           inputRef={field.ref}
           name={field.name}
           value={ProductUnitName}
-          label={"نوع دسته‌بندی"}
+          label={"واحد شمارشی"}
           readOnly
           error={error}
           endAdornment={

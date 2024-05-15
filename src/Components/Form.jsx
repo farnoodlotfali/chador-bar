@@ -1,5 +1,13 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-empty-pattern */
-import { useState, createContext, useContext, memo, useEffect } from "react";
+import {
+  useState,
+  createContext,
+  useContext,
+  memo,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   Grid,
   InputAdornment,
@@ -15,6 +23,12 @@ import {
   Checkbox,
   Tooltip,
   Typography,
+  Box,
+  Slider,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Stack,
 } from "@mui/material";
 import SelectAddress from "Components/selects/SelectAddress";
 import PlaqueInput from "Components/PlaqueInput";
@@ -33,8 +47,10 @@ import {
   numberWithCommasEn,
   validateNumberInput,
 } from "Utility/utils";
-import { useCallback } from "react";
+
 import { SvgSPrite } from "./SvgSPrite";
+import SelectRangeDate from "./selects/SelectRangeDate";
+import { toast } from "react-toastify";
 
 const FormContext = createContext({});
 
@@ -79,6 +95,9 @@ const FormInputs = ({ children, inputs, gridProps, sx }) => {
 };
 
 const RenderInputs = ({ input, gridProps, errors, ref }) => {
+  if (input?.hidden) {
+    return null;
+  }
   if (input) {
     const inputComponent = (
       <Grid
@@ -87,6 +106,7 @@ const RenderInputs = ({ input, gridProps, errors, ref }) => {
         md={3}
         {...gridProps}
         {...input.gridProps}
+        {...input.sx}
         key={input.name}
       >
         {input.type === "custom" ? (
@@ -146,6 +166,10 @@ const HandleInputType = ({ input }) => {
       return <RenderCheckBox input={input} />;
     case "color":
       return <RenderColor input={input} />;
+    case "file":
+      return <RenderFile input={input} />;
+    case "rangeDate":
+      return <RenderRangeDate input={input} />;
 
     default:
       return <></>;
@@ -171,6 +195,7 @@ const RenderInput = ({ input }) => {
       if (e.target.value.length > input.rules?.maxLength.value) {
         return;
       }
+
       field.onChange(e);
     } else {
       field.onChange(e);
@@ -209,6 +234,7 @@ const RenderNumberInput = ({ input }) => {
     name: input.name,
     control: input.control,
     rules: input.rules ?? {},
+    defaultValue: input?.defaultValue || "",
   });
 
   const handleOnChanged = (e) => {
@@ -220,6 +246,7 @@ const RenderNumberInput = ({ input }) => {
       if (e.target.value.length > input.rules?.maxLength.value) {
         return;
       }
+
       field.onChange(faToEnNumber(e.target.value.replaceAll(",", "")));
     } else {
       field.onChange(faToEnNumber(e.target.value.replaceAll(",", "")));
@@ -230,9 +257,11 @@ const RenderNumberInput = ({ input }) => {
     <OutlinedInput
       inputRef={field.ref}
       value={
-        input.splitter
-          ? numberWithCommas(field.value)
-          : enToFaNumber(field.value)
+        field.value
+          ? input.splitter
+            ? numberWithCommas(field.value)
+            : enToFaNumber(field.value)
+          : ""
       }
       type={input.splitter ? "text" : "text"}
       label={input.label}
@@ -259,11 +288,16 @@ const RenderTime = ({ input }) => {
     name: input.name,
     control: input.control,
     rules: input.rules ?? {},
+    defaultValue: null,
   });
 
-  const handleOnChanged = useCallback((e) => {
+  const handleOnChanged = (e) => {
     field.onChange(moment(e).format("HH:mm"));
-  }, []);
+  };
+
+  const handleOnAccept = () => {
+    field.onChange(field.value);
+  };
 
   return (
     <>
@@ -299,14 +333,21 @@ const RenderTime = ({ input }) => {
               inputRef: field.ref,
               error: !!error,
               InputProps: {
-                endAdornment: input.tooltip && (
+                endAdornment: input.tooltip ? (
                   <InputTooltip title={input.tooltip} />
+                ) : (
+                  <InputAdornment position="end">
+                    <IconButton>
+                      <SvgSPrite icon="clock" />
+                    </IconButton>
+                  </InputAdornment>
                 ),
               },
             },
           }}
           onChange={handleOnChanged}
           value={moment(`2022-04-17T${field.value ?? "00:00"}`)}
+          onAccept={() => handleOnAccept(111)}
         />
       </LocalizationProvider>
     </>
@@ -399,7 +440,66 @@ const RenderDate = ({ input }) => {
         onClose={() => setShowSelectDate((prev) => !prev)}
         data={field.value || ""}
         setData={field.onChange}
+        minimumDate={input?.minimumDate}
+        maximumDate={input?.maximumDate}
         dataKey={keys}
+      />
+    </>
+  );
+};
+
+const RenderRangeDate = ({ input }) => {
+  const [showSelectDate, setShowSelectDate] = useState(false);
+
+  const {
+    field,
+    fieldState: { error },
+    formState: {},
+  } = useController({
+    name: input.name,
+    control: input.control,
+    rules: input.rules ?? {},
+  });
+
+  const handleOnClicked = () => {
+    setShowSelectDate(true);
+  };
+
+  const renderValue = () => {
+    if (!field.value) {
+      return "";
+    }
+    const from = field?.value?.[`${input?.name}_from_text`];
+    const to = field?.value?.[`${input?.name}_to_text`];
+
+    return enToFaNumber((from ?? "") + " - " + (to ?? ""));
+  };
+
+  return (
+    <>
+      <OutlinedInput
+        inputRef={field.ref}
+        value={renderValue() || ""}
+        // onChange={field.onChange}
+        error={error}
+        label={input.label}
+        readOnly={true}
+        onClick={handleOnClicked}
+        endAdornment={
+          <InputAdornment position="end">
+            <IconButton disabled={input.readOnly} onClick={handleOnClicked}>
+              <SvgSPrite icon="calendar-days" />
+            </IconButton>
+          </InputAdornment>
+        }
+      />
+
+      <SelectRangeDate
+        open={showSelectDate}
+        onClose={() => setShowSelectDate((prev) => !prev)}
+        data={field.value || ""}
+        setData={field.onChange}
+        name={input.name}
       />
     </>
   );
@@ -452,7 +552,7 @@ const RenderSelect = ({ input }) => {
           موردی موجود نیست
         </MenuItem>
       )}
-      {input.options?.map((option) => {
+      {input.options?.map((option, i) => {
         return (
           <MenuItem
             value={option[input.valueKey]}
@@ -460,6 +560,7 @@ const RenderSelect = ({ input }) => {
               display: "flex",
               justifyContent: "space-between",
             }}
+            key={i}
           >
             {option[input.labelKey]}
             {!!option.info && (
@@ -532,6 +633,7 @@ const RenderMultiSelect = ({ input }) => {
 const RenderAddress = ({ input }) => {
   const { data, setData } = useContext(FormContext);
   const [showSelectAddress, setShowSelectAddress] = useState(false);
+
   return (
     <>
       <Controller
@@ -609,18 +711,22 @@ const RenderZone = ({ input }) => {
 
   // source_zone_id default values
   useEffect(() => {
-    field.onChange((prev) => ({
-      ...prev,
-      source_zones: source_zone_id.map((str) => parseInt(str)),
-    }));
+    if (source_zone_id.length) {
+      field.onChange((prev) => ({
+        ...prev,
+        source_zones: source_zone_id.map((str) => parseInt(str)),
+      }));
+    }
   }, [source_zone_id.length]);
 
   // destination_zone default values
   useEffect(() => {
-    field.onChange((prev) => ({
-      ...prev,
-      destination_zones: destination_zone_id.map((str) => parseInt(str)),
-    }));
+    if (destination_zone_id.length) {
+      field.onChange((prev) => ({
+        ...prev,
+        destination_zones: destination_zone_id.map((str) => parseInt(str)),
+      }));
+    }
   }, [destination_zone_id.length]);
 
   return (
@@ -677,6 +783,7 @@ const RenderCheckBox = ({ input }) => {
             defaultChecked={!!field.value}
             readOnly={input.readOnly}
             checked={!!field.value}
+            disabled={input?.disabled}
             value={!!field.value}
             onChange={(e) => {
               field.onChange(e.target.checked);
@@ -698,27 +805,206 @@ const RenderColor = ({ input }) => {
     name: input.name,
     control: input.control,
     rules: input.rules ?? {},
-    defaultValue: input?.defaultValue ?? "#000000",
+    defaultValue: input?.defaultValue ?? "",
   });
+
+  const [open, setOpen] = useState(false);
+  const [color, setColor] = useState(
+    field?.value ? field?.value?.substring(0, 7) : null
+  );
+  const [opacity, setOpacity] = useState(
+    field?.value
+      ? (parseInt(field?.value?.substring(7, 9), 16) / 255) * 100
+      : 100
+  );
+  const toggleOpen = () => setOpen((prev) => !prev);
+
+  useEffect(() => {
+    if (!open && color) {
+      field.onChange(color + calculateOpacity(opacity));
+    }
+  }, [open]);
+
+  const calculateOpacity = (val) => {
+    const res = Math.round((val / 100) * 255).toString(16);
+    if (res.length === 1) {
+      return "0" + res;
+    }
+    return res;
+  };
+
+  const noColor = !Boolean(color);
+
+  return (
+    <>
+      <Dialog open={open} onClose={toggleOpen} maxWidth={"xs"} fullWidth>
+        <DialogTitle>انتخاب {input.label}</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle2">میزان شفافیت</Typography>
+          <Slider
+            valueLabelDisplay="auto"
+            slots={{
+              valueLabel: ValueLabelComponent,
+            }}
+            defaultValue={20}
+            max={100}
+            min={0}
+            step={1}
+            value={opacity}
+            onChange={(e) => setOpacity(e.target.value)}
+            disabled={!color}
+          />
+
+          <Stack direction="row" spacing={3} alignItems="center">
+            <Box
+              sx={{
+                background: color,
+                position: "relative",
+                width: "100%",
+                opacity: opacity / 100,
+                border: "1px solid",
+                borderRadius: 1.5,
+                textAlign: "center",
+                p: 2,
+              }}
+            >
+              {noColor && "انتخاب"}
+              <OutlinedInput
+                type="color"
+                value={color || ""}
+                onChange={(e) => setColor(e.target.value)}
+                sx={{
+                  position: "absolute",
+                  p: 0,
+                  top: 0,
+                  bottom: 0,
+                  right: 0,
+                  left: 0,
+                  opacity: 0,
+                  "& input": {
+                    opacity: 0,
+                  },
+                }}
+              />
+            </Box>
+            <Typography
+              sx={{
+                textAlign: "left",
+                color: "text.primary",
+                direction: "rtl",
+              }}
+              variant="subtitle2"
+            >
+              {noColor ? "رنگ" : color + calculateOpacity(opacity)}
+            </Typography>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      {/* input */}
+
+      <OutlinedInput
+        type="color"
+        value={field.value || ""}
+        fullWidth
+        startAdornment={
+          <InputAdornment position="start">
+            <Typography
+              sx={{ width: 70, textAlign: "left", direction: "rtl" }}
+              variant="subtitle2"
+            >
+              {noColor ? "رنگ" : color + calculateOpacity(opacity)}
+            </Typography>
+          </InputAdornment>
+        }
+        endAdornment={
+          <InputAdornment position="start" sx={{ width: "100%" }}>
+            <Box
+              sx={{
+                background: color,
+                opacity: opacity / 100,
+                p: 2,
+                width: "100%",
+              }}
+            />
+          </InputAdornment>
+        }
+        label={input.label}
+        onClick={(e) => {
+          e.preventDefault();
+          toggleOpen();
+        }}
+        sx={{
+          cursor: "pointer",
+          "& input": {
+            opacity: 0,
+            width: 0,
+          },
+        }}
+        inputRef={field.ref}
+        error={error}
+        readOnly={input.readOnly}
+        onBlur={field.onBlur}
+      />
+    </>
+  );
+};
+
+const RenderFile = ({ input }) => {
+  const {
+    field,
+    fieldState: { error },
+    formState: {},
+  } = useController({
+    name: input.name,
+    control: input.control,
+    rules: input.rules ?? {},
+    // defaultValue: input?.defaultValue,
+  });
+
+  const num = useMemo(
+    () => Math.floor(Math.random() * (10000 - 0 + 1) + 0),
+    []
+  );
 
   return (
     <OutlinedInput
-      type="color"
-      value={field.value || ""}
-      onChange={field.onChange}
+      inputRef={field.ref}
+      onChange={(e) => field.onChange(e.target.files[0])}
+      type="file"
+      name={field.name}
       fullWidth
       startAdornment={
-        <InputAdornment position="end">
-          <Typography sx={{ width: 70, textAlign: "left" }} variant="subtitle2">
-            {field.value ?? ""}
+        <InputAdornment
+          position="start"
+          sx={{ width: "100%" }}
+          htmlFor={`upload-${field.name}-${num}`}
+          component="label"
+        >
+          <Typography
+            sx={{
+              width: "100%",
+              lineHeight: 3.5,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+            variant="subtitle2"
+          >
+            {field.value?.name ?? "محل بارگذاری"}
           </Typography>
         </InputAdornment>
       }
-      inputRef={field.ref}
-      label={input.label}
-      placeholder={input.placeholder}
+      id={`upload-${field.name}-${num}`}
+      sx={{
+        "& input": {
+          opacity: 0,
+          width: 0,
+        },
+      }}
       error={error}
-      readOnly={input.readOnly}
+      onBlur={field.onBlur}
+      label={input.label}
+      inputProps={{ accept: "image/*" }}
     />
   );
 };
@@ -733,3 +1019,13 @@ const InputTooltip = ({ title }) => {
     </Tooltip>
   );
 };
+
+function ValueLabelComponent(props) {
+  const { children, value } = props;
+
+  return (
+    <Tooltip enterTouchDelay={0} placement="top" title={enToFaNumber(value)}>
+      {children}
+    </Tooltip>
+  );
+}

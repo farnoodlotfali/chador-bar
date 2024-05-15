@@ -14,6 +14,7 @@ import { FormContainer, FormInputs } from "Components/Form";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { SvgSPrite } from "Components/SvgSPrite";
+import MultiSuperAppClient from "Components/multiSelects/MultiSuperAppClient";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import {
   enToFaNumber,
@@ -125,20 +126,16 @@ const SuperAppGroupSingle = () => {
       name: "start_date",
       label: "تاریخ شروع ",
       control: control,
-      rules: {
-        required: "تاریخ شروع را وارد کنید",
-      },
-      gridProps: { md: 6 },
     },
     {
       type: "date",
       name: "end_date",
       label: "تاریخ پایان ",
       control: control,
-      rules: {
-        required: "تاریخ پایان را وارد کنید",
-      },
-      gridProps: { md: 6 },
+    },
+    {
+      type: "custom",
+      customView: <MultiSuperAppClient control={control} name={"clients"} />,
     },
     {
       type: "textarea",
@@ -157,7 +154,7 @@ const SuperAppGroupSingle = () => {
       start_date: data?.start_date?.start_date,
       default: Number(data?.default),
       status: Number(data?.status),
-      // white_lists: data?.white_lists.map((item) => item?.mobile?.toString()),
+      clients: data?.clients.map((item) => item.serial),
     };
     try {
       const res = await updateSuperAppGroupMutation.mutateAsync(data);

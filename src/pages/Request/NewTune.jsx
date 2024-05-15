@@ -11,22 +11,20 @@ import {
   Stepper,
   Step,
   StepLabel,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Divider,
+  StepIcon,
+  Chip,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
-
 import { FormContainer, FormInputs } from "Components/Form";
 
 import {
-  addZeroForTime,
   enToFaNumber,
+  generateRandomNum,
+  renderWeight,
   zipCodeRegexPattern,
 } from "Utility/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useForm } from "react-hook-form";
 
@@ -34,34 +32,26 @@ import { ChoosePerson } from "Components/choosers/ChoosePerson";
 import Map, { getPathCoordinates } from "Components/Map";
 
 import { Marker, Polyline, Tooltip } from "react-leaflet";
-import { BlueCircleMarker, MarkerIcon } from "Components/MarkerIcon";
+import { MarkerIcon } from "Components/MarkerIcon";
 import { reverseRoutes } from "Components/DrivingDirection";
 import { ChooseProject } from "Components/choosers/ChooseProject";
 import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import Modal from "Components/versions/Modal";
-import ChooseAddressModal from "Components/modals/ChooseAddressModal";
 
 import { toast } from "react-toastify";
 import { axiosApi } from "api/axiosApi";
 import { useNavigate } from "react-router-dom";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseSalon } from "Components/choosers/ChooseSalon";
 
 const stepsLabels = ["انتخاب مسیر", "تکمیل اطلاعات", "ثبت نهایی"];
-const ADDRESS_TYPES = [
-  {
-    name: "مبدا",
-    id: "source",
-  },
-  {
-    name: "مقصد",
-    id: "destination",
-  },
-];
+
 const limeOptions = { color: "lime" };
 
 const NewTune = () => {
   const [step, setStep] = useState(0);
+
   const [dataTune, setDataTune] = useState({});
   const allSteps = [StepOne, StepTwo, StepThree];
   const handleOnPrevious = () => {
@@ -83,7 +73,15 @@ const NewTune = () => {
         <Stepper activeStep={step} alternativeLabel>
           {stepsLabels.map((label) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel
+                StepIconComponent={(props) => {
+                  return (
+                    <StepIcon {...props} icon={enToFaNumber(props.icon)} />
+                  );
+                }}
+              >
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
@@ -101,15 +99,37 @@ const StepOne = (props) => {
     formState: { errors },
     setValue,
     watch,
+    clearErrors,
   } = useForm({
     defaultValues: props.dataTune,
   });
-  const [addressType, setAddressType] = useState(ADDRESS_TYPES[0]);
+  const [mapBounds, setMapBounds] = useState([]);
   const [routeData, setRouteData] = useState({});
-  const [addressModal, setAddressModal] = useState(false);
-  const { renderMap, locationName, center } = Map({
-    showCenterMarker: true,
+  const { renderMap, locationName } = Map({
     zooms: 10,
+    bounds: mapBounds,
+  });
+
+  useQuery({
+    queryKey: ["project", watch("project")?.id],
+    queryFn: () =>
+      axiosApi({ url: `/project/${watch("project")?.id}` }).then(
+        (res) => res.data.Data
+      ),
+    enabled: !!watch("project")?.id,
+    onSuccess: (data) => {
+      setValue("source_address", data?.source?.address);
+      setValue("source_zip_code", data?.source?.zip_code);
+      setValue("destination_address", data?.destination?.address);
+      setValue("destination_zip_code", data?.destination?.zip_code);
+      setValue("source_lat", data?.source?.lat);
+      setValue("source_lng", data?.source?.lng);
+      setValue("destination_lat", data?.destination?.lat);
+      setValue("destination_lng", data?.destination?.lng);
+      setValue("sender", data?.sender);
+      setValue("receiver", data?.receiver);
+      clearErrors();
+    },
   });
 
   const calculateRoute = () => {
@@ -124,12 +144,18 @@ const StepOne = (props) => {
           time: res.time,
           distance: res.distance,
         }));
+
+        setMapBounds([
+          [watch("source_lat"), watch("source_lng")],
+          [watch("destination_lat"), watch("destination_lng")],
+        ]);
       })
 
       .catch((e) => {
         console.log(e);
       });
   };
+
   useEffect(() => {
     if (
       watch("source_lat") &&
@@ -137,15 +163,10 @@ const StepOne = (props) => {
       watch("destination_lat") &&
       watch("destination_lng")
     ) {
+      setRouteData({});
       calculateRoute();
     }
   }, [watch("source_lat"), watch("destination_lat")]);
-
-  const handleAddAddress = () => {
-    handleChange(`${addressType.id}_address`, locationName);
-    handleChange(`${addressType.id}_lat`, center[0]);
-    handleChange(`${addressType.id}_lng`, center[1]);
-  };
 
   const Inputs = [
     {
@@ -154,6 +175,7 @@ const StepOne = (props) => {
         <ChooseProject
           control={control}
           name={"project"}
+          filters={{ valid: 1 }}
           rules={{
             required: " پروژه را وارد کنید",
           }}
@@ -168,14 +190,16 @@ const StepOne = (props) => {
       rules: {
         required: { value: true, message: " آدرس مبداء را وارد کنید" },
       },
+      readOnly: true,
     },
     {
-      type: "text",
+      type: "number",
       name: "source_zip_code",
       label: "کد پستی مبداء",
       control: control,
       rules: {
         required: " کد پستی مبداء را وارد کنید",
+
         maxLength: {
           value: 10,
           message: "کد پستی باید 10 رقمی باشد",
@@ -189,7 +213,9 @@ const StepOne = (props) => {
           message: "فرمت کد پستی معتبر نیست",
         },
       },
+      readOnly: true,
     },
+
     {
       type: "custom",
       customView: (
@@ -199,6 +225,7 @@ const StepOne = (props) => {
           rules={{
             required: "فرستنده را وارد کنید",
           }}
+          readOnly={true}
           label="فرستنده"
         />
       ),
@@ -211,9 +238,10 @@ const StepOne = (props) => {
       rules: {
         required: { value: true, message: " آدرس مقصد را وارد کنید" },
       },
+      readOnly: true,
     },
     {
-      type: "text",
+      type: "number",
       name: "destination_zip_code",
       label: "کدپستی مقصد",
       control: control,
@@ -232,6 +260,7 @@ const StepOne = (props) => {
           message: "فرمت کد پستی معتبر نیست",
         },
       },
+      readOnly: true,
     },
     {
       type: "custom",
@@ -242,6 +271,7 @@ const StepOne = (props) => {
           rules={{
             required: "گیرنده را وارد کنید",
           }}
+          readOnly={true}
           label="گیرنده"
         />
       ),
@@ -265,13 +295,6 @@ const StepOne = (props) => {
     setValue(name, value, { shouldValidate: true });
   };
 
-  const handleChooseAddress = (item) => {
-    const type = addressType.id;
-    handleChange(`${type}_address`, item.address);
-    handleChange(`${type}_lat`, item.lat);
-    handleChange(`${type}_lng`, item.lng);
-  };
-
   return (
     <>
       <Card sx={{ p: 2, overflow: "hidden" }}>
@@ -281,57 +304,6 @@ const StepOne = (props) => {
               <Grid item xs={12} md={8}>
                 {renderMap(
                   <>
-                    <Stack
-                      position={"absolute"}
-                      textAlign="center"
-                      spacing={1}
-                      zIndex={499}
-                      left={10}
-                      top={10}
-                      bgcolor="background.default"
-                      color="text.primary"
-                      minWidth={200}
-                      pt={1}
-                    >
-                      <FormControl fullWidth variant="outlined">
-                        <InputLabel>نوع آدرس</InputLabel>
-                        <Select
-                          value={addressType.id}
-                          label="نوع آدرس"
-                          onChange={(e) =>
-                            setAddressType(
-                              ADDRESS_TYPES.find(
-                                (item) => item.id === e.target.value
-                              )
-                            )
-                          }
-                        >
-                          {ADDRESS_TYPES.map((item) => {
-                            return (
-                              <MenuItem key={item.id} value={item.id}>
-                                {item.name}
-                              </MenuItem>
-                            );
-                          })}
-                        </Select>
-                      </FormControl>
-                    </Stack>
-                    <Box
-                      display="flex"
-                      gap={2}
-                      position="absolute"
-                      top={10}
-                      right={10}
-                      zIndex={499}
-                    >
-                      <Button
-                        color="tertiary"
-                        variant={"contained"}
-                        onClick={() => setAddressModal(true)}
-                      >
-                        مکان های منتخب
-                      </Button>
-                    </Box>
                     <Box
                       display="flex"
                       gap={2}
@@ -345,9 +317,9 @@ const StepOne = (props) => {
                       justifyContent="space-between"
                       alignItems="center"
                     >
-                      <Button variant={"contained"} onClick={handleAddAddress}>
+                      {/* <Button variant={"contained"} onClick={handleAddAddress}>
                         تایید {addressType.name}
-                      </Button>
+                      </Button> */}
                       <Typography sx={{ color: "white" }} variant="caption">
                         طول مسیر:{" "}
                         {enToFaNumber(routeData?.distance?.toFixed(2) ?? 0) +
@@ -402,20 +374,6 @@ const StepOne = (props) => {
                         </Tooltip>
                       </Marker>
                     )}
-                    {watch("project")?.places?.map((place, i) => {
-                      return (
-                        <Marker
-                          key={i}
-                          icon={BlueCircleMarker}
-                          position={[place.lat, place.lng]}
-                          eventHandlers={{
-                            click: (e) => {
-                              handleChooseAddress(place);
-                            },
-                          }}
-                        />
-                      );
-                    })}
                   </>
                 )}
               </Grid>
@@ -432,19 +390,100 @@ const StepOne = (props) => {
           </FormContainer>
         </form>
       </Card>
-
-      <ChooseAddressModal
-        show={addressModal}
-        onClose={() => setAddressModal(false)}
-        handleAdd={handleChooseAddress}
-        addresses={watch("project")?.places}
-      />
     </>
   );
 };
 
+const TuneCalculator = ({ watch }) => {
+  // تعداد قابل بارگیری در روز
+  const [finalDailyRequests, setFinalDailyRequests] = useState(
+    watch("daily_requests")
+  );
+
+  // تعداد قابل بارگیری در روز
+  //((«ساعت شروع فعالیت مبدا» - «ساعت پایان فعالیت مبدا») /  "فواصل ورود به مبداء") *  "تعداد صف موازی بارگیری"
+  // value =  ((start_load_time -  end_load_time) / dispatch_interval) * load_concurrency_limit
+  //final =  تعداد قابل بارگیری در روز =  min(value, daily_requests)
+  useEffect(() => {
+    const dailyRequestsNum = Number(watch("daily_requests"));
+    if (
+      watch("start_load_time") &&
+      watch("end_load_time") &&
+      watch("dispatch_interval") &&
+      watch("load_concurrency_limit") &&
+      dailyRequestsNum
+    ) {
+      const start = watch("start_load_time")
+        ?.split(":")
+        .map((n) => Number(n));
+      const end = watch("end_load_time")
+        ?.split(":")
+        .map((n) => Number(n));
+      const interval = watch("dispatch_interval")
+        ?.split(":")
+        .map((n) => Number(n));
+
+      const loadConcurrencyNum = Number(watch("load_concurrency_limit"));
+
+      const endHourNum = end[0] + end[1] / 60;
+      const startHourNum = start[0] + start[1] / 60;
+      const intervalNum = interval[0] + interval[1] / 60;
+
+      const value =
+        ((endHourNum - startHourNum) * loadConcurrencyNum) / intervalNum;
+
+      const final = Math.min(dailyRequestsNum, value);
+      setFinalDailyRequests(final);
+    } else if (dailyRequestsNum) {
+      setFinalDailyRequests(dailyRequestsNum);
+    }
+  }, [
+    watch("start_load_time"),
+    watch("end_load_time"),
+    watch("dispatch_interval"),
+    watch("load_concurrency_limit"),
+    watch("daily_requests"),
+  ]);
+
+  const rowItem = (title, value) => {
+    return (
+      <Stack spacing={1} direction="row">
+        <Typography variant="body2" fontWeight={"700"}>
+          {title}:
+        </Typography>
+        <Typography variant="body2">{value}</Typography>
+      </Stack>
+    );
+  };
+
+  return (
+    <Card sx={{ p: 2, boxShadow: 1, mb: 2 }}>
+      <FormTypography>ماشین حساب آهنگ حمل </FormTypography>
+
+      <Stack direction="row" gap={3} flexWrap="wrap">
+        {rowItem(
+          "وزن حمل شده در روز",
+          `${enToFaNumber(finalDailyRequests ?? 1 * watch("weight") ?? 1)} (تن)`
+        )}{" "}
+        {rowItem(
+          "ارزش بار حمل شده در روز",
+          `${enToFaNumber(
+            finalDailyRequests ?? 1 * watch("price") ?? 1
+          )} (تومان)`
+        )}
+      </Stack>
+
+      <Typography variant="body2" mt={2} fontWeight={600} color="error.light">
+        محاسبات فعلی به صورت تقریبی می باشد، و متغیر های پروژه و زمانهای ثبت شده
+        در اینجا در نتیجه نهایی تاثیر گذار خواهد بود.
+      </Typography>
+    </Card>
+  );
+};
+
 const StepTwo = (props) => {
-  const queryClient = useQueryClient();
+  const [working_days, setWorking_days] = useState([]);
+
   const {
     control,
     handleSubmit,
@@ -454,33 +493,13 @@ const StepTwo = (props) => {
   } = useForm({
     defaultValues: {
       ...props.dataTune,
-      price: 0,
-      load_concurrency_limit: 1,
-      discharge_concurrency_limit: 1,
-      daily_requests: 1,
-      discharge_duration: "00:00",
-      load_duration: "00:00",
-      dispatch_interval: "00:00",
-      load_tolerance: "01:00",
-      discharge_tolerance: "01:00",
+      title: props?.dataTune?.project?.title + generateRandomNum(5),
     },
   });
 
-  const addProjectTuneMutation = useMutation(
-    (data) => axiosApi({ url: "/project-plan", method: "post", data: data }),
-    {
-      onSuccess: (res) => {
-        props.setDataTune((prev) => ({
-          ...prev,
-          project_plan_id: res.data.Data.id,
-        }));
-        toast.success("با موفقیت ثبت شد");
-        queryClient.invalidateQueries(["projectTune"]);
-        props.setStep((prev) => prev + 1);
-      },
-    }
+  const simulateMutation = useMutation((data) =>
+    axiosApi({ url: "/simulate-requests", method: "post", data: data })
   );
-
   useEffect(() => {
     if (watch("load_concurrency_limit") > watch("daily_requests")) {
       setValue("daily_requests", watch("load_concurrency_limit"));
@@ -493,40 +512,22 @@ const StepTwo = (props) => {
     }
   }, [watch("daily_requests")]);
 
-  useEffect(() => {
-    if (watch("load_duration")) {
-      setValue("dispatch_interval", watch("load_duration"), {
-        shouldValidate: true,
-      });
-    }
-  }, [watch("load_duration")]);
-
-  useEffect(() => {
-    if (watch("dispatch_interval") < watch("load_duration")) {
-      setValue("load_duration", watch("dispatch_interval"));
-    }
-  }, [watch("dispatch_interval")]);
-
   const Inputs = [
     {
-      type: "custom",
-      customView: (
-        <ChooseVType
-          control={control}
-          name={"vehicleType"}
-          rules={{
-            required: "نوع بارگیر را وارد کنید",
-          }}
-        />
-      ),
+      type: "text",
+      name: "title",
+      label: "عنوان",
+      control: control,
+      noInputArrow: true,
+      rules: { required: "عنوان را وارد کنید" },
     },
     {
       type: "number",
       name: "weight",
-      label: "وزن",
+      label: "وزن درخواست (تن)",
       control: control,
       noInputArrow: true,
-      rules: { required: "وزن را وارد کنید" },
+      // rules: { required: "وزن را وارد کنید" },
     },
     {
       type: "number",
@@ -534,96 +535,34 @@ const StepTwo = (props) => {
       label: "قیمت",
       control: control,
       noInputArrow: true,
-      rules: { required: "قیمت را وارد کنید" },
+      splitter: true,
+      // rules: { required: "قیمت را وارد کنید" },
     },
     {
-      type: "time",
-      name: "start_load_time",
-      label: "ساعت شروع بارگیری",
-      control: control,
-      rules: { required: "ساعت بارگیری را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "load_concurrency_limit",
-      label: "تعداد بارگیری هم‌زمان",
-      control: control,
-      rules: { required: "تعداد را وارد کنید" },
-      noInputArrow: true,
-    },
-    {
-      type: "number",
-      name: "discharge_concurrency_limit",
-      label: "تعداد تخلیه هم‌زمان",
-      noInputArrow: true,
-      control: control,
-      rules: {
-        required: "تعداد تخلیه را وارد کنید",
-      },
-    },
-    {
-      type: "time",
-      name: "load_duration",
-      label: "مدت بارگیری",
-      control: control,
-      rules: { required: "مدت بارگیری را وارد کنید" },
-    },
-    {
-      type: "time",
-      name: "load_tolerance",
-      label: "حداکثر تاخیر در بارگیری",
-      tooltip: "حداکثر زمان تاخیر مجاز در بارگیری",
-      control: control,
-      rules: { required: "حداکثر تاخیر در بارگیری را وارد کنید" },
-    },
-    {
-      type: "time",
-      name: "dispatch_interval",
-      label: "سرفاصله اعزام",
-      control: control,
-      rules: {
-        required: "سرفاصله اعزام را وارد کنید",
-        validate: (value) => {
-          let load_duration_time = watch("load_duration")
-            .split(":")
-            .map((item) => Number(item));
-          let value_time = value.split(":").map((item) => Number(item));
-
-          let validate =
-            value_time[0] >= load_duration_time[0] &&
-            value_time[1] >= load_duration_time[1];
-
-          return validate || "باید از زمان مدت بارگیری، بزرگتر یا مساوی باشد ";
-        },
-      },
-    },
-    {
-      type: "time",
-      name: "discharge_duration",
-      label: "مدت تخلیه",
-      control: control,
-      rules: { required: "مدت تخلیه را وارد کنید" },
-    },
-    {
-      type: "time",
-      name: "discharge_tolerance",
-      label: "حداکثر تاخیر در تخلیه",
-      control: control,
-      tooltip: "حداکثر زمان تاخیر مجاز در تخلیه",
-      rules: { required: "حداکثر تاخیر در تخلیه را وارد کنید" },
+      type: "custom",
+      customView: (
+        <ChooseVType
+          control={control}
+          name={"vehicleType"}
+          weight={watch("weight") * 1000}
+          // rules={{
+          //   required: "نوع بارگیر را وارد کنید",
+          // }}
+        />
+      ),
     },
     {
       type: "number",
       name: "daily_requests",
-      label: "تعداد درخواست در روز",
+      label: "حداکثر درخواست در روز",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "تعداد درخواست را وارد کنید",
-        validate: (value) =>
-          Number(value) >= watch("load_concurrency_limit") ||
-          "باید از مقدار تعداد بارگیری، بزرگتر یا مساوی باشد ",
-      },
+      // rules: {
+      //   required: "حداکثر درخواست در روز",
+      //   validate: (value) =>
+      //     Number(value) >= watch("load_concurrency_limit") ||
+      //     "باید از مقدار تعداد بارگیری، بزرگتر یا مساوی باشد ",
+      // },
     },
     {
       type: "number",
@@ -631,31 +570,110 @@ const StepTwo = (props) => {
       label: "مدت زمان حمل محموله(ساعت)",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "مدت زمان را وارد کنید",
-      },
+      // rules: {
+      //   required: "مدت زمان را وارد کنید",
+      // },
     },
     {
-      type: "weekdays",
-      name: "working_days",
-      label: "روز های انتخابی",
-      control: control,
-      rules: { required: "حداقل یک روز را وارد کنید" },
+      type: "custom",
+      customView: <ChooseSalon control={control} name={"salon"} />,
     },
   ];
+  const Inputs1 = [
+    {
+      type: "time",
+      name: "start_load_time",
+      label: "ساعت شروع فعالیت مبداء",
+      control: control,
+      rules: { required: "ساعت بارگیری را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "end_load_time",
+      label: "ساعت پایان فعالیت مبداء",
+      control: control,
+      rules: { required: "ساعت پایان را وارد کنید" },
+    },
+    {
+      type: "number",
+      name: "load_concurrency_limit",
+      label: "تعداد صف موازی بارگیری",
+      control: control,
+      rules: { required: "تعداد را وارد کنید" },
+      noInputArrow: true,
+    },
+    {
+      type: "time",
+      name: "load_tolerance",
+      label: "حداکثر تاخیر در ورود به مبداء",
+      tooltip: "حداکثر زمان تاخیر مجاز در ورود به مبداء",
+      control: control,
+      // rules: { required: "حداکثر تاخیر در بارگیری را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "dispatch_interval",
+      label: "فواصل ورود به مبداء",
+      control: control,
+      rules: {
+        required: "فواصل ورود به مبداء را وارد کنید",
+      },
+    },
+  ];
+  const Inputs2 = [
+    {
+      type: "time",
+      name: "start_discharge_time",
+      label: "ساعت شروع فعالیت مقصد",
+      control: control,
+      rules: { required: "ساعت شروع تخلیه را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "end_discharge_time",
+      label: "ساعت پایان فعالیت مقصد",
+      control: control,
+      rules: { required: "ساعت پایان  تخلیه را وارد کنید" },
+    },
+    {
+      type: "number",
+      name: "discharge_concurrency_limit",
+      label: "تعداد صف موازی تخلیه",
+      noInputArrow: true,
+      control: control,
+      rules: {
+        required: "تعداد صفهای موازی تخلیه را وارد کنید",
+      },
+    },
 
+    {
+      type: "time",
+      name: "discharge_interval",
+      label: "فواصل ورود ناوگان به مقصد",
+      control: control,
+      rules: { required: "فواصل ورود ناوگان به مقصد را وارد کنید" },
+    },
+
+    {
+      type: "time",
+      name: "discharge_tolerance",
+      label: "حداکثر تاخیر در ورود ناوگان به مقصد",
+      control: control,
+      tooltip: "حداکثر زمان تاخیر مجاز در ورود ناوگان به مقصد",
+      // rules: { required: "حداکثر تاخیر در ورود ناوگان به مقصد را وارد کنید" },
+    },
+  ];
   // handle on submit
   const onSubmit = async (data) => {
-    data.vehicle_type_id = data.vehicleType.id;
-    data.load_duration = addZeroForTime(data.load_duration);
-    data.discharge_duration = addZeroForTime(data.discharge_duration);
+    data.vehicle_type_id = data?.vehicleType?.id;
 
-    const newData = { ...data, ...props.dataTune };
-    props.setDataTune(newData);
-
+    data.weight = data?.weight * 1000;
+    data.salon_id = data?.salon?.id;
+    const newData = { ...data, ...props.dataTune, working_days: working_days };
     try {
-      const res = await addProjectTuneMutation.mutateAsync(newData);
-
+      const res = await simulateMutation.mutateAsync(newData);
+      props.setDataTune({ ...res?.data?.Data, ...newData });
+      props.setStep((prev) => prev + 1);
       return res;
     } catch (error) {
       return error;
@@ -665,16 +683,186 @@ const StepTwo = (props) => {
   const handleChange = (name, value) => {
     setValue(name, value, { shouldValidate: true });
   };
+  const renderItem = (title, value) => {
+    return (
+      <Grid item xs={12} sm={6} md={3}>
+        <Stack spacing={1} direction="row">
+          <Typography variant="caption" fontWeight={"700"}>
+            {title}:
+          </Typography>
+          <Typography variant="caption">{value}</Typography>
+        </Stack>
+      </Grid>
+    );
+  };
 
   return (
     <>
+      <Card sx={{ p: 2, boxShadow: 1, mb: 2 }}>
+        <FormTypography>اطلاعات پروژه</FormTypography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={12}>
+            <Grid container spacing={2}>
+              {renderItem("کد", enToFaNumber(props?.dataTune?.project.code))}
+              {renderItem(
+                "عنوان پروژه",
+                enToFaNumber(props?.dataTune?.project?.title)
+              )}
+
+              {props?.dataTune?.project?.product ? (
+                <>
+                  {renderItem(
+                    "نام محصول",
+                    enToFaNumber(props?.dataTune?.project?.product?.title)
+                  )}
+
+                  {renderItem(
+                    "واحد محصول",
+                    enToFaNumber(props?.dataTune?.project?.product?.unit?.title)
+                  )}
+                  {renderItem(
+                    "گروه محصول",
+                    enToFaNumber(
+                      props?.dataTune?.project?.product?.group?.title
+                    )
+                  )}
+                </>
+              ) : (
+                renderItem("محصول", "فاقد محصول")
+              )}
+
+              {renderItem(
+                " تعداد درخواست‌ها",
+                enToFaNumber(props?.dataTune?.project?.requests_count)
+              )}
+              {renderItem(
+                "تعداد درخواست های فعال",
+                enToFaNumber(props?.dataTune?.project?.active_requests_count)
+              )}
+              {renderItem(
+                " تناژ کل",
+                renderWeight(props?.dataTune?.project?.weight)
+              )}
+              {renderItem(
+                " تناژ باقیمانده",
+                renderWeight(props?.dataTune?.project?.remaining_weight)
+              )}
+              {renderItem(
+                " تناژ حمل شده",
+                renderWeight(props?.dataTune?.project?.requests_total_weight)
+              )}
+            </Grid>
+          </Grid>
+        </Grid>
+      </Card>
+
+      <TuneCalculator watch={watch} />
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
             <FormTypography>اطلاعات تکمیلی</FormTypography>
             <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
-
             <Divider sx={{ my: 5 }} />
+            <FormInputs inputs={Inputs1} gridProps={{ md: 4 }} />
+            <Divider sx={{ my: 5 }} />
+            <FormInputs inputs={Inputs2} gridProps={{ md: 4 }} />
+            <Divider sx={{ my: 5 }} />
+            <Stack direction={"row"} spacing={2} mt={2} alignItems={"center"}>
+              <Typography>روز های هفته</Typography>
+              <Chip
+                label="شنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(1) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(1)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 1));
+                  } else {
+                    setWorking_days((prev) => [...prev, 1]);
+                  }
+                }}
+              />
+              <Chip
+                label="یکشنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(2) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(2)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 2));
+                  } else {
+                    setWorking_days((prev) => [...prev, 2]);
+                  }
+                }}
+              />
+              <Chip
+                label="دوشنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(3) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(3)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 3));
+                  } else {
+                    setWorking_days((prev) => [...prev, 3]);
+                  }
+                }}
+              />
+              <Chip
+                label="سه شنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(4) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(4)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 4));
+                  } else {
+                    setWorking_days((prev) => [...prev, 4]);
+                  }
+                }}
+              />
+              <Chip
+                label="چهارشنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(5) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(5)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 5));
+                  } else {
+                    setWorking_days((prev) => [...prev, 5]);
+                  }
+                }}
+              />
+              <Chip
+                label="پنج شنبه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(6) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(6)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 6));
+                  } else {
+                    setWorking_days((prev) => [...prev, 6]);
+                  }
+                }}
+              />
+              <Chip
+                label="جمعه"
+                size="medium"
+                color="primary"
+                variant={working_days.includes(7) ? "filled" : "outlined"}
+                onClick={() => {
+                  if (working_days.includes(7)) {
+                    setWorking_days((prev) => prev.filter((a) => a !== 7));
+                  } else {
+                    setWorking_days((prev) => [...prev, 7]);
+                  }
+                }}
+              />
+            </Stack>
 
             <Stack
               mt={10}
@@ -719,7 +907,21 @@ const StepThree = (props) => {
   } = useForm({
     defaultValues: props.dataTune,
   });
-
+  const addProjectTuneMutation = useMutation(
+    (data) => axiosApi({ url: "/project-plan", method: "post", data: data }),
+    {
+      onSuccess: (res) => {
+        props.setDataTune((prev) => ({
+          ...prev,
+          project_plan_id: res.data.Data.id,
+        }));
+        toast.success("با موفقیت ثبت شد");
+        setShowModal(false);
+        queryClient.invalidateQueries(["projectTune"]);
+        navigate("/request/tune");
+      },
+    }
+  );
   const generateRequestMutation = useMutation((data) =>
     axiosApi({ url: "/generate-requests", method: "post", data: data })
   );
@@ -748,11 +950,10 @@ const StepThree = (props) => {
   // handle on submit
   const onSubmit = async (data) => {
     try {
-      data.project_plan_id = props.dataTune.project_plan_id;
-      data.start_date = data.start_date.start_date;
-      data.end_date = data.end_date.end_date;
-      const res = await generateRequestMutation.mutateAsync(data);
-      showMessage();
+      // data.project_plan_id = props.dataTune.project_plan_id;
+      // data.start_date = data.start_date.start_date;
+      // data.end_date = data.end_date.end_date;
+      const res = await addProjectTuneMutation.mutateAsync(props?.dataTune);
       return res;
     } catch (error) {
       return error;
@@ -763,18 +964,6 @@ const StepThree = (props) => {
     setValue(name, value, { shouldValidate: true });
   };
 
-  const handleShowModal = () => {
-    setShowModal(true);
-  };
-
-  const showMessage = () => {
-    queryClient.invalidateQueries(["projectTune"]);
-    navigate("/project/tune");
-    // data.data.Message
-    setShowModal(false);
-    toast.success("با موفقیت ثبت شد");
-  };
-
   return (
     <Box
       display="flex"
@@ -782,28 +971,61 @@ const StepThree = (props) => {
       alignItems="center"
       textAlign="center"
     >
-      <Card sx={{ p: 5, boxShadow: 1, minWidth: "300px" }}>
+      <Card sx={{ p: 2, boxShadow: 1, minWidth: "300px" }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <FormContainer data={watch()} setData={handleChange} errors={errors}>
-            <FormTypography>تولید درخواست</FormTypography>
-
-            <Stack mt={5} spacing={2}>
-              <Button
-                variant="contained"
-                type="button"
-                color="info"
-                onClick={handleShowModal}
-              >
-                تولید درخواست
-              </Button>{" "}
-              <Button
+            <Stack spacing={4} direction={"row"}>
+              <Stack sx={{ p: 4 }}>
+                <FormTypography>تخمین هفتگی</FormTypography>
+                <Typography>
+                  مجموع تناژ :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_week?.weight)}
+                </Typography>
+                <Typography>
+                  تعداد درخواست :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_week?.requests)}
+                </Typography>
+              </Stack>
+              <Stack sx={{ p: 4 }}>
+                <FormTypography>تخمین ماهانه</FormTypography>
+                <Typography>
+                  مجموع تناژ :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_month?.weight)}
+                </Typography>
+                <Typography>
+                  تعداد درخواست :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_month?.requests)}
+                </Typography>
+              </Stack>
+              <Stack sx={{ p: 4 }}>
+                <FormTypography>تخمین سالانه</FormTypography>
+                <Typography>
+                  مجموع تناژ :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_year?.weight)}
+                </Typography>
+                <Typography>
+                  تعداد درخواست :{" "}
+                  {enToFaNumber(props?.dataTune?.requests_per_year?.requests)}
+                </Typography>
+              </Stack>
+            </Stack>
+            <Stack direction={"row"} justifyContent={"flex-end"} mt={4}>
+              <LoadingButton
                 variant="outlined"
                 type="button"
                 color="error"
                 onClick={props.handleOnPrevious}
               >
                 قبلی
-              </Button>
+              </LoadingButton>
+              <LoadingButton
+                variant="contained"
+                loading={isSubmitting}
+                type="submit"
+                sx={{ width: "120px", ml: 3 }}
+              >
+                ثبت نهایی
+              </LoadingButton>
             </Stack>
           </FormContainer>
         </form>

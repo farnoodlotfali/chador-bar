@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -14,7 +15,6 @@ import { toast } from "react-toastify";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
-import ActionConfirm from "Components/ActionConfirm";
 
 import { FormContainer, FormInputs } from "Components/Form";
 
@@ -31,6 +31,8 @@ import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import Modal from "Components/versions/Modal";
+import FormTypography from "Components/FormTypography";
 
 const HeadCells = [
   {
@@ -53,11 +55,9 @@ const HeadCells = [
 ];
 
 export default function ProductUnits() {
-  const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
-
-  const [deleteUnitId, setDeleteUnitId] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState(null);
   const {
     data: productUnit,
     isLoading,
@@ -65,32 +65,17 @@ export default function ProductUnits() {
     isError,
   } = useProductUnit(searchParamsFilter);
 
-  const deleteUnitMutation = useMutation(
-    (id) => axiosApi({ url: `/product-unit/${id}`, method: "delete" }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["productUnit"]);
-        toast.success("با موفقیت حذف شد");
-      },
-    }
-  );
-
   if (isError) {
     return <div className="">isError</div>;
   }
 
-  const handleDeleteUnit = (id) => {
-    setShowConfirmModal(true);
-    setDeleteUnitId(id);
+  const handleUpdateUnit = (item) => {
+    setSelectedUnit(item);
+    toggleModal();
   };
-
-  // handle delete Unit
-  const deleteUnit = () => {
-    deleteUnitMutation.mutate(deleteUnitId);
-    setShowConfirmModal(false);
-    setDeleteUnitId(null);
+  const toggleModal = () => {
+    setShowModal((prev) => !prev);
   };
-
   return (
     <>
       <HelmetTitlePage title="واحد محصولات" />
@@ -104,7 +89,7 @@ export default function ProductUnits() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
-        loading={isLoading || isFetching || deleteUnitMutation.isLoading}
+        loading={isLoading || isFetching}
       >
         <TableBody>
           {productUnit?.data.map((row) => {
@@ -123,11 +108,11 @@ export default function ProductUnits() {
                   <TableActionCell
                     buttons={[
                       {
-                        tooltip: "حذف",
-                        color: "error",
-                        icon: "trash-xmark",
-                        onClick: () => handleDeleteUnit(row.id),
-                        name: "product-unit.destroy",
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => handleUpdateUnit(row),
+                        name: "product-unit.update",
                       },
                     ]}
                   />
@@ -137,11 +122,11 @@ export default function ProductUnits() {
           })}
         </TableBody>
       </Table>
-      <ActionConfirm
-        open={showConfirmModal}
-        onClose={() => setShowConfirmModal((prev) => !prev)}
-        onAccept={deleteUnit}
-        message="آیا از حذف واحد مطمئن هستید؟"
+
+      <EditUnitProduct
+        onClose={toggleModal}
+        open={showModal}
+        unitProduct={selectedUnit}
       />
     </>
   );
@@ -325,5 +310,104 @@ const AddNewUnitProduct = () => {
         </Box>
       </form>
     </CollapseForm>
+  );
+};
+
+const EditUnitProduct = ({ open, onClose, unitProduct }) => {
+  const queryClient = useQueryClient();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm();
+
+  useEffect(() => {
+    reset(unitProduct);
+  }, [unitProduct]);
+
+  const updateUnitMutation = useMutation(
+    (formaData) =>
+      axiosApi({
+        url: `/product-unit/${formaData.id}`,
+        method: "put",
+        data: formaData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["productUnit"]);
+        toast.success("با موفقیت ویرایش شد");
+        onClose();
+      },
+    }
+  );
+
+  const Inputs = [
+    {
+      type: "text",
+      name: "title",
+      label: "عنوان",
+      control: control,
+      rules: { required: "عنوان را وارد کنید" },
+    },
+    {
+      type: "select",
+      name: "type",
+      label: "نوع",
+      options: renderSelectOptions({
+        عددی: "عددی",
+        وزنی: "وزنی",
+        طولی: "طولی",
+        حجمی: "حجمی",
+      }),
+      valueKey: "id",
+      labelKey: "title",
+      control: control,
+    },
+  ];
+
+  // handle on submit
+  const onSubmit = async (data) => {
+    try {
+      const res = await updateUnitMutation.mutateAsync({
+        id: unitProduct.id,
+        data: data,
+      });
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  return (
+    <Modal onClose={onClose} open={open} maxWidth="md">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormTypography>ویرایش واحد شمارشی</FormTypography>
+        <FormContainer data={watch()} setData={handleChange} errors={errors}>
+          <FormInputs inputs={Inputs} gridProps={{ md: 4 }}>
+            <Grid item xs={12} md={2}>
+              <LoadingButton
+                sx={{
+                  width: "100%",
+                  height: "56px",
+                }}
+                variant="contained"
+                loading={isSubmitting}
+                type="submit"
+              >
+                ویرایش
+              </LoadingButton>
+            </Grid>
+          </FormInputs>
+        </FormContainer>
+      </form>
+    </Modal>
   );
 };

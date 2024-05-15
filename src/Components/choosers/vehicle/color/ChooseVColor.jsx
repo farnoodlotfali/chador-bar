@@ -5,7 +5,6 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import FormTypography from "Components/FormTypography";
 import Modal from "Components/versions/Modal";
@@ -26,7 +25,11 @@ export const ChooseVColor = ({ control, name, rules }) => {
     rules: rules,
   });
 
-  const vColorName = field.value ? `${field.value?.[1]}` : `رنگ خودرو`;
+  const vColorName = Array.isArray(field.value)
+    ? field.value?.[1]
+    : field.value
+    ? field.value
+    : `رنگ خودرو`;
 
   const selectVColor = (vColor) => {
     field.onChange(vColor);

@@ -102,14 +102,14 @@ function ColorlibStepIcon(props, item, size) {
   );
 }
 
-const ChadormaloRequestStepper = ({ status, size = 30, STEPS }) => {
+const ChadormaloRequestStepper = ({ status, size = 30, STEPS, sx = {} }) => {
   return (
     <>
       <Stepper
         alternativeLabel
         activeStep={STEPS.findIndex((item) => item.name === status) ?? 0}
         connector={<ColorlibConnector size={size} />}
-        sx={{ mb: 4, overflowX: "auto", overflowY: "hidden" }}
+        sx={{ mb: 4, overflowX: "auto", overflowY: "hidden", ...sx }}
       >
         {STEPS.map((item) => (
           <Step key={item.name}>

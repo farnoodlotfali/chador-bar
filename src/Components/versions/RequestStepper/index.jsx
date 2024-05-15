@@ -59,7 +59,7 @@ const STEPS = [
   },
 ];
 
-const RequestStepper = ({ status, size = 30 }) => {
+const RequestStepper = ({ status, size = 30, sx }) => {
   return (
     <>
       <Suspense
@@ -67,7 +67,7 @@ const RequestStepper = ({ status, size = 30 }) => {
           <Skeleton variant="rectangular" sx={{ width: "100%", height: 100 }} />
         }
       >
-        <LazyComponent STEPS={STEPS} status={status} size={size} />
+        <LazyComponent STEPS={STEPS} status={status} size={size} sx={sx} />
       </Suspense>
     </>
   );

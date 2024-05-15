@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 
-export const useOwnerTypes = () => {
+export const useOwnerTypes = (filter, options = {}) => {
   const owners = useQuery(
     ["ownerTypes"],
     async () => {
@@ -14,6 +14,8 @@ export const useOwnerTypes = () => {
     },
     {
       staleTime: Infinity,
+
+      ...options,
     }
   );
 

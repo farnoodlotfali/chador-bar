@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, Fragment, useMemo } from "react";
+import { useState, useEffect, Fragment, useMemo, memo } from "react";
 import {
   Typography,
   Grid,
@@ -17,14 +17,15 @@ import {
   renderTimeCalender,
 } from "Utility/utils";
 import { useInfiniteFleet } from "hook/useFleet";
-import { useVehicleColor } from "hook/useVehicleColor";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInView } from "react-intersection-observer";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { useQuery } from "@tanstack/react-query";
+import { axiosApi } from "api/axiosApi";
 export default function SelectFleet({ data, setData, searchFilter }) {
   const [filters, setFilters] = useState({});
   const { ref, inView } = useInView();
-  const [openFleetTime, setOpenFleetTime] = useState(false);
+
   const {
     data: allFleets,
     isLoading,
@@ -36,11 +37,8 @@ export default function SelectFleet({ data, setData, searchFilter }) {
     isFetchingNextPage,
   } = useInfiniteFleet({
     active: true,
-    timeline: true,
     ...searchFilter,
   });
-
-  const { data: colors } = useVehicleColor();
 
   // fetch next page when reaching to end of list
   useEffect(() => {
@@ -115,43 +113,16 @@ export default function SelectFleet({ data, setData, searchFilter }) {
                             )}
                             {renderItem(
                               "رنگ خودرو",
-                              colors[fleet?.vehicle?.color] &&
-                                colors[fleet?.vehicle?.color]
+                              fleet?.vehicle?.color ?? "-"
                             )}
                           </Grid>
                         </Box>
-                        <>
-                          <Tooltip
-                            title="مشاهده تقویم کاری ناوگان"
-                            placement="left"
-                            arrow
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setOpenFleetTime((prev) => !prev);
-                              }}
-                              sx={{
-                                color: (theme) =>
-                                  (data?.id ?? data) === fleet.id
-                                    ? theme.palette.common.white
-                                    : "inherit",
-                              }}
-                            >
-                              {openFleetTime ? (
-                                <SvgSPrite icon="chevron-up" size="small" />
-                              ) : (
-                                <SvgSPrite icon="chevron-down" size="small" />
-                              )}
-                            </IconButton>
-                          </Tooltip>
 
-                          <FleetTimeMonth
-                            key={fleet.id}
-                            row={fleet}
-                            open={openFleetTime}
-                          />
-                        </>
+                        <FleetTimeMonth
+                          key={fleet.id}
+                          row={fleet}
+                          data={data}
+                        />
                       </Box>
                     </Grid>
                   );
@@ -159,9 +130,16 @@ export default function SelectFleet({ data, setData, searchFilter }) {
               </Fragment>
             ))
           ) : (
-            <Typography pt={2} pl={2}>
-              ناوگان یافت نشد
-            </Typography>
+            <Stack sx={{ alignItems: "center", mt: 10, margin: "auto" }}>
+              <SvgSPrite
+                icon="filter-circle-xmark"
+                color="#3D3D3D66"
+                size="72px"
+              />
+              <Typography variant="h6" mt={3} color="#3D3D3D66">
+                با توجه به فیلتر هایی که انتخاب کردید، ناوگانی پیدا نشد.
+              </Typography>
+            </Stack>
           )}
         </Grid>
 
@@ -175,29 +153,76 @@ export default function SelectFleet({ data, setData, searchFilter }) {
   );
 }
 
-const FleetTimeMonth = ({ row, open }) => {
-  const calender = useMemo(() => {
-    return Object.entries(row.timeline).map((item) => {
-      const [day, requests] = item;
+const FleetTimeMonth = memo(({ row, data }) => {
+  const [openFleetTime, setOpenFleetTime] = useState(false);
 
-      return renderTimeCalender(day, requests);
-    });
-  }, []);
-
-  return (
-    <Collapse
-      in={open}
-      unmountOnExit
-      sx={{ overflowX: "auto", cursor: "default" }}
-    >
-      <Box sx={{ margin: 1 }}>
-        <Typography my={2} gutterBottom>
-          تقویم ناوگان (ماه)
-        </Typography>
-        <Stack direction="row" justifyContent="space-between">
-          {calender}
-        </Stack>
-      </Box>
-    </Collapse>
+  const {
+    data: fleetTimeline,
+    isSuccess,
+    isLoading,
+    isFetching,
+  } = useQuery(
+    ["fleet", "fleet-timeline", row?.id],
+    () =>
+      axiosApi({ url: `/fleet-timeline/${row.id}` }).then(
+        (res) => res.data.Data
+      ),
+    {
+      enabled: !!row?.id && openFleetTime,
+    }
   );
-};
+
+  const calender = useMemo(() => {
+    if (isSuccess) {
+      return Object.entries(fleetTimeline).map((item) => {
+        const [day, requests] = item;
+
+        return renderTimeCalender(day, requests);
+      });
+    }
+  }, [isSuccess]);
+  return (
+    <>
+      <Tooltip title="مشاهده تقویم کاری ناوگان" placement="left" arrow>
+        <IconButton
+          size="small"
+          onClick={() => {
+            setOpenFleetTime((prev) => !prev);
+          }}
+          sx={{
+            color: (theme) =>
+              (data?.id ?? data) === row.id
+                ? theme.palette.common.white
+                : "inherit",
+          }}
+        >
+          {openFleetTime ? (
+            <SvgSPrite icon="chevron-up" size="small" color="inherit" />
+          ) : (
+            <SvgSPrite icon="chevron-down" size="small" color="inherit" />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      <Collapse
+        in={openFleetTime}
+        unmountOnExit
+        sx={{ overflowX: "auto", cursor: "default" }}
+      >
+        <Box sx={{ margin: 1 }}>
+          <Typography my={2} gutterBottom>
+            تقویم ناوگان (ماه)
+          </Typography>
+
+          {isLoading || isFetching ? (
+            <LoadingSpinner />
+          ) : (
+            <Stack direction="row" justifyContent="space-between">
+              {calender}
+            </Stack>
+          )}
+        </Box>
+      </Collapse>
+    </>
+  );
+});

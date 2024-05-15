@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Typography, Grid, Button, Stack, Box } from "@mui/material";
 
 import SearchInput from "Components/SearchInput";
@@ -17,7 +18,6 @@ export default function SelectSalon({ data, setData }) {
     isLoading,
     isFetching,
     isError,
-    isSuccess,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,

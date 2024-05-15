@@ -1,11 +1,16 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Fragment, useEffect, useState } from "react";
-import { Typography, Grid, Button, Stack, Box } from "@mui/material";
+import { Box, Button, Card, Grid, Stack, Typography } from "@mui/material";
 
 import SearchInput from "Components/SearchInput";
-import { enToFaNumber, numberWithCommas } from "Utility/utils";
-import { useInfiniteProject, useProject } from "hook/useProject";
+import { enToFaNumber, renderWeight } from "Utility/utils";
+import { useInfiniteProject } from "hook/useProject";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInView } from "react-intersection-observer";
+import { ChooseOwner } from "Components/choosers/ChooseOwner";
+import { ChooseContract } from "Components/choosers/ChooseContract";
+import { useForm } from "react-hook-form";
+import { FormContainer, FormInputs } from "Components/Form";
 
 export default function SelectProject({ data, setData, outFilters }) {
   const [filters, setFilters] = useState(outFilters);
@@ -16,12 +21,11 @@ export default function SelectProject({ data, setData, outFilters }) {
     isLoading,
     isFetching,
     isError,
-    isSuccess,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteProject(filters);
-
+  const { watch, control } = useForm();
   // fetch next page when reaching to end of list
   useEffect(() => {
     if (hasNextPage && inView) {
@@ -33,11 +37,30 @@ export default function SelectProject({ data, setData, outFilters }) {
     setFilters((prev) => ({ ...prev, q: value }));
   };
 
+  useEffect(() => {
+    if (watch("contract")) {
+      setFilters((prev) => ({ ...prev, contract_id: watch("contract")?.id }));
+    }
+  }, [watch("contract")]);
+  useEffect(() => {
+    if (watch("owner")) {
+      setFilters((prev) => ({ ...prev, owner_id: watch("owner")?.id }));
+    }
+  }, [watch("owner")]);
   // if api has got error
   if (isError) {
     return <div className="">error</div>;
   }
-
+  const DataInputs = [
+    {
+      type: "custom",
+      customView: <ChooseContract control={control} name={"contract"} />,
+    },
+    {
+      type: "custom",
+      customView: <ChooseOwner control={control} name={"owner"} />,
+    },
+  ];
   const renderItem = (title, value) => {
     return (
       <Grid item xs={12} sm={6} md={3}>
@@ -53,14 +76,18 @@ export default function SelectProject({ data, setData, outFilters }) {
   return (
     <>
       <Grid container>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3.5}>
           <SearchInput
-            sx={{ width: "100%" }}
             placeholder="جستجو پروژه"
             onEnter={getProjects}
             searchVal={searchVal}
             setSearchVal={setSearchVal}
           />
+        </Grid>
+        <Grid item xs={12} md={7} sx={{ mt: { xs: 2, md: 0 } }}>
+          <FormContainer data={watch()}>
+            <FormInputs gridProps={{ md: 6 }} inputs={DataInputs} />
+          </FormContainer>
         </Grid>
       </Grid>
 
@@ -92,12 +119,18 @@ export default function SelectProject({ data, setData, outFilters }) {
                       >
                         <Grid container spacing={2}>
                           {renderItem("کد", enToFaNumber(project.code))}
+                          {renderItem(
+                            "عنوان پروژه",
+                            enToFaNumber(project?.title)
+                          )}
+
                           {project.product ? (
                             <>
                               {renderItem(
-                                "کد محصول",
-                                enToFaNumber(project.product.code)
+                                "نام محصول",
+                                enToFaNumber(project.product.title)
                               )}
+
                               {renderItem(
                                 "واحد محصول",
                                 enToFaNumber(project.product.unit.title)
@@ -117,25 +150,16 @@ export default function SelectProject({ data, setData, outFilters }) {
                           )}
                           {renderItem(
                             "تعداد درخواست های فعال",
-                            enToFaNumber(project.active_requests.length)
+                            enToFaNumber(project.active_requests_count)
                           )}
-                          {renderItem(
-                            " تناژ کل",
-                            enToFaNumber(numberWithCommas(project.weight))
-                          )}
+                          {renderItem(" تناژ کل", renderWeight(project.weight))}
                           {renderItem(
                             " تناژ باقیمانده",
-                            enToFaNumber(
-                              numberWithCommas(project.remaining_weight)
-                            )
+                            renderWeight(project.remaining_weight)
                           )}
                           {renderItem(
                             " تناژ حمل شده",
-                            enToFaNumber(
-                              numberWithCommas(
-                                project.weight - project.remaining_weight
-                              )
-                            )
+                            renderWeight(project.requests_total_weight)
                           )}
                         </Grid>
                       </Button>

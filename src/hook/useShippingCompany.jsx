@@ -8,7 +8,7 @@ export const useShippingCompany = (filters = {}, options = {}) => {
     queryKey: ["shippingCompany", filters],
     queryFn: () =>
       axiosApi({ url: `/shipping-company${queryParams}` }).then(
-        (res) => res.data.Data
+        (res) => res?.data?.Data
       ),
     keepPreviousData: true,
     ...options,

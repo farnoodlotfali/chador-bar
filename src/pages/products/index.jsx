@@ -29,11 +29,11 @@ import { useProduct } from "hook/useProduct";
 import { useProductGroup } from "hook/useProductGroup";
 import { useProductUnit } from "hook/useProductUnit";
 import Modal from "Components/versions/Modal";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseProductPacking } from "Components/choosers/ChooseProductPacking";
 
 const HeadCells = [
   {
@@ -50,12 +50,16 @@ const HeadCells = [
     label: "عنوان",
   },
   {
-    id: "product_group_id",
+    id: "product_group",
     label: "گروه",
   },
   {
-    id: "unit_id",
+    id: "unit",
     label: "واحد",
+  },
+  {
+    id: "packing",
+    label: "نوع بسته‌بندی",
   },
   {
     id: "actions",
@@ -64,11 +68,8 @@ const HeadCells = [
 ];
 
 export default function ProductList() {
-  const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
 
-  const [deleteProductId, setDeleteProductId] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const {
@@ -78,44 +79,9 @@ export default function ProductList() {
     isError,
   } = useProduct(searchParamsFilter);
 
-  const {
-    data: productsGroup,
-    isLoading: groupIsLoading,
-    isFetching: groupIsFetching,
-    isError: groupIsError,
-  } = useProductGroup();
-  const {
-    data: productsUnit,
-    isLoading: unitIsLoading,
-    isFetching: unitIsFetching,
-    isError: unitIsError,
-  } = useProductUnit();
-
-  const deleteProductMutation = useMutation(
-    (id) => axiosApi({ url: `/product/${id}`, method: "delete" }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["product"]);
-        toast.success("با موفقیت حذف شد");
-      },
-    }
-  );
-
-  if (isError || unitIsError || groupIsError) {
+  if (isError) {
     return <div className="">isError</div>;
   }
-
-  const handleDeleteProduct = (id) => {
-    setShowConfirmModal(true);
-    setDeleteProductId(id);
-  };
-
-  // handle delete Product
-  const deleteProduct = () => {
-    deleteProductMutation.mutate(deleteProductId);
-    setShowConfirmModal(false);
-    setDeleteProductId(null);
-  };
 
   const handleEditProduct = (value) => {
     setSelectedProduct(value);
@@ -125,25 +91,14 @@ export default function ProductList() {
   return (
     <>
       <HelmetTitlePage title="محصولات" />
-      <AddNewProduct
-        productsGroup={productsGroup}
-        productsUnit={productsUnit}
-      />
+      <AddNewProduct />
       <SearchBoxProduct />
       <Table
         {...products?.items}
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
-        loading={
-          isLoading ||
-          isFetching ||
-          groupIsLoading ||
-          groupIsFetching ||
-          unitIsLoading ||
-          deleteProductMutation.isLoading ||
-          unitIsFetching
-        }
+        loading={isLoading || isFetching}
       >
         <TableBody>
           {products?.items?.data?.map((row) => {
@@ -159,10 +114,13 @@ export default function ProductList() {
                   {row.title}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.group.title}
+                  {row.group?.title ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.unit.title}
+                  {row.unit?.title ?? "-"}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row.packing?.title ?? "-"}
                 </TableCell>
                 <TableCell scope="row">
                   <TableActionCell
@@ -174,13 +132,6 @@ export default function ProductList() {
                         onClick: () => handleEditProduct(row),
                         name: "product.update",
                       },
-                      {
-                        tooltip: "حذف",
-                        color: "error",
-                        icon: "trash-xmark",
-                        onClick: () => handleDeleteProduct(row.id),
-                        name: "product.destroy",
-                      },
                     ]}
                   />
                 </TableCell>
@@ -189,12 +140,7 @@ export default function ProductList() {
           })}
         </TableBody>
       </Table>
-      <ActionConfirm
-        open={showConfirmModal}
-        onClose={() => setShowConfirmModal((prev) => !prev)}
-        onAccept={deleteProduct}
-        message="آیا از حذف محصول مطمئن هستید؟"
-      />{" "}
+
       <EditModal
         show={showEditProductModal}
         product={selectedProduct}
@@ -283,7 +229,7 @@ const SearchBoxProduct = () => {
   );
 };
 
-const AddNewProduct = ({ productsUnit, productsGroup }) => {
+const AddNewProduct = () => {
   const [openCollapse, setOpenCollapse] = useState(false);
   const queryClient = useQueryClient();
   const {
@@ -305,6 +251,20 @@ const AddNewProduct = ({ productsUnit, productsGroup }) => {
       },
     }
   );
+
+  const { data: productsGroup } = useProductGroup(
+    {},
+    {
+      enabled: openCollapse,
+    }
+  );
+  const { data: productsUnit } = useProductUnit(
+    {},
+    {
+      enabled: openCollapse,
+    }
+  );
+
   const Inputs = [
     {
       type: "text",
@@ -340,12 +300,31 @@ const AddNewProduct = ({ productsUnit, productsGroup }) => {
       control: control,
       rules: { required: "واحد را وارد کنید" },
     },
+    {
+      type: "custom",
+      customView: (
+        <ChooseProductPacking
+          control={control}
+          name={"packing"}
+          rules={{
+            required: "نوع بسته‌بندی را وارد کنید",
+          }}
+        />
+      ),
+    },
   ];
 
   // handle on submit new Product
-  const onSubmit = (data) => {
-    data = JSON.stringify(data);
-    AddProductMutation.mutate(data);
+  const onSubmit = async (data) => {
+    try {
+      const res = await AddProductMutation.mutateAsync({
+        ...data,
+        packing_id: data?.packing?.id,
+      });
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   // handle on change inputs
@@ -362,7 +341,7 @@ const AddNewProduct = ({ productsUnit, productsGroup }) => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>
           <FormContainer data={watch()} setData={handleChange} errors={errors}>
-            <FormInputs inputs={Inputs} gridProps={{ md: 2.5 }}>
+            <FormInputs inputs={Inputs}>
               <Grid item xs={12} md={2}>
                 <LoadingButton
                   sx={{
@@ -413,18 +392,18 @@ const EditModal = ({ product, show, onClose }) => {
     }
   );
 
-  const {
-    data: productsGroup,
-    isLoading: groupIsLoading,
-    isFetching: groupIsFetching,
-    isError: groupIsError,
-  } = useProductGroup();
-  const {
-    data: productsUnit,
-    isLoading: unitIsLoading,
-    isFetching: unitIsFetching,
-    isError: unitIsError,
-  } = useProductUnit();
+  const { data: productsGroup } = useProductGroup(
+    {},
+    {
+      enabled: show,
+    }
+  );
+  const { data: productsUnit } = useProductUnit(
+    {},
+    {
+      enabled: show,
+    }
+  );
 
   const Inputs = [
     {
@@ -454,12 +433,31 @@ const EditModal = ({ product, show, onClose }) => {
       control: control,
       rules: { required: "واحد را وارد کنید" },
     },
+    {
+      type: "custom",
+      customView: (
+        <ChooseProductPacking
+          control={control}
+          name={"packing"}
+          rules={{
+            required: "نوع بسته‌بندی را وارد کنید",
+          }}
+        />
+      ),
+    },
   ];
 
-  // handle on submit new Product
-  const onSubmit = (data) => {
-    data = JSON.stringify(data);
-    updateProductMutation.mutate(data);
+  // handle on submit
+  const onSubmit = async (data) => {
+    try {
+      const res = await updateProductMutation.mutateAsync({
+        ...data,
+        packing_id: data?.packing.id,
+      });
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   // handle on change inputs

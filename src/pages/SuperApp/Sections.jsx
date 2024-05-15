@@ -1,12 +1,18 @@
 import { LoadingButton } from "@mui/lab";
-import { Box, Stack, TableBody, TableCell, TableRow } from "@mui/material";
+import {
+  Box,
+  Stack,
+  Switch,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import CollapseForm from "Components/CollapseForm";
 import { FormContainer, FormInputs } from "Components/Form";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { ChooseSuperAppGroup } from "Components/choosers/superApp/ChooseGroup";
 
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import { enToFaNumber, renderChip, renderSelectOptions } from "Utility/utils";
@@ -20,11 +26,12 @@ import ActionConfirm from "Components/ActionConfirm";
 import Modal from "Components/versions/Modal";
 import FormTypography from "Components/FormTypography";
 import InputCheckBoxEndAdornment from "Components/InputCheckBoxEndAdornment";
+import { SvgSPrite } from "Components/SvgSPrite";
 
 const HeadCells = [
   {
-    id: "id",
-    label: "شناسه",
+    id: "order",
+    label: "ترتیب",
     sortable: true,
   },
   {
@@ -45,11 +52,6 @@ const HeadCells = [
   {
     id: "view_type",
     label: "نوع نمایش",
-    sortable: true,
-  },
-  {
-    id: "order",
-    label: "ترتیب",
     sortable: true,
   },
   {
@@ -90,6 +92,38 @@ const SuperAppSections = () => {
     }
   );
 
+  // change status
+  const changeStatusMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/super-app/section/${formData.id}`,
+        method: "put",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
+  // change section order
+  const changeSectionOrderMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/super-app/section-change-position/${formData.id}`,
+        method: "post",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
   const showModalToRemove = (sectionItem) => {
     setSectionItem(sectionItem);
     setAcceptRemoveModal(true);
@@ -107,6 +141,38 @@ const SuperAppSections = () => {
     setShowEditModal(true);
   };
 
+  // change status section
+  const handleChangeStatus = async (id, value) => {
+    try {
+      const res = await changeStatusMutation.mutateAsync({
+        id: id,
+        data: {
+          status: value,
+        },
+      });
+
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle change section order
+  const handleSectionOrderChange = async (id, data) => {
+    const formData = {
+      data: data,
+      id: id,
+    };
+
+    try {
+      const res = await changeSectionOrderMutation.mutateAsync(formData);
+
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
   return (
     <>
       <HelmetTitlePage title="مدیریت سوپراپ" />
@@ -118,14 +184,52 @@ const SuperAppSections = () => {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
-        loading={isLoading || isFetching || deleteSectionMutation.isLoading}
+        loading={
+          isLoading ||
+          isFetching ||
+          changeStatusMutation.isLoading ||
+          changeSectionOrderMutation.isLoading ||
+          deleteSectionMutation.isLoading
+        }
       >
         <TableBody>
           {allSuperAppSections?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.id)}
+                  <>
+                    <Stack direction="row" justifyContent="center" gap={2}>
+                      <SvgSPrite
+                        icon="up"
+                        MUIColor="success.main"
+                        size="small"
+                        sxStyles={{
+                          cursor: "pointer",
+                        }}
+                        onClick={() =>
+                          handleSectionOrderChange(row.id, {
+                            action: "up",
+                            group_id: row.group_id,
+                          })
+                        }
+                      />
+                      {enToFaNumber(row?.order) ?? "-"}
+                      <SvgSPrite
+                        icon="down"
+                        MUIColor="error.main"
+                        size="small"
+                        sxStyles={{
+                          cursor: "pointer",
+                        }}
+                        onClick={() =>
+                          handleSectionOrderChange(row.id, {
+                            action: "down",
+                            group_id: row.group_id,
+                          })
+                        }
+                      />
+                    </Stack>
+                  </>
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.title) ?? "-"}
@@ -139,17 +243,24 @@ const SuperAppSections = () => {
                 <TableCell align="center" scope="row">
                   {allSuperAppSections?.view_types?.[row?.view_type] ?? "-"}
                 </TableCell>
-                <TableCell align="center" scope="row">
-                  {enToFaNumber(row?.order) ?? "-"}
+
+                <TableCell align="center">
+                  <Switch
+                    defaultChecked
+                    color="info"
+                    checked={row?.status}
+                    onChange={(e) => {
+                      handleChangeStatus(row.id, e.target.checked);
+                    }}
+                  />
                 </TableCell>
-                <TableCell align="center">{renderChip(row?.status)}</TableCell>
                 <TableCell>
                   <TableActionCell
                     buttons={[
                       {
                         tooltip: "آیتم‌ها",
                         color: "primary",
-                        icon: "send-backward",
+                        icon: "puzzle-piece",
                         link: `/super-app/section/item?section_id=${row.id}`,
                         name: "item.index",
                       },

@@ -1,7 +1,7 @@
 import { Typography, Grid, Button, Stack, Box } from "@mui/material";
 
 import SearchInput from "Components/SearchInput";
-import { enToFaNumber, removeInvalidValues } from "Utility/utils";
+import { enToFaNumber, removeInvalidValues, stopPropagate } from "Utility/utils";
 import { Fragment, useEffect, useState } from "react";
 import { useInfiniteVehicleModel, useVehicleModel } from "hook/useVehicleModel";
 import { FormContainer, FormInputs } from "Components/Form";
@@ -88,7 +88,7 @@ export default function SelectVModel({ data, setData }) {
   };
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={stopPropagate(handleSubmit(onSubmit))}>
         <Box sx={{ p: 2 }}>
           <FormContainer data={watch()} setData={handleChange} errors={errors}>
             <FormInputs inputs={Inputs} gridProps={{ md: 3 }}>

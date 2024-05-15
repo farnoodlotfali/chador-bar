@@ -27,8 +27,8 @@ export const useInfiniteFleet = (filters = {}, options = {}) => {
     },
     {
       getNextPageParam: (lastPage, allPages) => {
-        return lastPage.current_page !== lastPage.last_page
-          ? lastPage.current_page + 1
+        return lastPage.items.current_page !== lastPage.items.last_page
+          ? lastPage.items.current_page + 1
           : undefined;
       },
       staleTime: 1 * 60 * 1000,

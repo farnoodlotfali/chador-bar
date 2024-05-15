@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   Button,
   Stack,
-  Typography,
   Grid,
   Box,
   TableBody,
@@ -23,7 +22,7 @@ import { FormContainer, FormInputs } from "Components/Form";
 import {
   enToFaNumber,
   removeInvalidValues,
-  renderSelectOptions1,
+  renderSelectOptions,
 } from "Utility/utils";
 import { useUser } from "hook/useUser";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +32,6 @@ import Modal from "Components/versions/Modal";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 
-import { useRole } from "hook/useRole";
 import FormTypography from "Components/FormTypography";
 import { ChooseFleetGroup } from "Components/choosers/ChooseFleetGroup";
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
@@ -41,6 +39,8 @@ import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { ChooseRole } from "Components/choosers/ChooseRole";
 import { useHasPermission } from "hook/useHasPermission";
+import { ChooseOwner } from "Components/choosers/ChooseOwner";
+import { useLocation } from "react-router-dom";
 
 const TABLE_HEAD_CELLS = [
   {
@@ -55,6 +55,10 @@ const TABLE_HEAD_CELLS = [
   {
     id: "email",
     label: "ایمیل",
+  },
+  {
+    id: "type",
+    label: "نوع",
   },
   {
     id: "role",
@@ -72,7 +76,8 @@ const TABLE_HEAD_CELLS = [
 
 export default function UserList() {
   const queryClient = useQueryClient();
-  const [showDetails, setShowDetails] = useState(false);
+  let params = useLocation();
+
   const {
     control,
     handleSubmit,
@@ -90,13 +95,30 @@ export default function UserList() {
     isFetching,
     isError,
   } = useUser(searchParamsFilter);
+
   const { hasPermission } = useHasPermission("user.change-status");
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showModalPassword, setShowModalPassword] = useState(false);
   const [user, setUser] = useState({});
   const [userToDelete, setUserToDelete] = useState(null);
-
+  const Inputs = [
+    {
+      type: "password",
+      name: "password",
+      label: "رمز",
+      control: control,
+      rules: { required: " رمز را وارد کنید" },
+    },
+    {
+      type: "password",
+      name: "password_confirmation",
+      label: "تایید رمز",
+      control: control,
+      rules: { required: "تایید رمز را وارد کنید" },
+    },
+  ];
   const deleteUserMutation = useMutation(
     (id) => axiosApi({ url: `/user/${id}`, method: "delete" }),
     {
@@ -107,20 +129,40 @@ export default function UserList() {
       },
     }
   );
+  const editUserMutation = useMutation(
+    (data) => axiosApi({ url: `/user/${user.id}`, method: "put", data: data }),
+    {
+      onSuccess: () => {
+        reset();
+        queryClient.invalidateQueries(["user"]);
+        toast.success("با موفقیت ویرایش شد");
+        reset();
+        setTimeout(() => {
+          setShowModalPassword(false);
+        }, 200);
+      },
+    }
+  );
 
+  const onSubmit = (data) => {
+    if (data.password_confirmation !== data.password) {
+      toast.error("عدم تطابق رمز با تایید رمز");
+      return;
+    }
+
+    data = JSON.stringify({ ...data, mobile: user?.mobile });
+    editUserMutation.mutate(data);
+  };
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
   if (isError || deleteUserMutation.isError) {
     return <div className="">isError</div>;
   }
 
-  // const { items, roles } = allUsers;
-
-  const changeUserStatus = (id) => {
-    // Inertia.visit(`user-change-status/${id}`, {
-    //     method: "post",
-    //     preserveScroll: true,
-    //     preserveState: true,
-    // });
-  };
+  const changeUserStatus = (id) => {};
 
   // Delete user
   const handleDeleteUser = (id) => {
@@ -142,7 +184,7 @@ export default function UserList() {
     <>
       <HelmetTitlePage title="کاربران" />
 
-      <AddNewUser />
+      <AddNewUser userTypes={allUsers?.types} params={params?.state} />
       <SearchBoxUser />
 
       <Table
@@ -157,22 +199,25 @@ export default function UserList() {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.id)}
+                  {enToFaNumber(row?.id)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.first_name + " " + row.last_name ?? "-"}
+                  {row?.first_name + " " + row?.last_name ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.email}
+                  {row?.email}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.roles[0]?.slug || "-"}
+                  {allUsers?.types[row.type] ?? "-"}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row?.roles[0]?.slug || "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   <Switch
-                    checked={Boolean(row.status)}
+                    checked={Boolean(row?.status)}
                     onChange={() => {
-                      changeUserStatus(row.id);
+                      changeUserStatus(row?.id);
                     }}
                     disabled={!hasPermission}
                   />
@@ -194,6 +239,16 @@ export default function UserList() {
                         onClick: () => handleDeleteUser(row.id),
                         name: "user.destroy",
                       },
+                      {
+                        tooltip: "تغییر رمز عبور",
+                        color: "error",
+                        icon: "key",
+                        onClick: () => {
+                          setUser(row);
+                          setShowModalPassword(true);
+                        },
+                        name: "user.destroy",
+                      },
                     ]}
                   />
                 </TableCell>
@@ -202,12 +257,39 @@ export default function UserList() {
           })}
         </TableBody>
       </Table>
-      <GroupModal
-        open={showDetails}
+      <Modal
+        open={showModalPassword}
         onClose={() => {
-          setShowDetails(false);
+          setShowModalPassword(false);
         }}
-      />
+      >
+        <FormTypography>تغییر رمز عبور</FormTypography>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Box sx={{ p: 2 }}>
+            <FormContainer
+              data={watch()}
+              setData={handleChange}
+              errors={errors}
+            >
+              <FormInputs inputs={Inputs} gridProps={{ md: 4 }}>
+                <Grid item xs={12} md={2}>
+                  <LoadingButton
+                    sx={{
+                      width: "100%",
+                      height: "56px",
+                    }}
+                    variant="contained"
+                    loading={isSubmitting}
+                    type="submit"
+                  >
+                    ثبت
+                  </LoadingButton>
+                </Grid>
+              </FormInputs>
+            </FormContainer>
+          </Box>
+        </form>
+      </Modal>
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
@@ -217,6 +299,7 @@ export default function UserList() {
       <EditUserModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
+        userTypes={allUsers?.types}
         user={user}
       />
     </>
@@ -298,56 +381,7 @@ const SearchBoxUser = () => {
   );
 };
 
-const GroupModal = ({ open, onClose, data }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <FormTypography>گروه ناوگان</FormTypography>
-      <Box sx={{ maxHeight: "300px", overflowY: "scroll", mt: 1, p: 3 }}>
-        <Grid container spacing={2}>
-          {data ? (
-            data?.items?.data?.map((fleet) => {
-              return (
-                <Stack direction={"row"} sx={{ justifyContent: "flex-end" }}>
-                  <Button
-                    sx={{
-                      width: "150px",
-                      height: "56px",
-                    }}
-                    variant="contained"
-                    type="submit"
-                  >
-                    <Stack
-                      direction={"row"}
-                      sx={{ justifyContent: "space-between", padding: 2 }}
-                    >
-                      <Typography>نام گروه</Typography>
-                      <Typography>{data?.name}</Typography>
-                    </Stack>
-                    <Stack
-                      direction={"row"}
-                      sx={{ justifyContent: "space-between", padding: 2 }}
-                    >
-                      <Typography>نام شرکت حمل</Typography>
-                      <Typography>
-                        {" "}
-                        {data?.shipping_company?.name ?? "-"}
-                      </Typography>
-                    </Stack>
-                  </Button>
-                </Stack>
-              );
-            })
-          ) : (
-            <Typography pt={2} pl={2}>
-              ناوگانی یافت نشد
-            </Typography>
-          )}
-        </Grid>
-      </Box>
-    </Modal>
-  );
-};
-const AddNewUser = () => {
+const AddNewUser = ({ userTypes, params }) => {
   const queryClient = useQueryClient();
   const [openCollapse, setOpenCollapse] = useState(false);
   const {
@@ -369,6 +403,36 @@ const AddNewUser = () => {
       },
     }
   );
+
+  useEffect(() => {
+    if (params) {
+      if (params?.type === "company") {
+        reset(params?.row?.company?.ceo);
+        setValue("type", "shipping_company");
+        setTimeout(() => {
+          setValue("role", {
+            slug: "مدیر شرکت حمل",
+            name: "shipping-manager",
+            id: 38,
+          });
+          setValue("shipping_company", params?.row);
+          setOpenCollapse(true);
+        }, 200);
+      } else if (params?.type === "legal") {
+        reset(params?.row?.ceo);
+        setValue("type", "owner");
+        setTimeout(() => {
+          setValue("role", {
+            slug: "مشتری حقوقی",
+            name: "legal-owner",
+            id: 40,
+          });
+          setValue("company_id", params?.row);
+          setOpenCollapse(true);
+        }, 200);
+      }
+    }
+  }, [params]);
 
   const Inputs = [
     {
@@ -401,6 +465,32 @@ const AddNewUser = () => {
       rules: { required: "ایمیل را وارد کنید" },
     },
     {
+      type: "select",
+      name: "type",
+      label: "نوع",
+      options: renderSelectOptions(userTypes),
+      valueKey: "id",
+      labelKey: "title",
+      control: control,
+      rules: {
+        required: "نوع را وارد کنید",
+      },
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseOwner
+          control={control}
+          legal={params?.type}
+          name={"company_id"}
+          rules={{
+            required: " صاحب بار را وارد کنید",
+          }}
+        />
+      ),
+      hidden: watch("type") === "owner" ? false : true,
+    },
+    {
       type: "custom",
       customView: (
         <ChooseRole
@@ -409,10 +499,9 @@ const AddNewUser = () => {
           rules={{
             required: "نقش را انتخاب کنید",
           }}
+          filters={{ user_type: watch("type") }}
         />
       ),
-
-      gridProps: { md: 4 },
     },
     {
       type: "custom",
@@ -424,8 +513,8 @@ const AddNewUser = () => {
           needMoreInfo={true}
         />
       ),
-
-      gridProps: { md: 4 },
+      hidden:
+        watch("type") === "owner" || watch("type") === "admin" ? true : false,
     },
     {
       type: "custom",
@@ -437,7 +526,8 @@ const AddNewUser = () => {
           needMoreInfo={true}
         />
       ),
-      gridProps: { md: 4 },
+      hidden:
+        watch("type") === "owner" || watch("type") === "admin" ? true : false,
     },
 
     {
@@ -462,9 +552,10 @@ const AddNewUser = () => {
       ...data,
       fleet_group_id: data?.fleet_group?.id,
       shipping_company_id: data?.shipping_company?.id,
+      company_id: data?.company_id?.id,
       role: data?.role?.name,
     };
-    if (data.password_confirmation !== data.password) {
+    if (data?.password_confirmation !== data?.password) {
       toast.error("عدم تطابق رمز با تایید رمز");
       return;
     }
@@ -483,6 +574,13 @@ const AddNewUser = () => {
   const handleChange = (name, value) => {
     setValue(name, value);
   };
+
+  useEffect(() => {
+    setValue("role", null);
+    setValue("fleet_group", null);
+    setValue("shipping_company", null);
+    setValue("company_id", null);
+  }, [watch("type")]);
 
   return (
     <CollapseForm
@@ -516,7 +614,7 @@ const AddNewUser = () => {
   );
 };
 
-const EditUserModal = ({ user, open, onClose }) => {
+const EditUserModal = ({ user, open, onClose, userTypes }) => {
   const queryClient = useQueryClient();
   const {
     control,
@@ -526,7 +624,7 @@ const EditUserModal = ({ user, open, onClose }) => {
     setValue,
     watch,
   } = useForm();
-  const { data: allRoles } = useRole();
+
   useEffect(() => {
     reset(user);
     setValue("role", user?.roles?.length > 0 ? user?.roles[0] : 0);
@@ -538,7 +636,7 @@ const EditUserModal = ({ user, open, onClose }) => {
       onSuccess: () => {
         reset();
         queryClient.invalidateQueries(["user"]);
-        toast.success("با موفقیت اضافه شد");
+        toast.success("با موفقیت ویرایش شد");
         onClose();
       },
     }
@@ -567,6 +665,15 @@ const EditUserModal = ({ user, open, onClose }) => {
       type: "email",
       name: "email",
       label: "ایمیل",
+      control: control,
+    },
+    {
+      type: "select",
+      name: "type",
+      label: "نوع",
+      options: renderSelectOptions(userTypes),
+      valueKey: "id",
+      labelKey: "title",
       control: control,
     },
     {
@@ -607,28 +714,15 @@ const EditUserModal = ({ user, open, onClose }) => {
       ),
       gridProps: { md: 4 },
     },
-
-    {
-      type: "password",
-      name: "password",
-      label: "رمز",
-      control: control,
-      rules: { required: " رمز را وارد کنید" },
-    },
-    {
-      type: "password",
-      name: "password_confirmation",
-      label: "تایید رمز",
-      control: control,
-      rules: { required: "تایید رمز را وارد کنید" },
-    },
   ];
+
   const onSubmit = (data) => {
+    delete data?.roles;
     data = {
       ...data,
       fleet_group_id: data?.fleet_group?.id,
       shipping_company_id: data?.shipping_company?.id,
-      role: data?.roles,
+      role: data?.role?.name,
     };
     if (data.password_confirmation !== data.password) {
       toast.error("عدم تطابق رمز با تایید رمز");

@@ -1,25 +1,19 @@
+/* eslint-disable jsx-a11y/alt-text */
+/* eslint-disable react/jsx-pascal-case */
 import { useState } from "react";
 
 import {
   Grid,
-  Select,
-  MenuItem,
   TableBody,
   TableRow,
   TableCell,
   Chip,
   Stack,
   Typography,
-  Card,
   TextField,
-  FormControl,
-  InputLabel,
   Button,
   Box,
-  Tab,
-  Divider,
-  Rating,
-  Tooltip,
+  Badge,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 
@@ -27,30 +21,25 @@ import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import Modal from "Components/versions/Modal";
 import ActionConfirm from "Components/ActionConfirm";
-import Timeline from "Components/versions/Timeline";
 import {
   enToFaNumber,
   numberWithCommas,
-  handleDate,
   renderPlaqueObjectToString,
   removeInvalidValues,
   renderWeight,
-  renderSelectOptions,
   requestStatus,
-  faToEnNumber,
+  renderMobileFormat,
+  renderSelectOptions,
 } from "Utility/utils";
 import DrivingDirection from "Components/DrivingDirection";
 import { axiosApi, uncontrolledAxiosApi } from "api/axiosApi";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRequest } from "hook/useRequest";
 import { toast } from "react-toastify";
 import WayBillPaper from "Components/papers/WaybillPaper";
-import DraftPaper from "Components/papers/DraftPaper";
 import { useForm } from "react-hook-form";
 import { FormContainer, FormInputs } from "Components/Form";
-import LoadingSpinner from "Components/versions/LoadingSpinner";
 import OwnerDetailModal from "Components/modals/OwnerDetailModal";
-import NewDraft from "pages/Waybill/NewDraft";
 import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
@@ -66,20 +55,21 @@ import MultiProducts from "Components/multiSelects/MultiProducts";
 import MultiPersons from "Components/multiSelects/MultiPersons";
 import MultiVTypes from "Components/multiSelects/MultiVTypes";
 import MultiShippingCompanies from "Components/multiSelects/MultiShippingCompany";
-import MultiCustomers from "Components/multiSelects/MultiCustomers";
-import RequestStepper from "Components/versions/RequestStepper";
 import CreatorDetailModal from "Components/modals/CreatorDetailModal";
-import SelectPriceDriver from "Components/selects/SelectPriceDriver";
-import { SvgSPrite } from "Components/SvgSPrite";
-import { TabContext, TabList, TabPanel } from "@mui/lab";
-import FormTypography from "Components/FormTypography";
-import { ChooseFleet } from "Components/choosers/ChooseFleet";
-import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
-import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
-import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
-import { RATE_TYPE } from "Constants";
+import RequestDetailModal from "Components/modals/RequestDetailModal";
 
+import { ChooseOwner } from "Components/choosers/ChooseOwner";
+import Icon_Zarinpal from "Assets/images/zarinpal.svg";
+import Icon_Set from "Assets/images/set.svg";
+import Icon_Pasargad from "Assets/images/pasargad.svg";
+import { ReactComponent as Icon_Commission_paid } from "Assets/images/commission_paid.svg";
+import { ReactComponent as Icon_Factor } from "Assets/images/factor.svg";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
+import RequestNeedsModal from "Components/pages/requestList/requestNeeds";
+import AllScoresModal from "Components/pages/requestList/personsScores";
+import DraftDetailsModal from "Components/modals/DraftDetailsModal";
+import WaybillDetailsModal from "Components/modals/WaybillDetailsModal";
 const headCells = [
   {
     id: "id",
@@ -141,6 +131,10 @@ const headCells = [
     id: "status",
     label: "وضعیت",
   },
+  {
+    id: "invoice_status",
+    label: "وضعیت صورتحساب",
+  },
 
   {
     id: "actions",
@@ -149,13 +143,50 @@ const headCells = [
 ];
 const statusesColor = {
   error: ["cancel", "rejected", "expired"],
-  warning: ["load_permit", "issue_waybill"],
-  info: ["wait_for_payment", "set", "submit", "load", "load_confirm", "edit"],
-  success: ["delivered", "done", "enabled"],
+  warning: [
+    "driver_accept",
+    "on_the_way",
+    "load",
+    "load_confirm",
+    "commission_paid",
+  ],
+  info: [
+    "wait_for_payment",
+    "set",
+    "submit",
+    "edit",
+    "at_source",
+    "at_destination",
+  ],
+  success: [
+    "delivered",
+    "done",
+    "enabled",
+    "paid",
+    "issue_waybill",
+    "load_permit",
+  ],
 };
+
+const invoiceStatusesColor = {
+  error: ["not_issued"],
+  warning: ["prepaid", "pre_invoice_issued"],
+  info: ["calculated", "invoice_issued"],
+  success: ["paid", "cleared"],
+};
+
+const styButton = {
+  borderRadius: 0.8,
+  borderWidth: "1px",
+  borderStyle: "solid",
+  width: "31%",
+  padding: 0,
+};
+const canSetRate = ["delivered", "done"];
 
 export default function RequestList() {
   const queryClient = useQueryClient();
+  const userType = localStorage.getItem("userType");
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [showMap, setShowMap] = useState(false);
   const [changeStatusModal, setChangeStatusModal] = useState();
@@ -165,7 +196,6 @@ export default function RequestList() {
   const [showWayBillDetails, setShowWayBillDetails] = useState(false);
   const [showDraftDetails, setShowDraftDetails] = useState(false);
   const [draftDoc, setDraftDoc] = useState({});
-
   const [showProjectDetail, setShowProjectDetail] = useState(false);
   const [showDriverDetail, setShowDriverDetail] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -173,7 +203,9 @@ export default function RequestList() {
   const [showCreatorDetail, setShowCreatorDetail] = useState(false);
   const [showAllScores, setShowAllScores] = useState(false);
   const [showVehicleTypeDetail, setShowVehicleTypeDetail] = useState(false);
-  const [showNewDraftModal, setShowNewDraftModal] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [openRequestNeeds, setOpenRequestNeeds] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState("zarinpal");
   const {
     data: allRequest,
     isError,
@@ -204,7 +236,37 @@ export default function RequestList() {
       },
     }
   );
-
+  const changeSetStatusMutation = useMutation(
+    (data) =>
+      axiosApi({
+        url: `/set-status/${selectedRowData?.id}`,
+        method: "post",
+        data: data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["request"]);
+        toast.success("درخواست شما با موفقیت انجام شد");
+        setStatusLoading(false);
+      },
+      onError: () => {
+        setStatusLoading(false);
+      },
+    }
+  );
+  const requestAcceptPriceMutation = useMutation(
+    () =>
+      axiosApi({
+        url: `/request-accept-price/${selectedRowData?.id}`,
+        method: "post",
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["request"]);
+        toast.success("درخواست شما با موفقیت انجام شد");
+      },
+    }
+  );
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -217,10 +279,26 @@ export default function RequestList() {
     return result;
   };
 
+  const handleRequestInvoiceStatus = (status) => {
+    let result = "نا مشخص";
+    Object.keys(allRequest?.invoice_statuses).forEach((key) => {
+      if (key === status) result = allRequest?.invoice_statuses[key];
+    });
+    return result;
+  };
+
   const handleRequestStatusColor = (status) => {
     let color;
     Object.keys(statusesColor).forEach((key) => {
       if (statusesColor[key].includes(status)) color = key;
+    });
+    return color;
+  };
+
+  const handleRequestInvoiceStatusColor = (status) => {
+    let color;
+    Object.keys(invoiceStatusesColor).forEach((key) => {
+      if (invoiceStatusesColor[key].includes(status)) color = key;
     });
     return color;
   };
@@ -257,8 +335,8 @@ export default function RequestList() {
     if (rowData) setSelectedRowData(rowData);
   };
   const toggleShowVehicleDetails = (rowData) => {
-    setShowVehicleModal((prev) => !prev);
     if (rowData) setSelectedRowData(rowData);
+    setShowVehicleModal((prev) => !prev);
   };
 
   // Change request status
@@ -267,19 +345,18 @@ export default function RequestList() {
     setChangeStatusModal("reject");
   };
   const handleAcceptRequest = (request) => {
-    setChangeStatusData({ id: request.id, request: request });
-
-    const status = request.status;
-
-    if (allRequest?.need_payment_modal.includes(status)) {
-      setChangeStatusModal("payment");
-    } else if (allRequest?.need_waybill_modal.includes(status)) {
-      setChangeStatusModal("waybill");
-    } else if (allRequest?.can_set_driver.includes(status)) {
-      setChangeStatusModal("driver");
-    } else {
-      setChangeStatusModal("accept");
+    if (userType?.includes("owner")) {
+      setSelectedRowData(request);
+      if (request?.next_status === "commission_paid") {
+        setChangeStatusModal("commission_paid");
+      } else if (request?.next_status === "paid") {
+        setChangeStatusModal("done");
+      }
+      return;
     }
+
+    setOpenRequestNeeds(true);
+    setSelectedRowData(request);
   };
 
   const changeRequestStatus = (action) => {
@@ -290,6 +367,16 @@ export default function RequestList() {
     changeStatusMutation.mutate(data);
     setChangeStatusModal(null);
   };
+
+  const setRequestStatus = (status) => {
+    let data = JSON.stringify({
+      status,
+    });
+
+    changeSetStatusMutation.mutate(data);
+    setChangeStatusModal(null);
+  };
+
   const toggleShowWayBillDetails = (rowData) => {
     setShowWayBillDetails((prev) => !prev);
     if (rowData) setSelectedRowData(rowData);
@@ -301,24 +388,6 @@ export default function RequestList() {
   const toggleShowAllScores = (rowData) => {
     setShowAllScores((prev) => !prev);
     if (rowData) setSelectedRowData(rowData);
-  };
-
-  // check if written draft number is valid or not
-  const checkDraftNumber = async () => {
-    if (!changeStatusData.draft_number) {
-      toast.error("شماره حواله نامعتبر است");
-      setChangeStatusData((prev) => ({ ...prev, draft_valid: false }));
-      return;
-    }
-    try {
-      const res = await getDraftDetail(changeStatusData.draft_number);
-      setChangeStatusData((prev) => ({ ...prev, draft_valid: true }));
-
-      toast.success("شماره حواله معتبر است");
-    } catch (error) {
-      setChangeStatusData((prev) => ({ ...prev, draft_valid: false }));
-      toast.error("شماره حواله نامعتبر است");
-    }
   };
 
   // get draft detail
@@ -338,10 +407,7 @@ export default function RequestList() {
   return (
     <>
       <HelmetTitlePage title="درخواست‌ ها" />
-      <SearchBox
-        statuses={allRequest?.statuses}
-        registerTypes={allRequest?.register_types}
-      />
+      <SearchBox statuses={allRequest?.statuses} />
 
       <Table
         {...allRequest?.items}
@@ -362,11 +428,11 @@ export default function RequestList() {
             );
             let buttons_1 = [
               {
-                tooltip: "رد کردن",
+                tooltip: row?.prev_action_fa ?? "رد کردن",
                 color: "error",
                 icon: "xmark",
-                name: "customer.change-status",
-                disabled: !allRequest?.rejectable.includes(row.status),
+                name: "request.change-status",
+                disabled: !row?.rejectable,
                 onClick: () => handleRejectRequest(row),
               },
             ];
@@ -376,18 +442,19 @@ export default function RequestList() {
             // next_status
             !canSetDriver
               ? buttons_1.unshift({
-                  tooltip: status?.title ?? "پذیرفتن",
+                  tooltip: row?.next_action_fa ?? "پذیرفتن",
                   color: status?.color ?? "success",
                   icon: status?.icon ?? "check",
-                  name: "customer.change-status",
-                  disabled: !allRequest?.acceptable.includes(row.status),
+                  name: "request.change-status",
+                  disabled: !row?.acceptable,
                   onClick: () => handleAcceptRequest(row),
                 })
               : buttons_1.unshift({
                   tooltip: "انتخاب راننده",
                   color: "info",
                   icon: "user-nurse",
-                  name: "request.set-driver",
+                  name: "request.change-status",
+                  disabled: !row?.acceptable,
                   onClick: () => handleAcceptRequest(row),
                 });
 
@@ -428,7 +495,7 @@ export default function RequestList() {
               },
             ];
 
-            if (row.status === "done") {
+            if (canSetRate.includes(row.status)) {
               buttons.push({
                 tooltip: "امتیازات",
                 color: "secondary",
@@ -466,7 +533,7 @@ export default function RequestList() {
                     >
                       {`${row.driver?.first_name ?? "فاقد نام"} ${
                         row.driver?.last_name ?? "-"
-                      } (${enToFaNumber(row.driver?.mobile) ?? ""})`}
+                      } (${renderMobileFormat(row.driver?.mobile) ?? ""})`}
                     </Typography>
                   ) : (
                     "-"
@@ -480,19 +547,21 @@ export default function RequestList() {
                     variant="clickable"
                     onClick={() => toggleShowOwnerDetails(row)}
                   >
-                    {`${row.owner?.first_name || ""} ${
-                      row.owner?.last_name || ""
-                    }`}
+                    {row?.owner_type === "natural"
+                      ? `${row.owner?.first_name || ""} ${
+                          row.owner?.last_name || ""
+                        }`
+                      : row?.owner?.name || ""}
                   </Typography>
                 </TableCell>
                 <TableCell align="center">{renderWeight(row.weight)}</TableCell>
                 <TableCell align="center">
-                  {row.vehicle ? (
+                  {row.fleet ? (
                     <Typography
                       variant="clickable"
-                      onClick={() => toggleShowVehicleDetails(row)}
+                      onClick={() => toggleShowVehicleDetails(row?.fleet)}
                     >
-                      {renderPlaqueObjectToString(row.vehicle?.plaque)}
+                      {renderPlaqueObjectToString(row.fleet?.vehicle?.plaque)}
                     </Typography>
                   ) : (
                     "-"
@@ -522,17 +591,16 @@ export default function RequestList() {
                 </TableCell>
                 <TableCell align="center">{row.register_type ?? "-"}</TableCell>
                 <TableCell align="center">
-                  {row?.proposed_price
-                    ? enToFaNumber(numberWithCommas(row.proposed_price)) +
-                      " ریال"
+                  {row?.price
+                    ? enToFaNumber(numberWithCommas(row.price)) + " ریال"
+                    : row.biddable
+                    ? "مناقصه"
                     : "قیمت توافقی"}
                 </TableCell>
                 <TableCell align="center">
-                  {row.load_time ? (
+                  {row.load_time_fa ? (
                     <Typography variant="subtitle2">
-                      {handleDate(row.load_time, "YYYY/MM/DD")}
-                      {" - "}
-                      {handleDate(row.load_time, "HH:MM")}
+                      {enToFaNumber(row.load_time_fa)}
                     </Typography>
                   ) : (
                     "-"
@@ -540,12 +608,103 @@ export default function RequestList() {
                 </TableCell>
 
                 <TableCell>
-                  <TableActionCell buttons={buttons_1} />
+                  {row?.status === "enabled" && row?.drivers?.length > 0 ? (
+                    <Badge
+                      badgeContent={row?.drivers?.length}
+                      color="success"
+                      anchorOrigin={{
+                        vertical: "top",
+                        horizontal: "left",
+                      }}
+                    >
+                      <TableActionCell buttons={buttons_1} />
+                    </Badge>
+                  ) : row?.status === "delivered" &&
+                    userType?.includes("owner") ? (
+                    <TableActionCell
+                      buttons={[
+                        {
+                          tooltip: "بار را تحویل گرفتم",
+                          color: "secondary",
+                          icon: "truck-arrow-right",
+                          name: "request.change-status",
+                          disabled: !row?.acceptable,
+                          onClick: () => {
+                            setSelectedRowData(row);
+                            setChangeStatusModal("paid");
+                          },
+                        },
+                      ]}
+                    />
+                  ) : row?.status === "wait_for_price_approve" &&
+                    userType?.includes("owner") ? (
+                    <TableActionCell
+                      buttons={[
+                        {
+                          tooltip: "موافقت با قیمت اعلامی",
+                          color: "secondary",
+                          icon: "check",
+                          name: "request.change-status",
+                          disabled: !row?.acceptable,
+                          onClick: () => {
+                            setSelectedRowData(row);
+                            setChangeStatusModal("acceptPrice");
+                          },
+                        },
+                        {
+                          tooltip: "رد کردن",
+                          color: "error",
+                          icon: "xmark",
+                          disabled: !row?.rejectable,
+                          name: "customer.change-status",
+                          onClick: () => {
+                            setSelectedRowData(row);
+                            setChangeStatusModal("enabled");
+                          },
+                        },
+                      ]}
+                    />
+                  ) : row?.status === "driver_accept" &&
+                    userType?.includes("owner") ? (
+                    <TableActionCell
+                      buttons={[
+                        {
+                          tooltip: "پرداخت کمیسیون",
+                          color: "success",
+                          icon: "coins",
+                          name: "request.change-status",
+                          disabled: !row?.acceptable,
+                          onClick: () => handleAcceptRequest(row),
+                        },
+                      ]}
+                    />
+                  ) : row?.status === "done" && userType?.includes("owner") ? (
+                    <TableActionCell
+                      buttons={[
+                        {
+                          tooltip: "تسویه",
+                          color: "success",
+                          icon: "memo-circle-check",
+                          name: "request.change-status",
+                          disabled: !row?.acceptable,
+                          onClick: () => handleAcceptRequest(row),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <TableActionCell buttons={buttons_1} />
+                  )}
                 </TableCell>
                 <TableCell align="center">
                   <Chip
                     label={handleRequestStatus(row.status)}
                     color={handleRequestStatusColor(row.status)}
+                  />
+                </TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={handleRequestInvoiceStatus(row.invoice_status)}
+                    color={handleRequestInvoiceStatusColor(row.invoice_status)}
                   />
                 </TableCell>
                 <TableCell>
@@ -590,13 +749,13 @@ export default function RequestList() {
         data={selectedRowData?.vehicle}
       />
       {/* show driving routes */}
-      {selectedRowData && (
-        <DrivingDirection
-          showMap={showMap}
-          toggleShowMap={() => toggleShowMap()}
-          rowData={selectedRowData}
-        />
-      )}
+      <DrivingDirection
+        showModal={showMap}
+        toggleShowModal={() => toggleShowMap()}
+        rowData={selectedRowData}
+        useModal={true}
+        height="500px"
+      />
       {/* Reject request modal */}
       <Modal
         open={changeStatusModal === "reject"}
@@ -626,483 +785,416 @@ export default function RequestList() {
           </LoadingButton>
         </Stack>
       </Modal>
-      {/* Accept request with payment modal */}
+      {/* Commission_paid modal */}
       <Modal
-        open={changeStatusModal === "payment"}
+        open={changeStatusModal === "commission_paid"}
         onClose={() => setChangeStatusModal(null)}
         maxWidth="md"
       >
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <FormControl variant="outlined" sx={{ width: "100%" }}>
-              <InputLabel>روش پرداخت</InputLabel>
-
-              <Select
-                label="روش پرداخت"
-                sx={{ width: "100%" }}
-                onChange={(e) =>
-                  setChangeStatusData((prev) => ({
-                    ...prev,
-                    payment_method: e.target.value,
-                  }))
-                }
+        <Stack alignItems="center" mt={3}>
+          <Icon_Commission_paid />
+          <Typography variant="h6" mt={1} color="#000">
+            {enToFaNumber(numberWithCommas(changeStatusData?.request?.price)) +
+              " تومان"}
+          </Typography>
+          <Typography variant="subtitle1">پیش پرداخت</Typography>
+          <Grid container spacing={6} mt={1} width={"90%"}>
+            <Grid item xs={12} md={6}>
+              <Stack
+                alignItems={"center"}
+                flexDirection={"row"}
+                justifyContent={"space-between"}
               >
-                {allRequest?.payment_methods &&
-                  Object.keys(allRequest.payment_methods).map((key) => (
-                    <MenuItem key={key} value={key}>
-                      {allRequest.payment_methods[key]}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
+                <Typography variant="caption">پیش پرداخت</Typography>
+                <Typography variant="button" color="#000">
+                  {enToFaNumber(
+                    numberWithCommas(changeStatusData?.request?.price)
+                  ) + " تومان"}
+                </Typography>
+              </Stack>
+              <Stack
+                alignItems={"center"}
+                flexDirection={"row"}
+                justifyContent={"space-between"}
+              >
+                <Typography variant="caption">پیش پرداخت</Typography>
+                <Typography variant="button" color="#000">
+                  {enToFaNumber(
+                    numberWithCommas(changeStatusData?.request?.price)
+                  ) + " تومان"}
+                </Typography>
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Stack
+                alignItems={"center"}
+                flexDirection={"row"}
+                justifyContent={"space-between"}
+              >
+                <Typography variant="caption">پیش پرداخت</Typography>
+                <Typography variant="button" color="#000">
+                  {enToFaNumber(
+                    numberWithCommas(changeStatusData?.request?.price)
+                  ) + " تومان"}
+                </Typography>
+              </Stack>
+              <Stack
+                alignItems={"center"}
+                flexDirection={"row"}
+                justifyContent={"space-between"}
+              >
+                <Typography variant="caption">پیش پرداخت</Typography>
+                <Typography variant="button" color="#000">
+                  {enToFaNumber(
+                    numberWithCommas(changeStatusData?.request?.price)
+                  ) + " تومان"}
+                </Typography>
+              </Stack>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="شماره حواله"
-              variant="outlined"
-              sx={{ width: "100%" }}
-              onChange={(e) => {
-                setChangeStatusData((prev) => ({
-                  ...prev,
-                  draft_number: faToEnNumber(e.target.value),
-                }));
+          <Stack
+            bgcolor={"#FAFAFA"}
+            flexDirection={"row"}
+            alignItems={"center"}
+            width={"84%"}
+            padding={1}
+            borderRadius={1}
+            mt={1}
+          >
+            <Icon_Factor />
+            <Typography variant="caption" ml={1}>
+              احتمال تغییر مبلغ کل فاکتور وجود دارد.
+            </Typography>
+          </Stack>
+          <Typography variant="h6" mt={3} color="#000">
+            درگاه پرداخت
+          </Typography>
+          <Stack
+            alignItems={"center"}
+            justifyContent={"space-between"}
+            flexDirection={"row"}
+            width={"85%"}
+            mt={2}
+          >
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "zarinpal" ? "primary.900" : "#202C430D",
               }}
-              value={enToFaNumber(changeStatusData?.draft_number)}
-            />
-          </Grid>
-
-          <Grid item xs={0} md={6}>
-            <Stack
-              direction={"row"}
-              alignItems="end"
-              justifyContent="space-between"
+              onClick={() => setSelectedWallet("zarinpal")}
             >
-              <Typography>آیا میخواهید حواله جدید ثبت نمایید ؟</Typography>
-              <Button
-                variant="contained"
-                sx={{ ml: 2, paddingInline: 3 }}
-                onClick={() => {
-                  setShowNewDraftModal(!showNewDraftModal);
-                }}
-              >
-                بله
-              </Button>
-            </Stack>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Stack direction={"row"}>
-              <Button variant="outlined" onClick={checkDraftNumber} fullWidth>
-                چک کردن شماره حواله
-              </Button>
-            </Stack>
-            {changeStatusData.draft_valid !== undefined && (
-              <Typography
-                color={
-                  changeStatusData.draft_valid ? "success.main" : "error.main"
-                }
-                mt={1}
-                variant="subtitle2"
-              >
-                شماره حواله وارد شده،{" "}
-                {changeStatusData.draft_valid ? "معتبر" : "نامعتبر"} است
-              </Typography>
-            )}
-          </Grid>
-        </Grid>
-
-        <Stack alignItems="flex-end" mt={3}>
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Zarinpal} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    زرین‌پال
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "zarinpal"
+                        ? "primary.900"
+                        : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "set" ? "primary.900" : "#202C430D",
+              }}
+              onClick={() => setSelectedWallet("set")}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Set} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    ست
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "set" ? "primary.900" : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "pasargad" ? "primary.900" : "#202C430D",
+              }}
+              onClick={() => setSelectedWallet("pasargad")}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Pasargad} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    پاسارگاد
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "pasargad"
+                        ? "primary.900"
+                        : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+          </Stack>
           <LoadingButton
             variant="contained"
-            // loading={changeStatusLoading}
-            onClick={() => changeRequestStatus("accept")}
+            loading={statusLoading}
+            sx={{ width: "85%", height: "60px", mt: 5, mb: 3 }}
+            onClick={() => {
+              setStatusLoading(true);
+              setRequestStatus(selectedRowData?.next_status);
+            }}
           >
-            تایید
+            پرداخت
           </LoadingButton>
         </Stack>
       </Modal>
-      {/* Accept request with waybill modal */}
+      {/* paid modal */}
       <Modal
-        open={["waybill", "load", "load_permit", "load_confirm"].includes(
-          changeStatusModal
-        )}
+        open={changeStatusModal === "paid"}
+        onClose={() => setChangeStatusModal(null)}
+        maxWidth="xs"
+      >
+        <Stack alignItems="center" mt={3}>
+          <Typography variant="h6" mt={1} color="#000">
+            هنگام تحویل بار این کد را برای راننده ارسال کنید.
+          </Typography>
+          <Typography variant="h3" mt={1} color="#000">
+            {enToFaNumber(selectedRowData?.delivery_code)}
+          </Typography>
+        </Stack>
+      </Modal>
+      {/* done modal */}
+      <Modal
+        open={changeStatusModal === "done"}
         onClose={() => setChangeStatusModal(null)}
         maxWidth="md"
       >
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              sx={{ width: "100%" }}
-              placeholder="شماره بارنامه"
-              value={changeStatusData.waybill_number || ""}
-              onChange={(e) =>
-                setChangeStatusData((prev) => ({
-                  ...prev,
-                  waybill_number: e.target.value,
-                }))
-              }
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              sx={{ width: "100%" }}
-              placeholder="xx/xxxx"
-              value={changeStatusData.waybill_serial || ""}
-              onChange={(e) =>
-                setChangeStatusData((prev) => ({
-                  ...prev,
-                  waybill_serial: e.target.value,
-                }))
-              }
-            />
-          </Grid>
-        </Grid>
+        <Stack alignItems="center" mt={3}>
+          <Icon_Commission_paid />
+          <Typography variant="h6" mt={1} color="#000">
+            {enToFaNumber(numberWithCommas(changeStatusData?.request?.price)) +
+              " تومان"}
+          </Typography>
+          <Typography variant="subtitle1">مبلغ باقی‌مانده</Typography>
 
-        <Stack alignItems="flex-end" mt={3}>
+          <Typography variant="h6" mt={5} color="#000">
+            درگاه پرداخت
+          </Typography>
+          <Stack
+            alignItems={"center"}
+            justifyContent={"space-between"}
+            flexDirection={"row"}
+            width={"85%"}
+            mt={2}
+          >
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "zarinpal" ? "primary.900" : "#202C430D",
+              }}
+              onClick={() => setSelectedWallet("zarinpal")}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Zarinpal} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    زرین‌پال
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "zarinpal"
+                        ? "primary.900"
+                        : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "set" ? "primary.900" : "#202C430D",
+              }}
+              onClick={() => setSelectedWallet("set")}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Set} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    ست
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "set" ? "primary.900" : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+            <Button
+              sx={{
+                ...styButton,
+                borderColor:
+                  selectedWallet === "pasargad" ? "primary.900" : "#202C430D",
+              }}
+              onClick={() => setSelectedWallet("pasargad")}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Stack flexDirection={"row"} alignItems={"center"} padding={1}>
+                  <img src={Icon_Pasargad} />
+                  <Typography
+                    variant="button"
+                    fontWeight={"bold"}
+                    color="#000"
+                    ml={1}
+                  >
+                    پاسارگاد
+                  </Typography>
+                </Stack>
+                <Stack
+                  sx={{
+                    bgcolor:
+                      selectedWallet === "pasargad"
+                        ? "primary.900"
+                        : "#202C430D",
+                    flex: 1,
+                    height: "15px",
+                  }}
+                />
+              </Box>
+            </Button>
+          </Stack>
           <LoadingButton
             variant="contained"
-            // loading={changeStatusLoading}
-            onClick={() => changeRequestStatus("accept")}
+            loading={statusLoading}
+            sx={{ width: "85%", height: "60px", mt: 5, mb: 3 }}
+            onClick={() => {
+              setStatusLoading(true);
+              setRequestStatus("paid");
+            }}
           >
-            تایید
+            پرداخت
           </LoadingButton>
         </Stack>
       </Modal>
-      {/* Set request driver and fleet modal */}
-      <ChooseDriverAndFleetModal
-        open={changeStatusModal === "driver"}
-        changeStatusData={changeStatusData}
-        setChangeStatusData={setChangeStatusData}
-        onClose={() => setChangeStatusModal(null)}
-      />
-      <Modal
-        open={showNewDraftModal}
-        onClose={() => {
-          setShowNewDraftModal(false);
-        }}
-      >
-        <NewDraft />
-      </Modal>
+
       <ActionConfirm
         message="ایا مطمئن هستید؟"
-        open={changeStatusModal === "accept"}
+        open={changeStatusModal === "acceptSet"}
         onClose={() => setChangeStatusModal(null)}
         onAccept={() => changeRequestStatus("accept")}
       />
-      <DetailsModal
+      <ActionConfirm
+        message="ایا مطمئن هستید؟"
+        open={changeStatusModal === "acceptPrice"}
+        onClose={() => setChangeStatusModal(null)}
+        onAccept={() => requestAcceptPriceMutation.mutate()}
+      />
+      <ActionConfirm
+        message="ایا مطمئن هستید؟"
+        open={changeStatusModal === "delivered"}
+        onClose={() => setChangeStatusModal(null)}
+        onAccept={() => setRequestStatus("done")}
+      />
+      <ActionConfirm
+        message="ایا مطمئن هستید؟"
+        open={changeStatusModal === "enabled"}
+        onClose={() => setChangeStatusModal(null)}
+        onAccept={() => setRequestStatus("enabled")}
+      />
+      <RequestDetailModal
         open={showDetails}
         onClose={() => toggleShowDetails()}
         data={selectedRowData}
         historyActions={allRequest?.history_actions}
       />
-      <WayBillDetailsModal
+
+      {/* waybill details Modal */}
+      <WaybillDetailsModal
         open={showWayBillDetails}
         onClose={() => toggleShowWayBillDetails()}
         data={selectedRowData?.waybill ?? {}}
       />
+
+      {/* all persons scores Modal */}
       <AllScoresModal
         open={showAllScores}
         onClose={() => toggleShowAllScores()}
         data={selectedRowData}
       />
+
+      {/* draft detail Modal */}
       <DraftDetailsModal
         open={showDraftDetails}
         onClose={() => toggleShowDraftDetails()}
         data={draftDoc ?? {}}
       />
+
+      {/* request Needs Modal */}
+      <RequestNeedsModal
+        onClose={() => setOpenRequestNeeds(false)}
+        open={openRequestNeeds}
+        request={selectedRowData}
+      />
     </>
   );
 }
 
-const AllScoresModal = ({ open, onClose, data = {} }) => {
-  const [showScoredHistory, setShowScoredHistory] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-  const {
-    data: ratings,
-    isLoading,
-    isFetching,
-  } = useQuery(
-    ["rating", "ratable_id", data?.id],
-    () =>
-      axiosApi({ url: `rating?ratable_id=${data?.id}` }).then(
-        (res) => res.data.Data?.items?.data
-      ),
-    {
-      enabled: open && !!data?.id,
-      staleTime: 24 * 60 * 60 * 100,
-    }
-  );
-
-  const toggleShowScoredHistory = () => {
-    setShowScoredHistory((prev) => !prev);
-  };
-
-  return (
-    <>
-      <Modal open={open} onClose={onClose}>
-        <Typography variant="h5" mb={5}>
-          امتیازات کسب شده در این آگهی
-        </Typography>
-
-        {isLoading || isFetching ? (
-          <LoadingSpinner />
-        ) : (
-          <Grid container spacing={2}>
-            {ratings.map((item) => {
-              return (
-                <Grid key={item.id} item xs={12} md={4}>
-                  <Card
-                    sx={{
-                      p: 2,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 2,
-                    }}
-                  >
-                    <Typography variant="subtitle2">
-                      {RATE_TYPE[item.rated_type]}
-                    </Typography>
-
-                    <Stack direction="row" spacing={1}>
-                      <Rating
-                        precision={0.2}
-                        value={item?.score}
-                        size="small"
-                        readOnly
-                        color="inherit"
-                      />
-
-                      <Tooltip placement="top" title="مشاهده تاریخچه امتیازات">
-                        <Box
-                          sx={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedId(item.rated_id);
-                            toggleShowScoredHistory();
-                          }}
-                        >
-                          <SvgSPrite
-                            icon="rectangle-history-circle-user"
-                            color="inherit"
-                            size={20}
-                          />
-                        </Box>
-                      </Tooltip>
-                    </Stack>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
-      </Modal>
-
-      <ShowPersonScoreModal
-        show={showScoredHistory}
-        onClose={toggleShowScoredHistory}
-        dataId={selectedId}
-      />
-    </>
-  );
-};
-
-const ChooseDriverAndFleetModal = ({
-  open,
-  onClose,
-  changeStatusData,
-  setChangeStatusData,
-}) => {
-  const queryClient = useQueryClient();
-  const {
-    control,
-    formState: { errors },
-    watch,
-    handleSubmit,
-  } = useForm();
-
-  const [tab, setTab] = useState(1);
-
-  const handleChange = (event, newValue) => {
-    setTab(newValue);
-  };
-
-  const setDriverMutation = useMutation(
-    (form) =>
-      axiosApi({
-        url: `/set-driver/${form.id}`,
-        method: "post",
-        data: form.data,
-      }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["request"]);
-        onClose();
-        toast.success("درخواست شما با موفقیت انجام شد");
-      },
-    }
-  );
-  const setFleetAndDriverMutation = useMutation(
-    (form) =>
-      axiosApi({
-        url: `/set-fleet/${form.id}`,
-        method: "post",
-        data: form.data,
-      }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["request"]);
-        onClose();
-        toast.success("درخواست شما با موفقیت انجام شد");
-      },
-    }
-  );
-
-  // Set driver for enabled requests
-  const setDriver = () => {
-    let form = {
-      id: changeStatusData.id,
-      data: {
-        driver_id: changeStatusData.driver.account_id,
-      },
-    };
-
-    setDriverMutation.mutate(form);
-  };
-
-  const Inputs = [
-    {
-      type: "custom",
-      customView: (
-        <ChooseFleet
-          control={control}
-          name={"fleet"}
-          rules={{
-            required: "ناوگان را وارد کنید",
-          }}
-        />
-      ),
-    },
-  ];
-  const FirstDriverInputs = [
-    {
-      type: "custom",
-      customView: (
-        <ChooseDriver
-          control={control}
-          isLoadFromApi={false}
-          dataArray={watch("fleet")}
-          name={"driver"}
-          rules={{
-            required: "راننده را وارد کنید",
-          }}
-        />
-      ),
-    },
-  ];
-
-  const SecondDriverInputs = [
-    {
-      type: "custom",
-      customView: (
-        <ChooseDriver
-          control={control}
-          dataArray={watch("fleet")}
-          isLoadFromApi={false}
-          name={"second_driver"}
-          notAllowedDriver={watch("driver")}
-        />
-      ),
-    },
-  ];
-
-  // handle on submit
-  // Set fleet for enabled requests
-  const onSubmit = (data) => {
-    let form = {
-      id: changeStatusData.id,
-      data: removeInvalidValues({
-        driver_id: data.driver.account_id,
-        second_driver_id: data.second_driver.account_id,
-        fleet_id: data.fleet.id,
-      }),
-    };
-
-    setFleetAndDriverMutation.mutate(form);
-  };
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <TabContext value={tab}>
-        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-          <TabList onChange={handleChange} variant="fullWidth">
-            <Tab label="انتخاب راننده" value={1} />
-            <Tab label="انتخاب ناوگان" value={2} />
-          </TabList>
-        </Box>
-        <TabPanel value={1}>
-          <>
-            <SelectPriceDriver
-              data={changeStatusData.driver}
-              setData={(driver) => {
-                setChangeStatusData((prev) => ({
-                  ...prev,
-                  driver: driver,
-                }));
-              }}
-              listDrivers={changeStatusData?.request?.drivers}
-            />
-            <Stack alignItems="flex-end" mt={3}>
-              <LoadingButton
-                variant="contained"
-                // loading={changeStatusLoading}
-                onClick={setDriver}
-              >
-                تایید
-              </LoadingButton>
-            </Stack>
-          </>
-        </TabPanel>
-        <TabPanel value={2}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <FormContainer
-              data={watch()}
-              setData={handleChange}
-              errors={errors}
-            >
-              <FormTypography>ناوگان</FormTypography>
-              <FormInputs inputs={Inputs} gridProps={{ md: 12 }} />
-              <Divider sx={{ my: 2 }} />
-
-              <Stack direction="row" spacing={2}>
-                <Box sx={{ width: "100%" }}>
-                  <FormTypography>راننده اول</FormTypography>
-                  <FormInputs
-                    inputs={FirstDriverInputs}
-                    gridProps={{ md: 12 }}
-                  />
-                </Box>
-
-                <Box sx={{ width: "100%" }}>
-                  <FormTypography>راننده دوم(اختیاری)</FormTypography>
-                  <FormInputs
-                    inputs={SecondDriverInputs}
-                    gridProps={{ md: 12 }}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction="row" justifyContent="flex-end" mt={4}>
-                <Button variant="contained" type="submit">
-                  ذخیره
-                </Button>
-              </Stack>
-            </FormContainer>
-          </form>
-        </TabPanel>
-      </TabContext>
-    </Modal>
-  );
-};
-
-const SearchBox = ({ statuses, registerTypes }) => {
+const SearchBox = ({ statuses }) => {
   const { searchParamsFilter, setSearchParamsFilter, hasData } =
     useSearchParamsFilter();
   const {
@@ -1112,7 +1204,9 @@ const SearchBox = ({ statuses, registerTypes }) => {
     watch,
     control,
     reset,
-  } = useForm({ defaultValues: searchParamsFilter });
+  } = useForm({
+    defaultValues: searchParamsFilter,
+  });
 
   const [openCollapse, setOpenCollapse] = useState(hasData);
 
@@ -1162,7 +1256,7 @@ const SearchBox = ({ statuses, registerTypes }) => {
     },
     {
       type: "custom",
-      customView: <MultiCustomers control={control} name={"owner_id"} />,
+      customView: <ChooseOwner control={control} name={"owner_id"} />,
     },
     {
       type: "custom",
@@ -1186,17 +1280,6 @@ const SearchBox = ({ statuses, registerTypes }) => {
     {
       type: "custom",
       customView: <ChooseSalon control={control} name={"salon"} />,
-    },
-
-    {
-      type: "select",
-      name: "register_type",
-      valueKey: "id",
-      labelKey: "title",
-      label: "نوع ثبت",
-      defaultValue: "all",
-      options: renderSelectOptions({ all: "همه", ...registerTypes }),
-      control: control,
     },
     {
       type: "number",
@@ -1256,16 +1339,13 @@ const SearchBox = ({ statuses, registerTypes }) => {
       label: "نمایش درخواست های منقضی شده",
       control: control,
     },
-    // {
-    //   type: "zone",
-    //   name: "zones",
-    //   control: control,
-    //   rules: {
-    //     required: "zones را وارد کنید",
-    //   },
-    //   gridProps: { md: 12 },
-    //   height: "400px",
-    // },
+    {
+      type: "zone",
+      name: "zones",
+      control: control,
+      gridProps: { md: 12 },
+      height: "400px",
+    },
   ];
   const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
 
@@ -1328,350 +1408,5 @@ const SearchBox = ({ statuses, registerTypes }) => {
         </Box>
       </form>
     </CollapseForm>
-  );
-};
-
-const WayBillDetailsModal = ({ open, onClose, data = {} }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <WayBillPaper data={data} />
-    </Modal>
-  );
-};
-
-const DraftDetailsModal = ({ open, onClose, data = {} }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <DraftPaper data={data} />
-    </Modal>
-  );
-};
-
-const CardsStyle = {
-  width: "100%",
-  height: "100%",
-  p: 2,
-  boxShadow: 1,
-};
-
-const DetailsModal = ({ open, onClose, data = {}, historyActions }) => {
-  const RowLabelAndData = (label, info, icon = "") => {
-    return (
-      <Stack direction={"row"} justifyContent="space-between">
-        <Typography
-          sx={{
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 0.5,
-            mr: 1,
-          }}
-        >
-          {icon}
-          {label}:
-        </Typography>
-        <Typography textAlign="justify">{info}</Typography>
-      </Stack>
-    );
-  };
-  return (
-    <Modal open={open} onClose={onClose}>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <RequestStepper status={data?.status} size={30} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={CardsStyle}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="h5">اطلاعات کلی</Typography>
-
-              <SvgSPrite icon="file-lines" size="large" MUIColor="info" />
-            </Stack>
-
-            <Stack spacing={1} mt={3}>
-              {RowLabelAndData(
-                "کد آگهی",
-                data.code ?? "-",
-                <SvgSPrite icon="spell-check" MUIColor="primary" />
-              )}
-
-              {RowLabelAndData(
-                "قیمت پیشنهادی",
-                data?.proposed_price
-                  ? `${enToFaNumber(
-                      numberWithCommas(data.proposed_price)
-                    )} ریال`
-                  : "-",
-                <SvgSPrite icon="circle-dollar" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "حداقل قیمت سامانه",
-                data.low_price
-                  ? `${enToFaNumber(numberWithCommas(data.low_price))} ریال`
-                  : "-",
-                <SvgSPrite icon="circle-dollar" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "حداکثر قیمت سامانه",
-                data.high_price
-                  ? `${enToFaNumber(numberWithCommas(data.high_price))} ریال`
-                  : "-",
-                <SvgSPrite icon="circle-dollar" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "قیمت نهایی",
-                data.price
-                  ? `${enToFaNumber(numberWithCommas(data.price))} ریال`
-                  : "-",
-                <SvgSPrite icon="circle-dollar" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "نام فرستنده",
-                (data?.sender?.first_name ?? "-") +
-                  " " +
-                  (data?.sender?.last_name ?? ""),
-                <SvgSPrite icon="user" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "شماره موبایل فرستنده",
-                data?.sender?.mobile ? "0" + data?.sender?.mobile : "",
-                <SvgSPrite icon="phone" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "کد پستی مبداء",
-                data.source_zip_code ?? "-",
-                <SvgSPrite icon="message-code" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "مبدا",
-                data.source_address ?? "-",
-                <SvgSPrite icon="location-dot" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "نام گیرنده",
-
-                (data?.receiver?.first_name ?? "-") +
-                  " " +
-                  (data?.receiver?.last_name ?? ""),
-                <SvgSPrite icon="user" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "شماره موبایل گیرنده",
-                data?.receiver?.mobile ? "0" + data?.receiver?.mobile : "",
-                <SvgSPrite icon="phone" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "کد پستی مقصد",
-                data.destination_zip_code ?? "-",
-                <SvgSPrite icon="message-code" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "مقصد",
-                data.destination_address ?? "-",
-                <SvgSPrite icon="location-plus" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "کد ناوگان",
-                data.fleet?.code ?? "-",
-                <SvgSPrite icon="truck-front" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "نوع بارگیر",
-                data.vehicle_type?.title ?? "-",
-                <SvgSPrite icon="truck-front" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "نام محصول",
-                data.product?.title ?? "-",
-                <SvgSPrite icon="input-text" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "سریال بارنامه",
-                data.waybill_serial ?? "-",
-                <SvgSPrite icon="message-code" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "شماره بارنامه",
-                data.waybill_number ?? "-",
-                <SvgSPrite icon="message-code" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "زمان بارگیری",
-                data.load_time_fa ?? "-",
-                <SvgSPrite icon="clock-ten" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "زمان تخلیه",
-                data.discharge_time_fa ?? "-",
-                <SvgSPrite icon="clock-three" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "زمان ثبت",
-                `${
-                  handleDate(data.created_at, "YYYY/MM/DD") +
-                  "  " +
-                  handleDate(data.created_at, "HH:MM")
-                }`,
-                <SvgSPrite icon="clock-ten" MUIColor="primary" />
-              )}
-              {RowLabelAndData(
-                "وزن",
-                `${
-                  data.weight
-                    ? enToFaNumber(numberWithCommas(data.weight)) + " کیلوگرم"
-                    : "-"
-                }`,
-                <SvgSPrite icon="weight-scale" MUIColor="primary" />
-              )}
-
-              <Stack direction={"row"} justifyContent="space-between">
-                <Typography
-                  sx={{
-                    fontWeight: "600",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    mr: 1,
-                  }}
-                >
-                  <SvgSPrite icon="store" MUIColor="primary" />
-                  سالن بار
-                </Typography>
-                {data?.salons?.map((item, index) => {
-                  return (
-                    <Typography key={index++} textAlign="justify">
-                      {item?.name}
-                    </Typography>
-                  );
-                })}
-              </Stack>
-
-              {RowLabelAndData(
-                "توضیحات",
-                data.description ?? "-",
-                <SvgSPrite icon="file" MUIColor="primary" />
-              )}
-            </Stack>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={CardsStyle}>
-            <DrivingDirection showModal={false} rowData={data} />
-          </Card>
-        </Grid>
-        <Grid item xs={12}>
-          <Stack direction={"row"} sx={{ width: "100%" }} spacing={2}>
-            <Card sx={{ width: "50%", padding: 2 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Typography variant="h5">اطلاعات صاحب بار</Typography>
-
-                <SvgSPrite icon="user" MUIColor="warning" size="large" />
-              </Stack>
-              <Stack spacing={1} mt={3}>
-                {data.driver ? (
-                  <>
-                    {RowLabelAndData(
-                      "نام",
-                      `${
-                        data.owner.first_name
-                          ? data.owner.first_name + " " + data.owner.last_name
-                          : ""
-                      }`,
-                      <SvgSPrite icon="user" MUIColor="primary" />
-                    )}
-                    {RowLabelAndData(
-                      "شماره موبایل",
-                      enToFaNumber("0" + data.owner.mobile),
-                      <SvgSPrite icon="mobile" MUIColor="primary" />
-                    )}
-
-                    {RowLabelAndData(
-                      "کد ملی",
-                      enToFaNumber(data.owner?.national_code) ?? "-",
-                      <SvgSPrite icon="message-code" MUIColor="primary" />
-                    )}
-                  </>
-                ) : (
-                  <Typography>راننده‌ای تخصیص داده نشده است</Typography>
-                )}
-              </Stack>
-            </Card>
-            <Card sx={{ width: "50%", padding: 2 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Typography variant="h5">اطلاعات راننده</Typography>
-
-                <SvgSPrite icon="car" size="large" MUIColor="warning" />
-              </Stack>
-              <Stack spacing={1} mt={3}>
-                {data.driver ? (
-                  <>
-                    {RowLabelAndData(
-                      "نام",
-                      `${
-                        data.driver.first_name ??
-                        "-" + " " + data.driver.last_name ??
-                        ""
-                      }`,
-                      <SvgSPrite icon="user" MUIColor="primary" />
-                    )}
-                    {RowLabelAndData(
-                      "شماره موبایل",
-                      enToFaNumber(data.driver.mobile),
-                      <SvgSPrite icon="mobile" MUIColor="primary" />
-                    )}
-
-                    {RowLabelAndData(
-                      "نوع کامیون",
-                      data.vehicle?.category?.title ?? "-",
-                      <SvgSPrite icon="truck" MUIColor="primary" />
-                    )}
-                    {RowLabelAndData(
-                      "نام خودرو",
-                      data.vehicle?.title ?? "-",
-                      <SvgSPrite icon="truck-front" MUIColor="primary" />
-                    )}
-                    {RowLabelAndData(
-                      "پلاک خودرو",
-                      renderPlaqueObjectToString(data?.vehicle?.plaque),
-                      <SvgSPrite icon="thumbtack" MUIColor="primary" />
-                    )}
-                  </>
-                ) : (
-                  <Typography>راننده‌ای تخصیص داده نشده است</Typography>
-                )}
-              </Stack>
-            </Card>
-          </Stack>
-        </Grid>
-        <Grid item xs={12}>
-          <Card sx={CardsStyle}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              mb={3}
-            >
-              <Typography variant="h5">تاریخچه</Typography>
-
-              <SvgSPrite icon="clock-one" size="large" MUIColor="success" />
-            </Stack>
-
-            <Timeline data={data.histories} historyActions={historyActions} />
-          </Card>
-        </Grid>
-      </Grid>
-    </Modal>
   );
 };

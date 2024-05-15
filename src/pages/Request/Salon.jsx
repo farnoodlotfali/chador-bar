@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -16,7 +17,14 @@ import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
 import { FormContainer, FormInputs } from "Components/Form";
-import { enToFaNumber, removeInvalidValues } from "Utility/utils";
+import {
+  addZeroForTime,
+  enToFaNumber,
+  handleDate,
+  removeInvalidValues,
+  renderMobileFormat,
+  renderUtcToTime,
+} from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
@@ -43,7 +51,10 @@ const headCells = [
     id: "name",
     label: "نام سالن ",
   },
-
+  {
+    id: "visible_time",
+    label: "زمان رویت بار",
+  },
   {
     id: "actions",
     label: "عملیات",
@@ -153,7 +164,11 @@ export default function SalonList() {
     setShowModal(null);
   };
 
-  const handleDeletePersonSalon = async (data, type = "drivers") => {
+  const handleDeletePersonSalon = async (
+    data,
+    type = "drivers",
+    onCloseModal
+  ) => {
     try {
       const res = await deletePersonSalonMutation.mutateAsync(data);
       setSelectedSalon((prev) => ({
@@ -162,19 +177,26 @@ export default function SalonList() {
           (item) => item.person_id !== data.person_id
         ),
       }));
+      onCloseModal();
       return res;
     } catch (error) {
       return error;
     }
   };
 
-  const handleAddPersonSalon = async (data, type = "drivers", persons) => {
+  const handleAddPersonSalon = async (
+    data,
+    type = "drivers",
+    persons,
+    onCloseModal
+  ) => {
     try {
       const res = await addPersonSalonMutation.mutateAsync(data);
       setSelectedSalon((prev) => ({
         ...prev,
         [type]: [...prev?.[type], ...persons],
       }));
+      onCloseModal();
       return res;
     } catch (error) {
       return error;
@@ -212,7 +234,9 @@ export default function SalonList() {
                 <TableCell align="center" scope="row">
                   {row?.name}
                 </TableCell>
-
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row?.visible_time)}
+                </TableCell>
                 <TableCell scope="row">
                   <TableActionCell
                     buttons={[
@@ -325,6 +349,12 @@ const EditSalonModal = ({ show, onClose, salon }) => {
       rules: {
         required: { value: true, message: "نام سالن را وارد کنید" },
       },
+    },
+    {
+      type: "time",
+      name: "visible_time",
+      label: "مدت زمان رویت بار در سالن",
+      control: control,
     },
   ];
 
@@ -494,7 +524,7 @@ const SalonDriversModal = ({
                       : "-"}
                   </TableCell>
                   <TableCell align="center" scope="row">
-                    {enToFaNumber(item.person.mobile) ?? "-"}
+                    {renderMobileFormat(item.person.mobile) ?? "-"}
                   </TableCell>
                   <TableCell align="center" scope="row">
                     {enToFaNumber(item.national_code) ?? "-"}
@@ -615,7 +645,8 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
         role: "owner",
       },
       "owners",
-      distinctOwners
+      distinctOwners,
+      handleCloseModal
     );
   };
 
@@ -635,7 +666,8 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
         salon_id: salon.id,
         person_id: SelectedOwner.person_id,
       },
-      "owners"
+      "owners",
+      handleCloseModal
     );
   };
 
@@ -687,7 +719,7 @@ const SalonOwnerModal = ({ show, onClose, salon, handleDelete, handleAdd }) => {
                       : "-"}
                   </TableCell>
                   <TableCell align="center" scope="row">
-                    {enToFaNumber(item.person.mobile) ?? "-"}
+                    {renderMobileFormat(item.person.mobile) ?? "-"}
                   </TableCell>
                   <TableCell align="center" scope="row">
                     {enToFaNumber(item.national_code) ?? "-"}
@@ -865,13 +897,13 @@ const AddNewSalon = () => {
         <MultiCustomers
           control={control}
           name={"customers"}
-          rules={{
-            required: { message: "صاحب بار را انتخاب کنید", value: true },
-            minLength: {
-              message: "حداقل یک صاحب بار را انتخاب کنید",
-              value: 1,
-            },
-          }}
+          // rules={{
+          //   required: { message: "صاحب بار را انتخاب کنید", value: true },
+          //   minLength: {
+          //     message: "حداقل یک صاحب بار را انتخاب کنید",
+          //     value: 1,
+          //   },
+          // }}
           label="صاحبان بار"
           needMoreInfo={true}
         />
@@ -883,14 +915,20 @@ const AddNewSalon = () => {
         <MultiDrivers
           control={control}
           name={"drivers"}
-          rules={{
-            required: { message: "راننده را انتخاب کنید", value: true },
-            minLength: { message: "حداقل یک راننده را انتخاب کنید", value: 1 },
-          }}
+          // rules={{
+          //   required: { message: "راننده را انتخاب کنید", value: true },
+          //   minLength: { message: "حداقل یک راننده را انتخاب کنید", value: 1 },
+          // }}
           label="رانندگان"
           needMoreInfo={true}
         />
       ),
+    },
+    {
+      type: "time",
+      name: "visible_time",
+      label: "مدت زمان رویت بار در سالن",
+      control: control,
     },
   ];
 
@@ -898,8 +936,9 @@ const AddNewSalon = () => {
   const onSubmit = (data) => {
     data = {
       name: data?.name,
-      drivers: data?.drivers.map((item) => item.person.id),
-      Drivers: data?.customers.map((item) => item.person.id),
+      drivers: data?.drivers?.map((item) => item?.person?.id),
+      owners: data?.customers?.map((item) => item?.person?.id),
+      visible_time: data?.visible_time,
     };
 
     AddSalonMutation.mutate(data);

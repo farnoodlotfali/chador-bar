@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Card,
   Grid,
@@ -19,11 +20,21 @@ import { AppContext } from "context/appContext";
 import { useForm } from "react-hook-form";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 import { GENDER } from "Constants";
-import { renderChip } from "Utility/utils";
+import {
+  removeInvalidValues,
+  renderChip,
+  renderChipForInquiry,
+} from "Utility/utils";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import NormalTable from "Components/NormalTable";
 import TableActionCell from "Components/versions/TableActionCell";
 import MultiAddresses from "Components/multiSelects/MultiAddresses";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { axiosApi } from "api/axiosApi";
+import { toast } from "react-toastify";
+import { useProfile } from "hook/useProfile";
+import LoadingSpinner from "Components/versions/LoadingSpinner";
+import { useProfilePlaces } from "hook/useProfilePlaces";
 
 const ProfileInputsDefaultValues = {
   mobile: "",
@@ -79,13 +90,15 @@ const headCells = [
   },
 ];
 const UserChosenPlaces = () => {
+  const queryClient = useQueryClient();
   const {
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setValue,
     watch,
     control,
   } = useForm({});
+  const { data: places } = useProfilePlaces({});
 
   const DataInputs1 = [
     {
@@ -106,12 +119,39 @@ const UserChosenPlaces = () => {
   };
 
   const handleRemoveAddress = (obj) => {
-    handleChange(
-      "places",
-      watch("places")?.filter((item) => item.id !== obj.id)
-    );
+    DeletePlaceMutation.mutate(obj.id);
   };
 
+  const AddPlaceMutation = useMutation(
+    (data) =>
+      axiosApi({ url: "/profile/add-place", method: "post", data: data }),
+    {
+      onSuccess: () => {
+        toast.success("با موفقیت ثبت شد");
+      },
+    }
+  );
+
+  const DeletePlaceMutation = useMutation(
+    (id) => axiosApi({ url: `/profile/remove-place/${id}`, method: "delete" }),
+    {
+      onSuccess: () => {
+        toast.success("با موفقیت حذف شد");
+        queryClient.invalidateQueries(["places"]);
+      },
+    }
+  );
+  useEffect(() => {
+    if (places?.length > 0) {
+      setValue("places", places);
+    }
+  }, [places]);
+
+  useEffect(() => {
+    if (watch("places")?.length > places?.length) {
+      AddPlaceMutation.mutate(watch("places")[watch("places").length - 1]);
+    }
+  }, [watch("places")]);
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -146,38 +186,54 @@ const UserChosenPlaces = () => {
 };
 
 const UserTab = () => {
-  const { user } = useContext(AppContext);
-  const [processing, setProcessing] = useState(false);
-
   const [showModal, setShowModal] = useState(false);
-
   const toggleShowModal = () => setShowModal((prev) => !prev);
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     setValue,
     watch,
   } = useForm({ defaultValues: ProfileInputsDefaultValues });
 
-  const onSubmit = (data) => {
-    setProcessing(true);
-    console.log(data);
-    setProcessing(false);
+  const { data: profile, isLoading, isFetching, isError } = useProfile({});
+
+  const UpdateProfileMutation = useMutation(
+    (data) => axiosApi({ url: "/profile/update", method: "put", data: data }),
+    {
+      onSuccess: () => {
+        toast.success("با موفقیت آپدیت شد");
+      },
+    }
+  );
+  const onSubmit = async (data) => {
+    try {
+      const res = await UpdateProfileMutation.mutateAsync(
+        removeInvalidValues({
+          first_name: data?.first_name,
+          last_name: data?.last_name,
+          national_code: data?.national_code,
+          gender: data?.gender,
+          email: data?.email,
+        })
+      );
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   useEffect(() => {
-    if (user) {
-      reset(user);
+    if (profile) {
+      reset(profile);
     }
-  }, [user]);
-
+  }, [profile]);
   const ProfileInputs = [
     {
       type: "text",
-      name: "name",
+      name: "first_name",
       label: "نام",
       control: control,
       rules: {
@@ -202,7 +258,7 @@ const UserTab = () => {
     },
     {
       type: "number",
-      name: "SecondDriverNationalCode",
+      name: "national_code",
       label: "کدملی",
       control: control,
       noInputArrow: true,
@@ -242,6 +298,12 @@ const UserTab = () => {
   const handleChange = (name, value) => {
     setValue(name, value);
   };
+  if (isLoading || isFetching) {
+    return <LoadingSpinner />;
+  }
+  if (isError) {
+    return <div className="">isError</div>;
+  }
 
   return (
     <>
@@ -255,7 +317,7 @@ const UserTab = () => {
                 <Typography variant="subtitle2" fontWeight={600}>
                   وضعیت
                 </Typography>
-                {renderChip(user?.status)}
+                {renderChip(profile?.status)}
               </Stack>
             </Grid>
 
@@ -264,7 +326,7 @@ const UserTab = () => {
                 <Typography variant="subtitle2" fontWeight={600}>
                   وضعیت استعلام
                 </Typography>
-                {renderChip(1)}
+                {renderChipForInquiry(profile?.inquiry)}
               </Stack>
             </Grid>
           </FormInputs>
@@ -283,7 +345,7 @@ const UserTab = () => {
               <LoadingButton
                 sx={{ width: "100%" }}
                 variant="contained"
-                loading={processing}
+                loading={isSubmitting}
                 type="submit"
               >
                 ذخیره تغییرات
@@ -317,8 +379,6 @@ const UpdatePassword = ({ open, onClose }) => {
       return;
     }
     setProcessing(true);
-
-    console.log(data);
 
     setProcessing(false);
   };

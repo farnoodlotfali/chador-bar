@@ -42,6 +42,8 @@ import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany
 import { SvgSPrite } from "Components/SvgSPrite";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useQuery } from "@tanstack/react-query";
+import { axiosApi } from "api/axiosApi";
 
 const HeadCells = [
   {
@@ -89,7 +91,6 @@ export default function FreeFleetList() {
   } = useFleet({
     active: true,
     free: true,
-    timeline: true,
     ...searchParamsFilter,
   });
 
@@ -157,9 +158,9 @@ const SearchBoxFreeFleet = () => {
       type: "zone",
       name: "zones",
       control: control,
-      rules: {
-        required: "zones را وارد کنید",
-      },
+      // rules: {
+      //   required: "zones را وارد کنید",
+      // },
       gridProps: { md: 12 },
       height: "400px",
     },
@@ -259,13 +260,31 @@ const FleetRow = ({ row, handleShowVehicleModal }) => {
   const [showModalDrivers, setShowModalDrivers] = useState(false);
   const arrayDriverFleet = useRef([]);
 
-  const calender = useMemo(() => {
-    return Object.entries(row.timeline).map((item) => {
-      const [day, requests] = item;
+  const {
+    data: fleetTimeline,
+    isSuccess,
+    isLoading,
+    isFetching,
+  } = useQuery(
+    ["fleet", "fleet-timeline", row?.id],
+    () =>
+      axiosApi({ url: `/fleet-timeline/${row.id}` }).then(
+        (res) => res.data.Data
+      ),
+    {
+      enabled: !!row?.id && openFleet,
+    }
+  );
 
-      return renderTimeCalender(day, requests);
-    });
-  }, []);
+  const calender = useMemo(() => {
+    if (isSuccess) {
+      return Object.entries(fleetTimeline).map((item) => {
+        const [day, requests] = item;
+
+        return renderTimeCalender(day, requests);
+      });
+    }
+  }, [isSuccess]);
 
   return (
     <>
@@ -358,9 +377,13 @@ const FleetRow = ({ row, handleShowVehicleModal }) => {
               <Typography my={2} gutterBottom>
                 تقویم ناوگان (ماه)
               </Typography>
-              <Stack direction="row" justifyContent="space-between">
-                {calender}
-              </Stack>
+              {isLoading || isFetching ? (
+                <LoadingSpinner />
+              ) : (
+                <Stack direction="row" justifyContent="space-between">
+                  {calender}
+                </Stack>
+              )}
             </Box>
           </Collapse>
         </TableCell>

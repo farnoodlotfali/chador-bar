@@ -3,18 +3,18 @@
 import { useState } from "react";
 
 import {
-  Grid,
-  TableBody,
-  TableRow,
-  TableCell,
-  Typography,
-  Switch,
-  Card,
-  Stack,
   Box,
   Button,
+  Card,
+  Grid,
   IconButton,
   Rating,
+  Stack,
+  Switch,
+  TableBody,
+  TableCell,
+  TableRow,
+  Typography,
 } from "@mui/material";
 
 import Table from "Components/versions/Table";
@@ -22,9 +22,9 @@ import Modal from "Components/versions/Modal";
 import TableActionCell from "Components/versions/TableActionCell";
 import {
   enToFaNumber,
-  handleDate,
   removeInvalidValues,
   renderChipForInquiry,
+  renderMobileFormat,
   renderPlaqueObjectToString,
 } from "Utility/utils";
 import { useDriver } from "hook/useDriver";
@@ -44,6 +44,7 @@ import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
 import { useHasPermission } from "hook/useHasPermission";
 import DriverReportModal from "Components/modals/DriverReportModal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import ShowPersonAlertMsgModal from "Components/modals/ShowPersonAlertMsgModal";
 
 const headCells = [
   {
@@ -60,21 +61,29 @@ const headCells = [
     label: "موبایل",
   },
   {
+    id: "car",
+    label: "خودرو",
+  },
+  {
+    id: "license_no",
+    label: "شماره گواهینامه",
+  },
+  {
     id: "rating",
     label: "امتیاز",
     sortable: true,
   },
   {
-    id: "car",
-    label: "خودرو",
-  },
-  {
-    id: "created_at",
-    label: "زمان ثبت",
-  },
-  {
     id: "status",
     label: "وضعیت",
+  },
+  {
+    id: "inquiry_national_code",
+    label: "وضعیت کد ملی",
+  },
+  {
+    id: "inquiry_vehicle",
+    label: "وضعیت  خودرو",
   },
   {
     id: "inquiry",
@@ -96,7 +105,19 @@ export default function DriverList() {
     isError,
   } = useDriver(searchParamsFilter);
   const { hasPermission } = useHasPermission("driver.inquiry");
-
+  const updateCustomerMutation = useMutation(
+    (id) =>
+      axiosApi({
+        url: `customer-change-status/${id}`,
+        method: "post",
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["driver"]);
+        toast.success("با موفقیت آپدیت شد");
+      },
+    }
+  );
   const [openModal, setOpenModal] = useState(null);
   const [selectedRowData, setSelectedRowData] = useState();
   const inquiryMutation = useMutation(
@@ -106,18 +127,16 @@ export default function DriverList() {
         queryClient.invalidateQueries(["driver"]);
         toast.success("با موفقیت اعمال شد");
       },
+      onError: (err) => {
+        if (err?.response?.data?.Status === 400) {
+          queryClient.invalidateQueries(["driver"]);
+        }
+      },
     }
   );
   if (isError) {
     return <div className="">isError</div>;
   }
-
-  const changeDriverStatus = (id) => {
-    // Inertia.visit(`customer-change-status/${id}`, {
-    //   method: "post",
-    //   preserveScroll: true,
-    // });
-  };
 
   const changeDriverInquiry = (id) => {
     inquiryMutation.mutate(id);
@@ -130,6 +149,11 @@ export default function DriverList() {
 
   const toggleShowScores = (rowData) => {
     setOpenModal("personScore");
+    if (rowData) setSelectedRowData(rowData);
+  };
+
+  const toggleShowAlerts = (rowData) => {
+    setOpenModal("personAlerts");
     if (rowData) setSelectedRowData(rowData);
   };
 
@@ -156,6 +180,7 @@ export default function DriverList() {
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
         loading={isLoading || isFetching || inquiryMutation.isLoading}
+        {...allDrivers?.items}
       >
         <TableBody>
           {allDrivers?.items?.data?.map((row) => {
@@ -175,18 +200,7 @@ export default function DriverList() {
                     (row.person.last_name || " ")}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.mobile)}
-                </TableCell>
-                <TableCell align="center" scope="row">
-                  <Rating
-                    precision={0.2}
-                    sx={{
-                      width: "fit-content",
-                    }}
-                    value={row?.rating}
-                    size="small"
-                    readOnly
-                  />
+                  {renderMobileFormat(row.mobile)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {row.vehicle?.plaque ? (
@@ -201,36 +215,52 @@ export default function DriverList() {
                   )}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.created_at ? (
-                    <Typography variant="subtitle2">
-                      {handleDate(row.created_at, "YYYY/MM/DD")}
-                      {" - "}
-                      {handleDate(row.created_at, "HH:MM")}
-                    </Typography>
-                  ) : (
-                    "-"
-                  )}
+                  <Typography variant="subtitle2">
+                    {enToFaNumber(row.person.license_no)}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Rating
+                    precision={0.2}
+                    sx={{
+                      width: "fit-content",
+                    }}
+                    value={row?.rating}
+                    size="small"
+                    readOnly
+                  />
                 </TableCell>
                 <TableCell align="center" scope="row">
                   <Switch
                     checked={Boolean(row.status)}
                     onChange={() => {
-                      changeDriverStatus(row.id);
+                      // changeDriverStatus(row.status === 0 ? 1 : 0, row.id);;
+                      updateCustomerMutation.mutate(row.id);
                     }}
                   />
                 </TableCell>
+
                 <TableCell align="center" scope="row">
-                  {renderChipForInquiry(row.person?.inquiry)}
-                  <IconButton
-                    onClick={() => changeDriverInquiry(row.id)}
-                    disabled={!hasPermission}
-                  >
-                    <SvgSPrite
-                      icon="rotate-right"
-                      MUIColor="primary"
-                      size="small"
-                    />
-                  </IconButton>
+                  {renderChipForInquiry(row?.person?.inquiry)}
+                </TableCell>
+
+                <TableCell align="center" scope="row">
+                  {renderChipForInquiry(row?.vehicle?.inquiry)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  <Stack direction={"row"}>
+                    {renderChipForInquiry(row?.inquiry)}
+                    <IconButton
+                      onClick={() => changeDriverInquiry(row.id)}
+                      disabled={!hasPermission}
+                    >
+                      <SvgSPrite
+                        icon="rotate-right"
+                        MUIColor="primary"
+                        size="small"
+                      />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
                 <TableCell>
                   <TableActionCell
@@ -249,7 +279,6 @@ export default function DriverList() {
                         link: `/driver/${row.id}`,
                         name: "driver.update",
                       },
-
                       {
                         tooltip: "درخواست‌ها",
                         color: "secondary",
@@ -276,6 +305,24 @@ export default function DriverList() {
                         icon: "memo-pad",
                         onClick: () => handleShowDriverReportModal(row),
                       },
+                      {
+                        tooltip: "صورتحساب",
+                        color: "info",
+                        icon: "receipt",
+                        link: `/financial/invoice?person_type=natural&person_id=${row?.account_id}`,
+                      },
+                      {
+                        tooltip: "تراکنش",
+                        color: "info",
+                        icon: "money-bill-transfer",
+                        link: `/financial/transaction?person_type=natural&person_id=${row?.account_id}`,
+                      },
+                      {
+                        tooltip: "مشاهده هشدار‌‌ها",
+                        color: "secondary",
+                        icon: "sensor-triangle-exclamation",
+                        onClick: () => toggleShowAlerts(row),
+                      },
                     ]}
                   />
                 </TableCell>
@@ -285,6 +332,7 @@ export default function DriverList() {
         </TableBody>
       </Table>
 
+      {/* modals */}
       <DetailsModal
         open={openModal === "detail"}
         onClose={toggleOpenModal}
@@ -297,7 +345,12 @@ export default function DriverList() {
       />
       <ShowPersonScoreModal
         show={openModal === "personScore"}
-        data={selectedRowData}
+        dataId={selectedRowData?.person?.id}
+        onClose={toggleOpenModal}
+      />
+      <ShowPersonAlertMsgModal
+        show={openModal === "personAlerts"}
+        dataId={selectedRowData?.person?.id}
         onClose={toggleOpenModal}
       />
       <VehicleDetailModal
@@ -405,7 +458,6 @@ const DetailsModal = ({ open, onClose, data }) => {
         return "نا‌مشخص";
     }
   };
-
   if (!data) return <></>;
   return (
     <Modal open={open} onClose={onClose}>
@@ -425,12 +477,14 @@ const DetailsModal = ({ open, onClose, data }) => {
             <Stack spacing={1} mt={3}>
               <Typography>
                 نام و نام‌ خانوادگی:{" "}
-                {`${data.first_name || ""} ${data.last_name || ""}`}
+                {`${data?.person?.first_name || "فاقد نام"} ${
+                  data?.person?.last_name || ""
+                }`}
               </Typography>
-              <Typography>موبایل: {enToFaNumber(data.mobile)}</Typography>
+              <Typography>موبایل: {renderMobileFormat(data.mobile)}</Typography>
               <Typography>جنسیت: {handleGenderText(data.gender)}</Typography>
               <Typography>
-                کد ملی: {enToFaNumber(data.national_code) || "-"}
+                کد ملی: {enToFaNumber(data?.person?.national_code) || "-"}
               </Typography>
             </Stack>
           </Card>
@@ -450,7 +504,7 @@ const DetailsModal = ({ open, onClose, data }) => {
 
             <Stack spacing={1} mt={3}>
               <Typography>
-                استان: {data.default_city?.province.title || "-"}
+                استان: {data.default_city?.province?.title || "-"}
               </Typography>
               <Typography>شهر: {data.default_city?.title || "-"}</Typography>
               <Typography>آدرس: {data.profile?.address || "-"}</Typography>

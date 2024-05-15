@@ -20,6 +20,7 @@ import {
   enToFaNumber,
   numberWithCommas,
   removeInvalidValues,
+  renderWeight,
 } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
@@ -42,7 +43,7 @@ const HeadCells = [
   },
   {
     id: "code",
-    label: "کد",
+    label: "شماره پروژه",
   },
   {
     id: "title",
@@ -91,7 +92,15 @@ export default function ProjectList() {
       },
     }
   );
-
+  const getDataProject = useMutation(
+    (id) => axiosApi({ url: `project/${id}`, method: "get" }),
+    {
+      onSuccess: (res) => {
+        setSelectedProject(res?.data?.Data);
+        setShowDetailModal(true);
+      },
+    }
+  );
   if (isError) {
     return <div className="">isError</div>;
   }
@@ -111,11 +120,6 @@ export default function ProjectList() {
   const handleShowContractModal = (contract) => {
     setShowContractModal(true);
     setContract(contract);
-  };
-
-  const handleShowDetail = (item) => {
-    setSelectedProject(item);
-    setShowDetailModal(true);
   };
 
   return (
@@ -138,13 +142,13 @@ export default function ProjectList() {
                 hover
                 tabIndex={-1}
                 key={row.id}
-                onDoubleClick={() => handleShowDetail(row)}
+                onDoubleClick={() => getDataProject.mutate(row?.id)}
               >
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.id)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.code}
+                  {enToFaNumber(row.code)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {row.title ?? "-"}
@@ -154,14 +158,14 @@ export default function ProjectList() {
                     variant="clickable"
                     onClick={() => handleShowContractModal(row.contract)}
                   >
-                    {row.contract.code}
+                    {enToFaNumber(row.contract.code)}
                   </Typography>
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {row.product.title ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {numberWithCommas(row.weight) ?? "-"}
+                  {renderWeight(row.weight)}
                 </TableCell>
                 <TableCell scope="row">
                   <TableActionCell
@@ -170,8 +174,15 @@ export default function ProjectList() {
                         tooltip: "مشاهده جزئیات",
                         color: "secondary",
                         icon: "eye",
-                        onClick: () => handleShowDetail(row),
+                        onClick: () => getDataProject.mutate(row?.id),
                         name: "project.show",
+                      },
+                      {
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        link: `/project/${row.id}`,
+                        name: "project.update",
                       },
                       {
                         tooltip: "حذف",

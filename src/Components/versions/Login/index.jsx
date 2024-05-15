@@ -6,13 +6,15 @@ import Cookies from "js-cookie";
 import { Suspense, lazy, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const LazyComponent = lazy(() =>
   import(`Components/versions/Login/${loadENV()}Login`)
 );
 
 const LoginMain = () => {
-  const { setUser, setNotPermissions } = useContext(AppContext);
+  const { setUser, setNotPermissions, setRole, setUserType } =
+    useContext(AppContext);
   const navigate = useNavigate();
   const methods = useForm();
   const { reset, control } = methods;
@@ -27,17 +29,22 @@ const LoginMain = () => {
 
       Cookies.set("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("role", JSON.stringify(res.data.role));
+      localStorage.setItem("userType", JSON.stringify(res.data.type));
       localStorage.setItem(
         "not_permitted",
         JSON.stringify(res.data.not_permitted)
       );
       setUser(res.data.user);
+      setRole(res.data.role);
+      setUserType(res.data.type);
       setNotPermissions(res.data.not_permitted);
       setTimeout(() => {
         navigate("/desktop");
-      }, 350);
-    } catch (e) {
-      console.log(e);
+      }, 1000);
+    } catch (err) {
+      toast.error(err?.response?.data.Message);
+      console.log(err);
     }
   };
   // navigate to desktop if token exist

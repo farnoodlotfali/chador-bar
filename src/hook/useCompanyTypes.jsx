@@ -8,7 +8,7 @@ export const useCompanyTypes = (filters = {}, options = {}) => {
     queryKey: ["companyTypes", filters],
     queryFn: () =>
       axiosApi({ url: `/company-types${queryParams}` }).then(
-        (res) => res.data.Data
+        (res) => res?.data?.Data
       ),
     keepPreviousData: true,
     staleTime: Infinity,

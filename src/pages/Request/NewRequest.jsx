@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
-import { Card, Divider, Grid, Stack, Typography } from "@mui/material";
+import { Button, Card, Divider, Grid, Stack, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { ChooseProject } from "Components/choosers/ChooseProject";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
@@ -21,20 +21,27 @@ import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import {
   compareTimes,
   numberWithCommas,
+  removeInvalidValues,
   zipCodeRegexPattern,
 } from "Utility/utils";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseOwner } from "Components/choosers/ChooseOwner";
+import Modal from "Components/versions/Modal";
 
 const NewRequest = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const countRequest = useRef(0);
+  const newDataMass = useRef({});
   const [loading, setLoading] = useState(false);
+  const [massRequestModal, setMassRequestModal] = useState(false);
   const [prices, setPrices] = useState({
     high_price: null,
     low_price: null,
   });
-
+  const roleName = localStorage.getItem("role");
+  const user = localStorage.getItem("user");
   const {
     handleSubmit,
     reset,
@@ -49,13 +56,32 @@ const NewRequest = () => {
     (data) => axiosApi({ url: "/request", method: "post", data: data }),
     {
       onSuccess() {
-        reset();
-        queryClient.invalidateQueries(["request"]);
-        toast.success("درخواست  با موفقیت ثبت شد");
-        navigate("/request");
+        if (massRequestModal) {
+          if (countRequest.current > 1) {
+            countRequest.current = countRequest.current - 1;
+            addMutation.mutateAsync(newDataMass.current);
+          } else {
+            setMassRequestModal(false);
+            reset();
+            queryClient.invalidateQueries(["request"]);
+            toast.success("درخواست  با موفقیت ثبت شد");
+            navigate("/request");
+          }
+        } else {
+          reset();
+          queryClient.invalidateQueries(["request"]);
+          toast.success("درخواست  با موفقیت ثبت شد");
+          navigate("/request");
+        }
       },
     }
   );
+
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      setMassRequestModal(false);
+    }
+  }, [errors, isSubmitting]);
 
   useEffect(() => {
     if (watch("fleet")) {
@@ -172,7 +198,7 @@ const NewRequest = () => {
     {
       type: "custom",
       customView: (
-        <ChoosePerson
+        <ChooseOwner
           control={control}
           name={"owner"}
           rules={{
@@ -182,6 +208,7 @@ const NewRequest = () => {
         />
       ),
       gridProps: { md: 4 },
+      hidden: roleName && roleName?.includes("legal-owner") ? true : false,
     },
 
     {
@@ -204,9 +231,9 @@ const NewRequest = () => {
         <ChooseSalon
           control={control}
           name={"salon"}
-          rules={{
-            required: "کد سالن را وارد کنید",
-          }}
+          // rules={{
+          //   required: "کد سالن را وارد کنید",
+          // }}
           defaultGlobalSalon={true}
         />
       ),
@@ -224,6 +251,9 @@ const NewRequest = () => {
       customView: <></>,
       gridProps: { md: 12 },
     },
+  ];
+
+  const ProductInputs = [
     {
       type: "number",
       name: "weight",
@@ -234,6 +264,14 @@ const NewRequest = () => {
       rules: {
         required: { value: true, message: "وزن را وارد کنید" },
       },
+    },
+    {
+      type: "number",
+      name: "quantity",
+      label: "تعداد",
+      control: control,
+      noInputArrow: true,
+      splitter: true,
     },
     {
       type: "number",
@@ -267,6 +305,7 @@ const NewRequest = () => {
       gridProps: { md: 12 },
     },
   ];
+
   const VehicleTypeInputs = [
     {
       type: "custom",
@@ -293,9 +332,9 @@ const NewRequest = () => {
         <ChoosePerson
           control={control}
           name={"sender"}
-          rules={{
-            required: " کد فرستنده را وارد کنید",
-          }}
+          // rules={{
+          //   required: " کد فرستنده را وارد کنید",
+          // }}
           label="فرستنده"
         />
       ),
@@ -307,9 +346,9 @@ const NewRequest = () => {
         <ChoosePerson
           control={control}
           name={"receiver"}
-          rules={{
-            required: " کد گیرنده را وارد کنید",
-          }}
+          // rules={{
+          //   required: " کد گیرنده را وارد کنید",
+          // }}
           label="گیرنده"
         />
       ),
@@ -323,9 +362,6 @@ const NewRequest = () => {
         <ChooseFleet
           control={control}
           name={"fleet"}
-          rules={{
-            required: " کد ناوگان را وارد کنید",
-          }}
           filterData={{
             shipping_company: watch("shipping_company"),
           }}
@@ -341,9 +377,6 @@ const NewRequest = () => {
           name={"driver"}
           dataArray={watch("fleet")}
           isLoadFromApi={false}
-          rules={{
-            required: "راننده را وارد کنید",
-          }}
           label="راننده اول"
         />
       ),
@@ -454,9 +487,9 @@ const NewRequest = () => {
       splitter: true,
       control: control,
       noInputArrow: true,
-      rules: {
-        required: { value: true, message: "مبلغ را وارد کنید" },
-      },
+      // rules: {
+      //   required: { value: true, message: "مبلغ را وارد کنید" },
+      // },
     },
   ];
 
@@ -471,7 +504,8 @@ const NewRequest = () => {
     const source_lng = watch("source_lng");
     const destination_lat = watch("destination_lat");
     const destination_lng = watch("destination_lng");
-    const vehicle_type_id = watch("vehicle_type")?.id;
+    const vehicle_type_id =
+      watch("vehicle_type")?.id ?? watch("fleet")?.vehicle?.container_type?.id;
     if (
       !source_lat ||
       !source_lng ||
@@ -504,7 +538,6 @@ const NewRequest = () => {
 
   // handle on submit
   const onSubmit = async (data) => {
-    console.log(data);
     let {
       fleet,
       driver,
@@ -519,39 +552,44 @@ const NewRequest = () => {
       load_time,
       discharge_time_duration,
       discharge_time,
+      vehicle_type,
       ...newData
     } = data;
 
-    newData.driver_id = driver.id;
+    newData.driver_id = driver?.id;
     newData.second_driver_id = second_driver?.id;
-    newData.fleet_id = fleet.id;
-    newData.owner_id = owner.id;
+    newData.fleet_id = fleet?.id;
+    newData.owner_id =
+      roleName && roleName?.includes("legal-owner")
+        ? JSON.parse(user)?.id
+        : data?.owner?.id;
 
-    newData.product_id = product.id;
+    newData.product_id = product?.id;
     newData.project_id = project?.id;
-    newData.receiver_id = receiver.id;
-    newData.sender_id = sender.id;
-    newData.salon_id = salon.id === 0 ? null : salon.id;
-    newData.high_price = prices.high_price;
-    newData.low_price = prices.low_price;
+    newData.receiver_id = receiver?.id;
+    newData.sender_id = sender?.id;
+    newData.salon_id = salon?.id === 0 ? null : salon?.id;
+    newData.high_price = prices?.high_price;
+    newData.low_price = prices?.low_price;
+    newData.vehicle_type_id = vehicle_type?.id;
 
-    const loadTimeValue = load_time.load_time.replaceAll("/", "-");
-    const dischargeTimeValue = discharge_time.discharge_time.replaceAll(
+    const loadTimeValue = load_time?.load_time?.replaceAll("/", "-");
+    const dischargeTimeValue = discharge_time?.discharge_time?.replaceAll(
       "/",
       "-"
     );
 
     newData.load_time = loadTimeValue + " " + load_time_duration + ":00";
     newData.load_time_upto =
-      loadTimeValue + " " + newData.load_time_upto + ":00";
+      loadTimeValue + " " + newData?.load_time_upto + ":00";
 
     newData.discharge_time =
       dischargeTimeValue + " " + discharge_time_duration + ":00";
     newData.discharge_time_upto =
-      dischargeTimeValue + " " + newData.discharge_time_upto + ":00";
+      dischargeTimeValue + " " + newData?.discharge_time_upto + ":00";
 
     newData = JSON.stringify(newData);
-
+    newDataMass.current = newData;
     try {
       const res = await addMutation.mutateAsync(newData);
 
@@ -579,9 +617,9 @@ const NewRequest = () => {
 
             <Divider sx={{ my: 5 }} />
 
-            <FormTypography>رانندگان</FormTypography>
+            <FormTypography>مشخصات بار</FormTypography>
 
-            <FormInputs gridProps={{ md: 3 }} inputs={DriversInputs} />
+            <FormInputs gridProps={{ md: 3 }} inputs={ProductInputs} />
 
             <Divider sx={{ my: 5 }} />
 
@@ -615,6 +653,12 @@ const NewRequest = () => {
 
             <Divider sx={{ my: 5 }} />
 
+            <FormTypography>ناوگان</FormTypography>
+
+            <FormInputs gridProps={{ md: 3 }} inputs={DriversInputs} />
+
+            <Divider sx={{ my: 5 }} />
+
             <FormTypography>قیمت</FormTypography>
 
             <FormInputs inputs={PricesInputs}>
@@ -624,7 +668,7 @@ const NewRequest = () => {
                 </Typography>
                 <Typography fontSize={14} mt={1}>
                   {prices.high_price
-                    ? numberWithCommas(prices.high_price) + " تومان"
+                    ? numberWithCommas(prices.high_price) + " ریال"
                     : "بدون قیمت"}
                 </Typography>
               </Grid>
@@ -635,7 +679,7 @@ const NewRequest = () => {
                 </Typography>
                 <Typography fontSize={14} mt={1}>
                   {prices.low_price
-                    ? numberWithCommas(prices.high_price) + " تومان"
+                    ? numberWithCommas(prices.low_price) + " ریال"
                     : "بدون قیمت"}
                 </Typography>
               </Grid>
@@ -665,12 +709,76 @@ const NewRequest = () => {
               >
                 ثبت
               </LoadingButton>
+              <LoadingButton
+                variant="contained"
+                onClick={() => {
+                  setMassRequestModal(true);
+                }}
+                color={Object.keys(errors).length !== 0 ? "error" : "primary"}
+              >
+                ثبت درخواست انبوه
+              </LoadingButton>
             </Stack>
           </Card>
         </FormContainer>
+        <MassRequestModal
+          open={massRequestModal}
+          onClose={() => {
+            setMassRequestModal(false);
+          }}
+          addData={async (count) => {
+            countRequest.current = count;
+            await handleSubmit(onSubmit);
+          }}
+        />
       </form>
     </>
   );
 };
 
 export default NewRequest;
+
+const MassRequestModal = ({ open, onClose, addData }) => {
+  const {
+    control,
+    formState: { errors },
+    watch,
+    handleSubmit,
+  } = useForm();
+
+  const Inputs = [
+    {
+      type: "number",
+      name: "count",
+      label: "تعداد",
+      control: control,
+      noInputArrow: true,
+    },
+  ];
+
+  // handle on submit
+  // Set fleet for enabled requests
+  const onSubmit = (data) => {
+    addData(data?.count);
+  };
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormContainer data={watch()} errors={errors}>
+          <Typography mt={4}>چه تعداد درخواست تولید شود؟</Typography>
+          <FormInputs inputs={Inputs} gridProps={{ md: 12, mt: 2 }} />
+
+          <Stack direction="row" justifyContent="flex-end" mt={4}>
+            <Button variant="contained" type="submit" sx={{ mr: 2 }}>
+              تولید درخواست
+            </Button>
+            <Button variant="contained" onClick={onClose}>
+              انصراف
+            </Button>
+          </Stack>
+        </FormContainer>
+      </form>
+    </Modal>
+  );
+};

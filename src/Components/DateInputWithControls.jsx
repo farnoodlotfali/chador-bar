@@ -152,7 +152,7 @@ const DateInputWithControls = ({
             endAdornment={
               <InputAdornment position="end">
                 <IconButton disabled={readOnly} onClick={handleOnClicked}>
-                  <SvgSPrite icon="calendar-dayss" />
+                  <SvgSPrite icon="calendar-days" />
                 </IconButton>
               </InputAdornment>
             }

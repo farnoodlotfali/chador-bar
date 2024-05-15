@@ -17,7 +17,7 @@ import LoadingSpinner from "Components/versions/LoadingSpinner";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 
-import { enToFaNumber, handleDate, removeInvalidValues } from "Utility/utils";
+import { enToFaNumber, handleDate, removeInvalidValues, renderMobileFormat } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import { toast } from "react-toastify";
@@ -145,7 +145,7 @@ export default function PersonList() {
                   {row.last_name ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.mobile)}
+                  {renderMobileFormat(row.mobile)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {handleGender(row.gender)}

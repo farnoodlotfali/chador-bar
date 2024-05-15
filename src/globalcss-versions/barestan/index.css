@@ -1,7 +1,7 @@
 * {
   margin: 0;
   padding: 0;
-  font-family: YekanBakhFaNum, sans-serif;
+  font-family: Vazirmatn, sans-serif;
   box-sizing: border-box;
 }
 *:focus-visible {
@@ -9,7 +9,7 @@
 }
 
 body {
-  font-family: YekanBakhFaNum, sans-serif;
+  font-family: Vazirmatn, sans-serif;
 }
 
 body #root {
@@ -29,9 +29,9 @@ button {
 }
 
 @font-face {
-  font-family: "YekanBakhFaNum";
-  src: local("YekanBakhFaNum"),
-    url(Assets/font/barestan/YekanBakhFaNum-VF.ttf) format("truetype");
+  font-family: "Vazirmatn";
+  src: local("Vazirmatn"),
+    url(Assets/font/barestan/Vazirmatn[wght].ttf) format("truetype");
 }
 
 ::-webkit-scrollbar {
@@ -68,4 +68,14 @@ button {
   border: 3px solid black;
   border-radius: 5px;
   overflow: hidden;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

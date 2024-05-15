@@ -7,13 +7,15 @@ export const loadENV = () => {
 // all farsi version`s names
 export const ALL_VERSIONS_FA = {
   barestan: "بارستان",
-  baarestanV2: "بارستان",
+  barV2: "بارستان",
+  barino: "بارینو",
   chadormalo: "دراپ",
 };
 // all english version`s names
 export const ALL_VERSIONS = {
   barestan: "barestan",
-  baarestanV2: "barestan",
+  barV2: "barestan",
+  barino: "barino",
   chadormalo: "chadormalo",
 };
 // loads farsi name version

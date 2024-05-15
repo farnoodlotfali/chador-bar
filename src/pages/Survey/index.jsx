@@ -1,99 +1,170 @@
-import { useEffect, useState, useRef } from "react";
-
+import { useState } from "react";
 import {
+  Button,
+  Stack,
+  Box,
   TableBody,
   TableRow,
   TableCell,
-  Grid,
-  Stack,
-  Typography,
-  Card,
 } from "@mui/material";
+import { toast } from "react-toastify";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
-import ShowScore from "Components/ShowScore";
-import Modal from "Components/versions/Modal";
-import { enToFaNumber, numberWithCommas } from "Utility/utils";
-import { fake12 } from "./fake12";
-import { SvgSPrite } from "Components/SvgSPrite";
+import ActionConfirm from "Components/ActionConfirm";
+import { FormContainer, FormInputs } from "Components/Form";
+import { enToFaNumber, removeInvalidValues } from "Utility/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { axiosApi } from "api/axiosApi";
+import { useForm } from "react-hook-form";
+import CollapseForm from "Components/CollapseForm";
+import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
+import ShippingCompanyReportModal from "Components/modals/ShippingCompanyReportModal";
+import { AddNewSurvey } from "./AddNewSurvey";
+import { useReasons } from "hook/useReasons";
 
-const headCells = [
+const HeadCells = [
   {
     id: "id",
     label: "شناسه",
     sortable: true,
   },
   {
-    id: "request_name",
-    label: "نام درخواست",
+    id: "name",
+    label: "عنوان دلیل",
   },
   {
-    id: "customer_name",
-    label: "نام مشتری",
+    id: "effect",
+    label: "تاثیر",
   },
   {
-    id: "score",
-    label: "امتیاز",
-    sortable: true,
+    id: "weight",
+    label: "وزن",
   },
+
   {
     id: "actions",
     label: "عملیات",
   },
 ];
 
-export default function Survey() {
-  const { items } = fake12;
+const SurveyList = () => {
+  const queryClient = useQueryClient();
+  const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
+  const [selectedReasons, setSelectedReasons] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [openModal, setOpenModal] = useState(null);
+  const [editCompany, setEditCompany] = useState(null);
+  const {
+    data: Reasons,
+    isLoading,
+    isFetching,
+    isError,
+  } = useReasons(searchParamsFilter);
 
-  const mounted = useRef(false);
+  const updateReasonMutation = useMutation(
+    (form) =>
+      axiosApi({
+        url: `/reason/${form.id}`,
+        method: "put",
+        data: form.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["reason"]);
+        toast.success("با موفقیت آپدیت شد");
+      },
+    }
+  );
 
-  const [filters, setFilters] = useState({ ...fake12.filters });
-  const [showDetails, setShowDetails] = useState(false);
-  const [selectedRowData, setSelectedRowData] = useState();
+  const deleteReasonMutation = useMutation(
+    (id) => axiosApi({ url: `reason/${id}`, method: "delete" }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["reason"]);
+        toast.success("با موفقیت حذف شد");
+      },
+    }
+  );
 
-  const toggleShowDetails = (rowData) => {
-    setShowDetails((prev) => !prev);
-    if (rowData) setSelectedRowData(rowData);
+  if (isError) {
+    return <div className="">error</div>;
+  }
+
+  const handleDeleteShippingCompany = (val) => {
+    setShowConfirmModal(true);
+    setSelectedReasons(val);
+  };
+  // handle delete ShippingCompany
+  const deleteReasons = () => {
+    deleteReasonMutation.mutate(selectedReasons?.id);
+    setShowConfirmModal(false);
+    setSelectedReasons(null);
   };
 
-  useEffect(() => {
-    // if (mounted.current) {
-    //     Inertia.get("/survey", filters, { preserveState: true });
-    // } else mounted.current = true;
-  }, [filters]);
+  // handle update ShippingCompany
 
+  const toggleOpenModal = () => {
+    setOpenModal(null);
+  };
   return (
     <>
-      <HelmetTitlePage title="نظرسنجی" />
+      <HelmetTitlePage title="لیست نظرسنجی" />
+
+      <AddNewSurvey editData={editCompany} />
+
+      <SearchBox />
 
       <Table
-        {...items}
-        headCells={headCells}
-        filters={filters}
-        setFilters={setFilters}
+        {...Reasons}
+        headCells={HeadCells}
+        filters={searchParamsFilter}
+        setFilters={setSearchParamsFilter}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteReasonMutation.isLoading ||
+          updateReasonMutation.isLoading
+        }
       >
         <TableBody>
-          {items.data.map((row) => {
+          {Reasons?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
-                <TableCell scope="row">{enToFaNumber(row.id)}</TableCell>
-                <TableCell>{row.request.title}</TableCell>
-                <TableCell>{`${row.customer.first_name || ""} ${
-                  row.customer.last_name || ""
-                }`}</TableCell>
-                <TableCell>
-                  <ShowScore score={row.score} />
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row?.id)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row?.name}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {row?.effect === "negative"
+                    ? "مثبت"
+                    : row?.effect === "positive"
+                    ? "منفی"
+                    : "بی اثر"}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row?.weight)}
                 </TableCell>
 
-                <TableCell>
+                <TableCell scope="row">
                   <TableActionCell
                     buttons={[
                       {
-                        tooltip: "نمایش جزئیات",
-                        color: "secondary",
-                        icon: "eyes",
-                        onClick: () => toggleShowDetails(row),
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => setEditCompany(row),
+                      },
+                      {
+                        tooltip: "حذف",
+                        color: "error",
+                        icon: "trash-xmark",
+                        onClick: () => handleDeleteShippingCompany(row),
+                        name: "shipping-company.destroy",
                       },
                     ]}
                   />
@@ -103,96 +174,105 @@ export default function Survey() {
           })}
         </TableBody>
       </Table>
+      <ActionConfirm
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal((prev) => !prev)}
+        onAccept={deleteReasons}
+        message="آیا از حذف نظر مطمئن هستید؟"
+      />
 
-      <DetailsModal
-        open={showDetails}
-        onClose={() => toggleShowDetails()}
-        data={selectedRowData}
+      <ShippingCompanyReportModal
+        open={openModal === "shippingCompanyReport"}
+        onClose={toggleOpenModal}
+        data={selectedReasons}
+      />
+
+      <ShowPersonScoreModal
+        show={openModal === "personScore"}
+        dataId={selectedReasons?.id}
+        onClose={toggleOpenModal}
       />
     </>
   );
-}
-
-const CardsStyle = {
-  width: "100%",
-  height: "100%",
-  p: 2,
-  boxShadow: 1,
 };
 
-const DetailsModal = ({ open, onClose, data }) => {
-  if (!data) return <></>;
+const SearchBox = () => {
+  const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
+  const [openCollapse, setOpenCollapse] = useState(false);
 
-  const request = data.request;
-  const customer = data.customer;
+  const {
+    control,
+    formState: { errors },
+    setValue,
+    watch,
+    handleSubmit,
+    reset,
+  } = useForm({
+    defaultValues: searchParamsFilter,
+  });
+
+  const Inputs = [
+    {
+      type: "text",
+      name: "q",
+      label: "جستجو",
+      placeholder: "جستجو",
+      control: control,
+    },
+  ];
+  const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
+
+  // handle on submit new vehicle
+  const onSubmit = (data) => {
+    setSearchParamsFilter(
+      removeInvalidValues({
+        ...searchParamsFilter,
+        ...data,
+      })
+    );
+  };
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card sx={CardsStyle}>
+    <CollapseForm onToggle={setOpenCollapse} open={openCollapse}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Box sx={{ p: 2 }}>
+          <FormContainer data={watch()} setData={handleChange} errors={errors}>
+            <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
             <Stack
+              mt={4}
+              justifyContent="flex-end"
+              spacing={2}
               direction="row"
-              alignItems="center"
-              justifyContent="space-between"
+              fontSize={14}
             >
-              <Typography variant="h5">جزئیات درخواست</Typography>
-
-              <SvgSPrite icon="file-lines" size="large" MUIColor="info" />
+              <Button
+                variant="outlined"
+                color="error"
+                type="submit"
+                onClick={() => {
+                  reset(resetValues);
+                }}
+              >
+                حذف فیلتر
+              </Button>
+              <Button
+                variant="contained"
+                // loading={isSubmitting}
+                type="submit"
+              >
+                اعمال فیلتر
+              </Button>
             </Stack>
-
-            <Stack spacing={1} mt={3}>
-              <Typography>عنوان: {request.title}</Typography>
-              <Typography align="justify">
-                توضیحات: {data.description}
-              </Typography>
-              <Typography>
-                قیمت پیشنهادی: {numberWithCommas(request.proposed_price)} ریال
-              </Typography>
-              <Typography>
-                وزن: {enToFaNumber(request.weight) + " کیلوگرم" || "-"}
-              </Typography>
-            </Stack>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={CardsStyle}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="h5">جزئیات مشتری</Typography>
-
-              <SvgSPrite icon="user" size="large" MUIColor="warning" />
-            </Stack>
-
-            <Stack spacing={1} mt={3}>
-              <Typography>
-                نام و نام‌خانوادگی:{" "}
-                {`${customer.first_name || ""} ${customer.last_name || ""}`}
-              </Typography>
-              <Typography>موبایل: {enToFaNumber(customer.mobile)}</Typography>
-            </Stack>
-          </Card>
-        </Grid>
-        <Grid item xs={12}>
-          <Card sx={CardsStyle}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              mb={3}
-            >
-              <Typography variant="h5">متن نظر</Typography>
-
-              <ShowScore score={data.score} size="large" />
-            </Stack>
-
-            <Typography align="justify">{data.description}</Typography>
-          </Card>
-        </Grid>
-      </Grid>
-    </Modal>
+          </FormContainer>
+        </Box>
+      </form>
+    </CollapseForm>
   );
 };
+
+export default SurveyList;

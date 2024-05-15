@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { SvgSPrite } from "Components/SvgSPrite";
 import Modal from "Components/versions/Modal";
-import { enToFaNumber, genderType } from "Utility/utils";
+import {enToFaNumber, genderType, renderChip, renderMobileFormat} from "Utility/utils";
 import { useState } from "react";
 import ShowPersonScoreModal from "./ShowPersonScoreModal";
 
@@ -65,16 +65,12 @@ const CreatorDetailModal = ({ open, onClose, creator }) => {
               />
               <CreatorDetailItem
                 title="موبایل"
-                value={enToFaNumber(creator.mobile) ?? "-"}
+                value={renderMobileFormat(creator.mobile) ?? "-"}
               />
-              <CreatorDetailItem title="وضعیت" value={creator.status ?? "-"} />
+              <CreatorDetailItem title="وضعیت" value={renderChip(creator.status)} />
               <CreatorDetailItem
                 title="استعلام"
-                value={creator.inquiry ?? "-"}
-              />
-              <CreatorDetailItem
-                title="license_card"
-                value={creator.license_card ?? "-"}
+                value={renderChip(creator.inquiry)}
               />
               <CreatorDetailItem
                 value={
@@ -93,7 +89,7 @@ const CreatorDetailModal = ({ open, onClose, creator }) => {
                     </Tooltip>
                   </Stack>
                 }
-                title={"امتیاز فیک"}
+                title={"امتیاز"}
               />
             </Grid>
           </Paper>
@@ -107,7 +103,7 @@ const CreatorDetailModal = ({ open, onClose, creator }) => {
 const CreatorDetailItem = ({ title, value }) => {
   return (
     <Grid item xs={12} md={6}>
-      <Stack spacing={1} direction="row">
+      <Stack spacing={1} direction="row" alignItems="baseline">
         <Typography fontWeight={700} variant="subtitle2">
           {title}:
         </Typography>

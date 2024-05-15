@@ -16,7 +16,7 @@ export const useCustomer = (filters = {}, options = {}) => {
 };
 
 export const useInfiniteCustomer = (filters = {}, options = {}) => {
-  const infiniteProduct = useInfiniteQuery(
+  const infiniteCustomer = useInfiniteQuery(
     ["customer", filters, { infinite: true }],
     ({ pageParam = filters.page ?? 1 }) => {
       const queryParams = filteringMethod({ page: pageParam, ...filters });
@@ -37,5 +37,5 @@ export const useInfiniteCustomer = (filters = {}, options = {}) => {
     }
   );
 
-  return { ...infiniteProduct };
+  return { ...infiniteCustomer };
 };

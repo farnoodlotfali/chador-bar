@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-pascal-case */
 /* eslint-disable array-callback-return */
 /* eslint-disable react-hooks/exhaustive-deps */
 import {
@@ -67,6 +68,14 @@ import RequestDetailModal from "Components/modals/RequestDetailModal";
 import FormTypography from "Components/FormTypography";
 import { SvgSPrite } from "Components/SvgSPrite";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseRequestTune } from "Components/choosers/ChooseRequestTune";
+import MapSpinnerLoader from "Components/MapSpinnerLoader";
+
+const INITIAL_ZONES_DATA = {
+  source_zones: [],
+  destination_zones: [],
+  both_zones: [],
+};
 
 const FleetAllocation = () => {
   const queryClient = useQueryClient();
@@ -83,7 +92,9 @@ const FleetAllocation = () => {
   const [filters, setFilters] = useState({
     variety: 1,
   });
-  const [filtersFree, setFiltersFree] = useState({});
+  const [filtersFree, setFiltersFree] = useState({
+    statuses: ["set", "enabled"],
+  });
 
   // filters ends
   // to control apis
@@ -95,7 +106,7 @@ const FleetAllocation = () => {
   // hold selected free request to add to busy requests
   const [selectedFree, setSelectedFree] = useState(null);
   const [requestId, setRequestId] = useState(0);
-  const [zoneData, setZoneData] = useState(0);
+  const [zoneData, setZoneData] = useState(INITIAL_ZONES_DATA);
 
   // requests for fleet in spacial date
   const {
@@ -157,6 +168,23 @@ const FleetAllocation = () => {
   }, [watch("fleet"), watch("start_date"), watch("end_date")]);
 
   useEffect(() => {
+    if (watch("fleet")?.id) {
+      setFilters((prev) => ({
+        ...prev,
+        fleet_id: watch("fleet")?.id,
+        min_date: watch("start_date")?.start_date,
+        max_date: watch("end_date")?.end_date,
+      }));
+
+      setEnabled(true);
+
+      setFiltersFree((prev) => ({
+        ...prev,
+        allocation_fleet_id: watch("fleet")?.id,
+      }));
+    }
+  }, [watch("fleet")]);
+  useEffect(() => {
     const m = moment(Date.now()).add(15, "day");
     setValue("end_date", {
       end_date: m.format("YYYY/MM/DD"),
@@ -172,27 +200,25 @@ const FleetAllocation = () => {
         JSON.stringify(zoneData?.source_zones)?.length > 0 ||
         JSON.stringify(zoneData?.destination_zones)?.length > 0
       ) {
-        setFiltersFree({
-          ...filtersFree,
+        setFiltersFree((prev) => ({
+          ...prev,
           source_zone_id: JSON.stringify(zoneData?.source_zones),
           destination_zone_id: JSON.stringify(zoneData?.destination_zones),
-        });
+        }));
       }
     }
   }, [filtersFree?.check_zone]);
 
   useEffect(() => {
-    if (watch("project")?.id) {
+    if (watch("projectPlan")?.id) {
       setFiltersFree((prev) =>
         removeInvalidValues({
           ...prev,
-          load_date: watch("load_date")?.load_date,
-          project_id: watch("project")?.id,
-          free: true,
+          project_plan_id: watch("projectPlan")?.id,
         })
       );
     }
-  }, [watch("project")]);
+  }, [watch("projectPlan")]);
 
   useEffect(() => {
     var load_date = moment(watch("load_date")?.load_date_fa);
@@ -330,7 +356,7 @@ const FleetAllocation = () => {
         setShowConfirmModal(false);
         toast.success("تغییرات با موفقیت انجام شد.");
       },
-      onError: () => {
+      onError: (err) => {
         setShowConfirmModal(false);
       },
     }
@@ -363,6 +389,19 @@ const FleetAllocation = () => {
           name={"project"}
           rules={{
             required: "پروژه را انتخاب کنید",
+          }}
+        />
+      ),
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseRequestTune
+          control={control}
+          name={"projectPlan"}
+          filters={{ project_id: watch("project")?.id }}
+          rules={{
+            required: "آهنگ حمل را انتخاب کنید",
           }}
         />
       ),
@@ -404,6 +443,11 @@ const FleetAllocation = () => {
         <ChooseFleet
           control={control}
           name={"fleet"}
+          filterData={{
+            container_type_id: !watch("seen")
+              ? watch("projectPlan")?.vehicle_type_id
+              : null,
+          }}
           rules={{
             required: "ناوگان را انتخاب کنید",
           }}
@@ -411,12 +455,17 @@ const FleetAllocation = () => {
       ),
       gridProps: { md: 12 },
     },
+    {
+      type: "checkbox",
+      name: "seen",
+      label: "عدم توجه به نوع بارگیر",
+      control: control,
+      gridProps: { md: 12 },
+    },
   ];
 
   // handle on submit
-  const onSubmit = (data) => {
-    // console.log(data);
-  };
+  const onSubmit = (data) => {};
 
   // handle on change inputs
   const handleChange = (name, value) => {
@@ -432,8 +481,12 @@ const FleetAllocation = () => {
       setRequestedList((prev) => [row, ...prev]);
       return;
     }
-    setSelectedFree(row);
-    setShowAddDetailModal(true);
+    if (watch("fleet")) {
+      setSelectedFree(row);
+      setShowAddDetailModal(true);
+    } else {
+      toast.error("لطفا ناوگان را انتخاب نمایید");
+    }
   };
 
   // save item to request list
@@ -459,7 +512,7 @@ const FleetAllocation = () => {
       const data = {
         request_id: requestId,
       };
-      const res = fleetDelete.mutateAsync(JSON.stringify(data));
+      const res = await fleetDelete.mutateAsync(JSON.stringify(data));
 
       return res;
     } catch (error) {
@@ -542,6 +595,26 @@ const FleetAllocation = () => {
                 height: 639,
               }}
             >
+              {freeList?.length === 0 && (
+                <Stack sx={{ alignItems: "center", mt: 8 }}>
+                  <SvgSPrite
+                    icon="rectangle-ad"
+                    color="#3D3D3D66"
+                    size="80px"
+                  />
+                  <Typography
+                    variant="h6"
+                    mt={3}
+                    sx={{
+                      width: "300px",
+                      textAlign: "center",
+                      color: "#3D3D3D66",
+                    }}
+                  >
+                    با توجه به فیلتر هایی که انتخاب کردید، آگهی فعالی پیدا نشد.
+                  </Typography>
+                </Stack>
+              )}
               {freeList.map((row) => {
                 return (
                   <FreeRequestItem
@@ -584,6 +657,24 @@ const FleetAllocation = () => {
                 height: 639,
               }}
             >
+              {!watch("fleet") ? (
+                <Stack sx={{ alignItems: "center", mt: 10 }}>
+                  <SvgSPrite icon="truck-front" color="#3D3D3D66" size="72px" />
+                  <Typography variant="h6" mt={3} color={"#3D3D3D66"}>
+                    برای تخصیص آگهی به ناوگان ابتدا باید یک ناوگان انتخاب کنید
+                  </Typography>
+                </Stack>
+              ) : (
+                requestedList?.length === 0 &&
+                allRequest?.pages[0]?.items?.data?.length === 0 && (
+                  <Stack sx={{ alignItems: "center", mt: 10 }}>
+                    <SvgSPrite icon="timer" color="#3D3D3D66" size="72px" />
+                    <Typography variant="h6" mt={3} color={"#3D3D3D66"}>
+                      ناوگان انتخابی شما در این تاریخ هیچ برنامه‌ای ندارد.
+                    </Typography>
+                  </Stack>
+                )
+              )}
               {requestedList.map((row) => {
                 return (
                   <BusyRequestItem
@@ -634,10 +725,9 @@ const FleetAllocation = () => {
             allRequest={allRequest}
             setFiltersFree={setFiltersFree}
             handleZoneSwitch={handleZoneSwitch}
-            setZone={(data) => {
-              setZoneData(data);
-            }}
+            setZoneData={setZoneData}
             loading={isFetchingFree || isFetching}
+            zoneData={zoneData}
           />
         </Grid>
       </Grid>
@@ -861,7 +951,7 @@ const BusyRequestItem = ({ row, del, handleClick, save, historyActions }) => {
                 color={del ? "error" : "info"}
                 onClick={() => handleClick(row)}
               >
-                {del ? "حذف" : "برگردان"}
+                {del ? "حذف" : "بازگشت"}
                 {/* {row.selected ? "برگردان" : " حذف از برنامه کاری"} */}
               </Button>
               {!del && (
@@ -1107,7 +1197,6 @@ const GetDetailModalToAdd = ({
       name: "discharge_time",
       label: "ساعت شروع تخلیه",
       control: control,
-      rules: { required: "ساعت شروع تخلیه را وارد کنید" },
     },
   ];
 
@@ -1150,7 +1239,7 @@ const GetDetailModalToAdd = ({
       discharge_time:
         data.discharge_date.discharge_date.split("/").join("-") +
         " " +
-        data.discharge_time +
+        (data.discharge_time ? data.discharge_time : "00:00") +
         ":00",
     });
     reset();
@@ -1179,7 +1268,7 @@ const GetDetailModalToAdd = ({
             <Divider sx={{ my: 2 }} />
             <Stack direction="row" justifyContent="flex-end">
               <Button variant="contained" type="submit">
-                ذخیره
+                تایید
               </Button>
             </Stack>
           </FormContainer>
@@ -1199,11 +1288,7 @@ const ADDRESS_TYPES = [
     id: "destination_zones",
   },
 ];
-const INITIAL_ZONES_DATA = {
-  source_zones: [],
-  destination_zones: [],
-  both_zones: [],
-};
+
 const StyButton = {
   bgcolor: "#ffff",
   width: "40px",
@@ -1227,7 +1312,8 @@ const MapSection = ({
   setFiltersFree,
   allRequestFree,
   allRequest,
-  setZone,
+  setZoneData,
+  zoneData,
   handleZoneSwitch,
 }) => {
   const { renderMap, center, handleOnChangeCenterFly } = Map({
@@ -1245,22 +1331,17 @@ const MapSection = ({
   const [showCircle, setShowCircle] = useState(false);
   const [showFreeReq, setShowFreeReq] = useState(false);
   const [showBusyReq, setShowBusyReq] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [switchBtn, setSwitchBtn] = useState(false);
   const [levelType, setLevelType] = useState(null);
   const [radiusRange, setRadiusRange] = useState(20);
   const [addressType, setAddressType] = useState(ADDRESS_TYPES[0]?.id);
   // 29 = tehran
   const [province, setProvince] = useState(29);
-  // hold zones
-  const [zonesData, setZonesData] = useState(INITIAL_ZONES_DATA);
-  const [zoneId, setZoneId] = useState(null);
   // map controls ends
 
   const { data: provinces, isError, isLoading, isFetching } = useProvince();
 
-  useEffect(() => {
-    setZone(zonesData);
-  }, [zonesData]);
   // map buttons
   const MAP_TOP_BUTTONS = useMemo(
     () => [
@@ -1307,31 +1388,33 @@ const MapSection = ({
     }
   };
 
-  const changeZoneIds = (ids) => {
-    if (ids.length > 0) {
-      let newArr = [];
-      let both_zones = [];
-      let selected =
-        addressType === "destination_zones"
-          ? "source_zones"
-          : "destination_zones";
-      if (zonesData[addressType].includes(zoneId)) {
-        newArr = zonesData[addressType].filter((item) => item !== zoneId);
-      } else {
-        newArr = zonesData[addressType].concat(zoneId);
-      }
-      newArr.forEach((ele1) => {
-        zonesData[selected].forEach(
-          (ele2) => ele1 === ele2 && both_zones.push(ele1)
-        );
-      });
+  const changeZoneIds = (obj) => {
+    const id = obj.properties.id;
 
-      setZonesData((prev) => ({
-        ...prev,
-        [addressType]: newArr,
-        both_zones: both_zones,
-      }));
+    let oppositeAddressType =
+      addressType === ADDRESS_TYPES[0].id
+        ? ADDRESS_TYPES[1].id
+        : ADDRESS_TYPES[0].id;
+
+    let newArr = [];
+    let both_zones = [];
+
+    if (zoneData[addressType].includes(id)) {
+      newArr = zoneData[addressType].filter((item) => item !== id);
+    } else {
+      newArr = zoneData[addressType].concat(id);
     }
+    newArr.forEach((ele1) => {
+      if (zoneData[oppositeAddressType].includes(ele1)) {
+        both_zones.push(ele1);
+      }
+    });
+
+    setZoneData({
+      ...zoneData,
+      [addressType]: newArr,
+      both_zones: both_zones,
+    });
   };
 
   const handleChangeZoneSwitch = (e) => {
@@ -1357,16 +1440,22 @@ const MapSection = ({
               onClick={(e) => {
                 changeZoneIds(e);
               }}
-              onHover={(value) => {
-                if (value?.zone?.id) {
-                  setZoneId(value?.zone?.id);
-                }
-              }}
-              zonesColor={[
-                { zones: zonesData.source_zones, color: "#00a185" },
-                { zones: zonesData.destination_zones, color: "#0067a5" },
-                { zones: zonesData.both_zones, color: "#080d52" },
+              selectedZones={[
+                {
+                  color: "#00a185",
+                  ids: zoneData.source_zones,
+                },
+                {
+                  color: "#0067a5",
+                  ids: zoneData.destination_zones,
+                },
+                {
+                  color: "#080d52",
+                  ids: zoneData.both_zones,
+                },
               ]}
+              loading={loading}
+              setLoading={setLoading}
             />
 
             {showBusyReq &&
@@ -1437,7 +1526,7 @@ const MapSection = ({
                   addressType === "destination_zones" ? "#0067a5" : "#ffff",
               }}
               onClick={() => {
-                setZonesData({ ...zonesData, destination_zones: [] });
+                setZoneData({ ...zoneData, destination_zones: [] });
               }}
             >
               <SvgSPrite
@@ -1474,18 +1563,18 @@ const MapSection = ({
                 if (addressType === "source_zones") {
                   setAddressType("destination_zones");
 
-                  setZonesData({
-                    ...zonesData,
-                    destination_zones: [...zonesData.source_zones],
-                    source_zones: [...zonesData.destination_zones],
+                  setZoneData({
+                    ...zoneData,
+                    destination_zones: [...zoneData.source_zones],
+                    source_zones: [...zoneData.destination_zones],
                   });
                 } else {
                   setAddressType("source_zones");
 
-                  setZonesData({
-                    ...zonesData,
-                    source_zones: [...zonesData.destination_zones],
-                    destination_zones: [...zonesData.source_zones],
+                  setZoneData({
+                    ...zoneData,
+                    source_zones: [...zoneData.destination_zones],
+                    destination_zones: [...zoneData.source_zones],
                   });
                 }
               }}
@@ -1521,7 +1610,7 @@ const MapSection = ({
                 bgcolor: addressType === "source_zones" ? "#00a185" : "#fff",
               }}
               onClick={() => {
-                setZonesData({ ...zonesData, source_zones: [] });
+                setZoneData({ ...zoneData, source_zones: [] });
               }}
             >
               <SvgSPrite
@@ -1632,6 +1721,8 @@ const MapSection = ({
             </Card>
           </Collapse>
         )}
+
+        {loading && <MapSpinnerLoader />}
       </Card>
     </>
   );

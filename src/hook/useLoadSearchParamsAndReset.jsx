@@ -4,21 +4,23 @@ import { useLayoutEffect, useMemo } from "react";
 
 const arrTypes = ["select", "multi"];
 
-export const useLoadSearchParamsAndReset = (Inputs, reset) => {
+export const useLoadSearchParamsAndReset = (Inputs, reset, effect = true) => {
   const { searchParamsFilter } = useSearchParamsFilter();
   const location = useLocation();
 
   // reset the Inputs if url has NOT have any query params
   useLayoutEffect(() => {
-    if (!Object.keys(searchParamsFilter).length && reset) {
-      reset(resetValues);
-    } else {
-      reset(searchParamsFilter, {
-        keepDirtyValues: true,
-        keepDefaultValues: true,
-      });
+    if (effect) {
+      if (!Object.keys(searchParamsFilter).length && reset) {
+        reset(resetValues);
+      } else {
+        reset(searchParamsFilter, {
+          keepDirtyValues: true,
+          keepDefaultValues: true,
+        });
+      }
     }
-  }, [location.search]);
+  }, [location.search, effect]);
 
   // find reset values
   const resetValues = useMemo(() => {
@@ -34,7 +36,7 @@ export const useLoadSearchParamsAndReset = (Inputs, reset) => {
         if (hasArrayValue) {
           obj[item?.customView?.props?.name] = [];
         } else {
-          obj[item.name] = null;
+          obj[item?.customView?.props?.name] = null;
         }
       } else {
         if (item?.defaultValue) {

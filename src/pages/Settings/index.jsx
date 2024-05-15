@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable default-case */
 import { LoadingButton } from "@mui/lab";
 import { Box, Button, Card, Stack, Divider } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,22 +54,67 @@ const Settings = () => {
         if (!grouped[category]) {
           grouped[category] = [];
         }
+        let input = null;
 
-        grouped[category].push({
-          type: "text",
-          name: item?.name,
-          label: item?.name_fa,
-          control: control,
-          rules: { required: `${item?.name_fa} را وارد کنید` },
-          category: item?.category,
-        });
-        setValue(item?.name, item?.value);
+        switch (item?.type) {
+          case "select":
+            input = renderTypeSelect(item);
+            break;
+
+          case "text":
+            input = renderTypeInput(item);
+            break;
+
+          case "bool":
+            input = renderTypeCheckBox(item);
+            break;
+        }
+
+        grouped[category].push(input);
+        if (!!item?.value) {
+          setValue(item?.name, item?.value);
+        }
       });
 
       setInputs(grouped);
       turnOffLoading();
     }
   }, [settings]);
+
+  const renderTypeCheckBox = (item) => {
+    return {
+      type: "checkbox",
+      name: item?.name,
+      label: item?.name_fa,
+      control: control,
+      category: item?.category,
+    };
+  };
+
+  const renderTypeInput = (item) => {
+    return {
+      type: item?.type,
+      name: item?.name,
+      label: item?.name_fa,
+      control: control,
+      category: item?.category,
+    };
+  };
+
+  const renderTypeSelect = (item) => {
+    return {
+      type: item?.type,
+      name: item?.name,
+      label: item?.name_fa,
+      options: !!item.options_variable
+        ? settings?.[item?.options_variable]
+        : item.options,
+      control: control,
+      valueKey: "key",
+      labelKey: "value",
+      category: item?.category,
+    };
+  };
 
   const updateSettingsMutation = useMutation(
     (data) => axiosApi({ url: "/setting", method: "post", data: data }),

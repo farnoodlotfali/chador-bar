@@ -6,7 +6,7 @@ import { BOXSHADOW } from "./BoxShadow";
 import { SPACING } from "./Spacing";
 import { BACKGROUND, PRIMARY, SECONDARY, TERTIARY, TEXT } from "./Colors";
 
-defaults.font.family = "YekanBakhFaNum, sans-serif";
+defaults.font.family = "Vazirmatn, sans-serif";
 
 const commonStyles = {
   direction: "rtl",
@@ -15,13 +15,13 @@ const commonStyles = {
     borderRadius: BORDER_RADIUS,
   },
   typography: {
-    fontFamily: "YekanBakhFaNum, sans-serif",
+    fontFamily: "Vazirmatn, sans-serif",
     small: {
       fontSize: 10,
-      fontFamily: "YekanBakhFaNum, sans-serif",
+      fontFamily: "Vazirmatn, sans-serif",
     },
     clickable: {
-      fontFamily: "YekanBakhFaNum, sans-serif",
+      fontFamily: "Vazirmatn, sans-serif",
       cursor: "pointer",
       width: "fit-content",
       margin: "auto",

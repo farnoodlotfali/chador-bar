@@ -3,6 +3,7 @@ import {
   Avatar,
   Box,
   Stack,
+  Switch,
   TableBody,
   TableCell,
   TableRow,
@@ -15,7 +16,11 @@ import HelmetTitlePage from "Components/HelmetTitlePage";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
-import { enToFaNumber, renderSelectOptions } from "Utility/utils";
+import {
+  enToFaNumber,
+  removeInvalidValues,
+  renderSelectOptions,
+} from "Utility/utils";
 import { axiosApi } from "api/axiosApi";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 
@@ -32,8 +37,8 @@ import { SvgSPrite } from "Components/SvgSPrite";
 
 const HeadCells = [
   {
-    id: "id",
-    label: "شناسه",
+    id: "order",
+    label: "ترتیب",
     sortable: true,
   },
   {
@@ -59,11 +64,7 @@ const HeadCells = [
     id: "web_view",
     label: "نمای وب",
   },
-  {
-    id: "order",
-    label: "ترتیب",
-    sortable: true,
-  },
+
   {
     id: "status",
     label: "وضعیت",
@@ -102,6 +103,53 @@ const ItemsList = () => {
     }
   );
 
+  // change web view
+  const changeWebViewMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/super-app/item/${formData.id}`,
+        method: "put",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
+  // change item order
+  const changeItemOrderMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/super-app/item-change-position/${formData.id}`,
+        method: "post",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
+  // duplicate an item
+  const duplicateItemMutation = useMutation(
+    (id) =>
+      axiosApi({
+        url: `/super-app/item-duplicate/${id}`,
+        method: "post",
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
   const showModalToRemove = (item) => {
     setItem(item);
     setAcceptRemoveModal(true);
@@ -118,6 +166,50 @@ const ItemsList = () => {
     setItem(item);
     setShowEditModal(true);
   };
+
+  // change web view item
+  const handleChangeStatus = async (id, value) => {
+    try {
+      const res = await changeWebViewMutation.mutateAsync({
+        id: id,
+        data: {
+          web_view: value,
+        },
+      });
+
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle change item order
+  const handleItemOrderChange = async (id, data) => {
+    const formData = {
+      data: data,
+      id: id,
+    };
+
+    try {
+      const res = await changeItemOrderMutation.mutateAsync(formData);
+
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle duplicate item
+  const handleDuplicateItemChange = async (id) => {
+    try {
+      const res = await duplicateItemMutation.mutateAsync(id);
+
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
   return (
     <>
       <HelmetTitlePage title="مدیریت سوپراپ" />
@@ -129,14 +221,53 @@ const ItemsList = () => {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
-        loading={isLoading || isFetching || deleteItemMutation.isLoading}
+        loading={
+          isLoading ||
+          isFetching ||
+          deleteItemMutation.isLoading ||
+          changeItemOrderMutation.isLoading ||
+          duplicateItemMutation.isLoading ||
+          changeWebViewMutation.isLoading
+        }
       >
         <TableBody>
           {allSuperAppItems?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.id)}
+                  <>
+                    <Stack direction="row" justifyContent="center" gap={2}>
+                      <SvgSPrite
+                        icon="up"
+                        MUIColor="success.main"
+                        size="small"
+                        sxStyles={{
+                          cursor: "pointer",
+                        }}
+                        onClick={() =>
+                          handleItemOrderChange(row.id, {
+                            action: "up",
+                            section_id: row.section_id,
+                          })
+                        }
+                      />
+                      {enToFaNumber(row?.order) ?? "-"}
+                      <SvgSPrite
+                        icon="down"
+                        MUIColor="error.main"
+                        size="small"
+                        sxStyles={{
+                          cursor: "pointer",
+                        }}
+                        onClick={() =>
+                          handleItemOrderChange(row.id, {
+                            action: "down",
+                            section_id: row.section_id,
+                          })
+                        }
+                      />
+                    </Stack>
+                  </>
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.title) ?? "-"}
@@ -161,19 +292,27 @@ const ItemsList = () => {
                   {row?.slug ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {Boolean(row?.web_view) ? (
-                    <SvgSPrite icon="check" MUIColor="success" />
-                  ) : (
-                    <SvgSPrite icon="xmark" MUIColor="error" />
-                  )}
+                  <Switch
+                    defaultChecked
+                    color="info"
+                    checked={Boolean(row?.web_view)}
+                    onChange={(e) => {
+                      handleChangeStatus(row.id, e.target.checked);
+                    }}
+                  />
                 </TableCell>
-                <TableCell align="center" scope="row">
-                  {enToFaNumber(row?.order) ?? "-"}
-                </TableCell>
+
                 <TableCell align="center">{row?.status ?? "-"}</TableCell>
                 <TableCell>
                   <TableActionCell
                     buttons={[
+                      {
+                        tooltip: "تکثیر",
+                        color: "warning",
+                        icon: "copy",
+                        onClick: () => handleDuplicateItemChange(row.id),
+                        name: "item.duplicate",
+                      },
                       {
                         tooltip: "ویرایش",
                         color: "warning",
@@ -226,10 +365,18 @@ const AddNewItem = ({ itemTypes }) => {
     watch,
   } = useForm();
 
-  const [openCollapse, setOpenCollapse] = useState(false);
+  const [openCollapse, setOpenCollapse] = useState(true);
 
   const addNewSuperItemMutation = useMutation(
-    (data) => axiosApi({ url: "/super-app/item", method: "post", data: data }),
+    (data) =>
+      axiosApi({
+        url: "/super-app/item",
+        method: "post",
+        data: data,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }),
     {
       onSuccess: () => {
         reset();
@@ -257,7 +404,6 @@ const AddNewItem = ({ itemTypes }) => {
         />
       ),
     },
-
     {
       type: "select",
       name: "web_view",
@@ -279,7 +425,7 @@ const AddNewItem = ({ itemTypes }) => {
       },
       endAdornment: (
         <InputCheckBoxEndAdornment
-          name="title_status"
+          name="comment_status"
           control={control}
           label="وضعیت"
           defaultValue={true}
@@ -292,20 +438,13 @@ const AddNewItem = ({ itemTypes }) => {
       label: "رنگ کامنت",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "رنگ کامنت را وارد کنید",
-      },
     },
-
     {
       type: "color",
       name: "background_color",
       label: "رنگ پس‌زمینه",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "رنگ پس‌زمینه را وارد کنید",
-      },
     },
     {
       type: "select",
@@ -364,35 +503,11 @@ const AddNewItem = ({ itemTypes }) => {
       rules: { required: "وضعیت آیتم را وارد کنید" },
     },
     {
-      type: "select",
-      name: "extension",
-      label: "افزونه",
-      options: renderSelectOptions({
-        png: "png",
-        svg: "svg",
-        jpg: "jpg",
-      }),
-      valueKey: "id",
-      labelKey: "title",
-      control: control,
-      defaultValue: "png",
-      rules: { required: "افزونه را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "size",
-      label: "سایز",
-      control: control,
-      splitter: true,
-      rules: { required: "سایز را وارد کنید" },
-    },
-    {
       type: "number",
       name: "height",
       label: "ارتفاع",
       control: control,
       splitter: true,
-      rules: { required: "ارتفاع را وارد کنید" },
     },
     {
       type: "number",
@@ -400,7 +515,6 @@ const AddNewItem = ({ itemTypes }) => {
       label: "عرض",
       control: control,
       splitter: true,
-      rules: { required: "عرض را وارد کنید" },
     },
     {
       type: "text",
@@ -412,8 +526,8 @@ const AddNewItem = ({ itemTypes }) => {
       isLtr: true,
     },
     {
-      type: "text",
-      name: "image_url",
+      type: "file",
+      name: "image",
       label: "عکس",
       control: control,
       isLtr: true,
@@ -427,10 +541,20 @@ const AddNewItem = ({ itemTypes }) => {
     data = {
       ...data,
       section_id: data?.section?.id,
+      title_status: Number(data?.title_status),
+      comment_status: Number(data?.comment_status),
     };
 
+    delete data.section;
+
+    var data1 = new FormData();
+
+    Object.entries(data).forEach(([key, val]) => {
+      data1.append(key, val);
+    });
+
     try {
-      const res = await addNewSuperItemMutation.mutateAsync(data);
+      const res = await addNewSuperItemMutation.mutateAsync(data1);
       return res;
     } catch (error) {
       return error;
@@ -484,6 +608,9 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
 
   useEffect(() => {
     reset(item);
+    setValue("image", {
+      name: item?.image_url,
+    });
   }, [item]);
 
   const updateSuperItemMutation = useMutation(
@@ -492,12 +619,15 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
         url: `/super-app/item/${item.id}`,
         method: "put",
         data: data,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }),
     {
       onSuccess: () => {
         reset();
         queryClient.invalidateQueries(["superApp"]);
-        toast.success("با موفقیت اضافه شد");
+        toast.success("با موفقیت تغییر یافت");
         onClose();
       },
     }
@@ -521,7 +651,6 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
         />
       ),
     },
-
     {
       type: "select",
       name: "web_view",
@@ -543,7 +672,7 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
       },
       endAdornment: (
         <InputCheckBoxEndAdornment
-          name="title_status"
+          name="comment_status"
           control={control}
           label="وضعیت"
           defaultValue={true}
@@ -556,20 +685,13 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
       label: "رنگ کامنت",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "رنگ کامنت را وارد کنید",
-      },
     },
-
     {
       type: "color",
       name: "background_color",
       label: "رنگ پس‌زمینه",
       noInputArrow: true,
       control: control,
-      rules: {
-        required: "رنگ پس‌زمینه را وارد کنید",
-      },
     },
     {
       type: "select",
@@ -628,35 +750,11 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
       rules: { required: "وضعیت آیتم را وارد کنید" },
     },
     {
-      type: "select",
-      name: "extension",
-      label: "افزونه",
-      options: renderSelectOptions({
-        png: "png",
-        svg: "svg",
-        jpg: "jpg",
-      }),
-      valueKey: "id",
-      labelKey: "title",
-      control: control,
-      defaultValue: "png",
-      rules: { required: "افزونه را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "size",
-      label: "سایز",
-      control: control,
-      splitter: true,
-      rules: { required: "سایز را وارد کنید" },
-    },
-    {
       type: "number",
       name: "height",
       label: "ارتفاع",
       control: control,
       splitter: true,
-      rules: { required: "ارتفاع را وارد کنید" },
     },
     {
       type: "number",
@@ -664,7 +762,6 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
       label: "عرض",
       control: control,
       splitter: true,
-      rules: { required: "عرض را وارد کنید" },
     },
     {
       type: "text",
@@ -676,25 +773,40 @@ const EditItemModal = ({ show, onClose, item, itemTypes }) => {
       isLtr: true,
     },
     {
-      type: "text",
-      name: "image_url",
+      type: "file",
+      name: "image",
       label: "عکس",
       control: control,
       rules: { required: "عکس را وارد کنید" },
       gridProps: { md: 6 },
-      isLtr: true,
     },
   ];
 
   // handle on submit
   const onSubmit = async (data) => {
-    data = {
+    data = removeInvalidValues({
       ...data,
       section_id: data?.section?.id,
-    };
+      title_status: Number(data?.title_status),
+      comment_status: Number(data?.comment_status),
+    });
+
+    delete data.section;
+    delete data.image_url;
+    delete data.size;
+    delete data.extension;
+    if (!(data.image instanceof File)) {
+      delete data.image;
+    }
+
+    var data1 = new FormData();
+
+    Object.entries(data).forEach(([key, val]) => {
+      data1.append(key, val);
+    });
 
     try {
-      const res = await updateSuperItemMutation.mutateAsync(data);
+      const res = await updateSuperItemMutation.mutateAsync(data1);
       return res;
     } catch (error) {
       return error;

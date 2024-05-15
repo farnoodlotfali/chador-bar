@@ -1,6 +1,16 @@
 import React, { useContext } from "react";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Pie, Line } from "react-chartjs-2";
 import {
   bgColorsForChart,
   borderColorsForChart,
@@ -9,7 +19,16 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { AppContext } from "context/appContext";
 
-ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
+ChartJS.register(
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const PieChart = ({ dataValues, labels, height }) => {
   const { appTheme } = useContext(AppContext);
@@ -32,7 +51,7 @@ const PieChart = ({ dataValues, labels, height }) => {
         labels: labels,
         datasets: [
           {
-            label: "مقدار",
+            // label: null,
             data: dataValues,
             backgroundColor: bgColorsForChart(dataValues.length),
             borderColor: borderColorsForChart(dataValues.length),
@@ -49,6 +68,22 @@ const PieChart = ({ dataValues, labels, height }) => {
         },
 
         plugins: {
+          tooltip: {
+            formatter: (value, ctx) => {
+              const datapoints = ctx.chart.data.datasets[0].data;
+              const total = datapoints.reduce(
+                (total, datapoint) => total + datapoint,
+                0
+              );
+              const percentage = (value / total) * 100;
+              return (
+                ctx.chart.data.labels[ctx.dataIndex] +
+                ": " +
+                enToFaNumber(Math.round(percentage)) +
+                "%"
+              );
+            },
+          },
           datalabels: {
             // backgroundColor: ["red", "green", "pink", "blue"],
             // borderColor:  ["yellow", "orange", "blue", "purple"],
@@ -59,7 +94,6 @@ const PieChart = ({ dataValues, labels, height }) => {
             // color: function (context) {
             //   var index = context.dataIndex;
             //   var value = context.dataset.data[index];
-
             //   if (index === 1) {
             //     return (value = 'black');
             //   } else {
@@ -92,7 +126,7 @@ const PieChart = ({ dataValues, labels, height }) => {
           },
           legend: {
             onClick: function (event, legendItem) {},
-
+            display: false,
             fullSize: false,
             rtl: true,
             position: "bottom",

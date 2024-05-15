@@ -5,16 +5,21 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import FormTypography from "Components/FormTypography";
 import Modal from "Components/versions/Modal";
 import SelectPerson from "Components/selects/SelectPerson";
-import { enToFaNumber } from "Utility/utils";
+import { renderMobileFormat } from "Utility/utils";
 import { useState } from "react";
 import { useController } from "react-hook-form";
 
-export const ChoosePerson = ({ control, name, rules, label = "شخص" }) => {
+export const ChoosePerson = ({
+  control,
+  name,
+  rules,
+  label = "شخص",
+  readOnly = false,
+}) => {
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -31,7 +36,7 @@ export const ChoosePerson = ({ control, name, rules, label = "شخص" }) => {
   const personName = field.value
     ? `${field.value.first_name ?? "فاقد نام"} ${
         field.value.last_name ?? ""
-      } - ${enToFaNumber(field.value.mobile) ?? ""}`
+      } - ${renderMobileFormat(field.value.mobile) ?? ""}`
     : `${label}`;
 
   const selectPerson = (person) => {
@@ -61,7 +66,11 @@ export const ChoosePerson = ({ control, name, rules, label = "شخص" }) => {
           error={error}
           endAdornment={
             <InputAdornment position="end">
-              <Button color="secondary" onClick={toggleShowModal}>
+              <Button
+                color="secondary"
+                onClick={toggleShowModal}
+                disabled={readOnly}
+              >
                 انتخاب
               </Button>
             </InputAdornment>

@@ -27,7 +27,11 @@ const headCells = [
   },
   {
     id: "amount",
-    label: "مقدار",
+    label: "تعداد",
+  },
+  {
+    id: "weight",
+    label: "وزن",
   },
 ];
 
@@ -56,7 +60,6 @@ const ShippingCompanyReportModal = ({ open, onClose, data }) => {
       enabled: open && !!data?.id,
     }
   );
-  console.log(data);
   const renderInfo = (title, value) => {
     return (
       <Stack direction="row" spacing={1}>
@@ -85,19 +88,22 @@ const ShippingCompanyReportModal = ({ open, onClose, data }) => {
           </Typography>
 
           <Grid container spacing={2} mt={3}>
-            <Grid item md={4} xs={12}>
+            <Grid item md={3} xs={12}>
               {renderInfo(
                 "مجموع تناژ حمل شده",
                 renderWeight(report?.total_weight)
               )}
             </Grid>
-            <Grid item md={4} xs={12}>
+            <Grid item md={3} xs={12}>
+              {renderInfo("مسافت طی‌شده", "-")}
+            </Grid>
+            <Grid item md={3} xs={12}>
               {renderInfo(
                 "جمع ریالی حمل",
-                numberWithCommas(report?.total_amount) + " تومان"
+                numberWithCommas(report?.total_amount) + " ریال"
               )}
             </Grid>
-            <Grid item md={4} xs={12}>
+            <Grid item md={3} xs={12}>
               {renderInfo(
                 "مجموع مدت زمان سیر",
                 numberWithCommas(report?.average_shipping_time) + " ساعت"
@@ -145,14 +151,17 @@ const ShippingCompanyReportModal = ({ open, onClose, data }) => {
                   >
                     <TableBody>
                       {Object.entries(report?.[category]).map(
-                        ([name, amount], i) => {
+                        ([name, value], i) => {
                           return (
                             <TableRow key={i} hover tabIndex={-1}>
                               <TableCell align="center" scope="row">
                                 {name ?? "-"}
                               </TableCell>
                               <TableCell align="center" scope="row">
-                                {numberWithCommas(amount)}
+                                {numberWithCommas(value?.count)}
+                              </TableCell>
+                              <TableCell align="center" scope="row">
+                                {renderWeight(value?.weight)}
                               </TableCell>
                             </TableRow>
                           );

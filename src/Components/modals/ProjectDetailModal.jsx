@@ -4,6 +4,7 @@ import {
   Divider,
   Grid,
   IconButton,
+  Rating,
   Stack,
   Tooltip,
   Typography,
@@ -12,8 +13,9 @@ import Modal from "Components/versions/Modal";
 import {
   enToFaNumber,
   handleDate,
-  numberWithCommas,
+  renderMobileFormat,
   renderPlaqueObjectToString,
+  renderWeight,
 } from "Utility/utils";
 
 import { Link } from "react-router-dom";
@@ -23,6 +25,11 @@ import ShowDriverFleet from "./ShowDriverFleet";
 import ShowVehiclesFleet from "./ShowVehiclesFleet";
 import VehicleDetailModal from "./VehicleDetailModal";
 import { SvgSPrite } from "Components/SvgSPrite";
+import { toast } from "react-toastify";
+
+import PieChart from "Components/charts/PieChart";
+import DraftDetailsModal from "./DraftDetailsModal";
+import WaybillDetailsModal from "./WaybillDetailsModal";
 
 const CardsStyle = {
   width: "100%",
@@ -33,7 +40,13 @@ const CardsStyle = {
 
 const ProjectDetailModal = ({ data, show, onClose }) => {
   const [showModal, setShowModal] = useState(null);
-
+  const chartValues = {
+    "درخواست شده": data?.set_weight,
+    "پذیرفته شده توسط راننده": data?.submit_weight,
+    "برنامه‌ریزی نشده(باقیمانده)": data?.remaining_weight,
+    "بارگیری شده": data?.load_weight,
+    "حمل شده": data?.done_weight,
+  };
   const closeModal = () => {
     setShowModal(null);
   };
@@ -121,15 +134,33 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     />
                   )}
                   {RowLabelAndData(
+                    "تاریخ شروع",
+                    handleDate(data?.start_date, "YYYY/MM/DD") ?? "-",
+                    <SvgSPrite
+                      icon="check-to-slot"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "تاریخ پایان",
+                    handleDate(data?.end_date, "YYYY/MM/DD") ?? "-",
+                    <SvgSPrite
+                      icon="check-to-slot"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
                     "تعداد درخواست ‌ها",
                     enToFaNumber(data.requests_count) ?? "-",
                     <SvgSPrite icon="hashtag" size="small" MUIColor="primary" />
                   )}
+
                   {RowLabelAndData(
-                    "تناژ باقیمانده",
-                    data.remaining_weight
-                      ? enToFaNumber(numberWithCommas(data.remaining_weight)) +
-                          " کیلوگرم"
+                    "وزن کل درخواست‌ها",
+                    data.requests_total_weight
+                      ? renderWeight(data.requests_total_weight)
                       : "-",
                     <SvgSPrite
                       icon="weight-scale"
@@ -138,12 +169,68 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     />
                   )}
                   {RowLabelAndData(
-                    "وزن کل درخواست‌ها",
-                    data.requests_total_weight
-                      ? enToFaNumber(
-                          numberWithCommas(data.requests_total_weight)
-                        ) + " کیلوگرم"
+                    "وزن درخواست‌ شده",
+                    data?.set_weight ? renderWeight(data?.set_weight) : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن پذیرفته شده",
+                    data?.submit_weight
+                      ? renderWeight(data?.submit_weight)
                       : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن بارگیری شده",
+                    data?.load_weight ? renderWeight(data?.load_weight) : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن حمل شده",
+                    data?.done_weight ? renderWeight(data?.done_weight) : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن باقیمانده",
+                    data?.remaining_weight
+                      ? renderWeight(data?.remaining_weight)
+                      : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن قراداد",
+                    data?.contract_weight
+                      ? renderWeight(data?.contract_weight)
+                      : "-",
+                    <SvgSPrite
+                      icon="weight-scale"
+                      size="small"
+                      MUIColor="primary"
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "وزن پروژه",
+                    data?.weight ? renderWeight(data?.weight) : "-",
                     <SvgSPrite
                       icon="weight-scale"
                       size="small"
@@ -160,12 +247,54 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                     />
                   )}
                   {RowLabelAndData(
-                    "زمان اتمام پروژه",
-                    data.remaining_time ?? "-",
-                    <SvgSPrite
-                      icon="rectangle-history"
+                    "میانگین امتیاز رانندگان",
+                    <Rating
+                      precision={0.2}
+                      sx={{
+                        width: "fit-content",
+                      }}
+                      value={data?.driver_ratings}
                       size="small"
+                      readOnly
+                    />,
+                    <SvgSPrite
+                      icon="star-half-stroke"
                       MUIColor="primary"
+                      sxStyles={{ ml: -0.5 }}
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "میانگین امتیاز صاحبان‌بار",
+                    <Rating
+                      precision={0.2}
+                      sx={{
+                        width: "fit-content",
+                      }}
+                      value={data?.owner_ratings}
+                      size="small"
+                      readOnly
+                    />,
+                    <SvgSPrite
+                      icon="star-half-stroke"
+                      MUIColor="primary"
+                      sxStyles={{ ml: -0.5 }}
+                    />
+                  )}
+                  {RowLabelAndData(
+                    "میانگین امتیاز شرکت های حمل",
+                    <Rating
+                      precision={0.2}
+                      sx={{
+                        width: "fit-content",
+                      }}
+                      value={data?.shipping_company_ratings}
+                      size="small"
+                      readOnly
+                    />,
+                    <SvgSPrite
+                      icon="star-half-stroke"
+                      MUIColor="primary"
+                      sxStyles={{ ml: -0.5 }}
                     />
                   )}
                 </Grid>
@@ -173,30 +302,21 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
             </Grid>
             <Grid item xs={12} md={6}>
               <Card sx={CardsStyle}>
-                <Typography variant="h5">اطلاعات بار</Typography>
-                <Grid container spacing={2} mt={2}>
-                  {RowLabelAndData(
-                    "تعداد",
-                    enToFaNumber(data.count) ?? "-",
-                    <SvgSPrite icon="hashtag" size="small" MUIColor="primary" />
+                <Typography variant="h5">وضعیت پروژه</Typography>
+
+                <PieChart
+                  labels={Object.keys(
+                    Object.fromEntries(
+                      Object.entries(chartValues).filter(([k, v]) => v > 0)
+                    )
                   )}
-                  {RowLabelAndData(
-                    "وزن",
-                    data.weight
-                      ? enToFaNumber(numberWithCommas(data.weight)) + " کیلوگرم"
-                      : "-",
-                    <SvgSPrite
-                      icon="weight-scale"
-                      size="small"
-                      MUIColor="primary"
-                    />
+                  dataValues={Object.values(
+                    Object.fromEntries(
+                      Object.entries(chartValues).filter(([k, v]) => v > 0)
+                    )
                   )}
-                  {RowLabelAndData(
-                    "حجم",
-                    enToFaNumber(data.volume) ?? "-",
-                    <SvgSPrite icon="square" size="small" MUIColor="primary" />
-                  )}
-                </Grid>
+                  height={500}
+                />
               </Card>
             </Grid>
             <Grid item xs={12}>
@@ -212,11 +332,39 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
                   </Button>
                   <Button
                     variant="contained"
-                    color="secondary"
-                    endIcon={<SvgSPrite icon="cars" color="inherit" />}
+                    color="primary"
+                    endIcon={<SvgSPrite icon="truck" color="inherit" />}
                     onClick={handleShowFleetVehicles}
                   >
-                    لیست خودروهای پروژه
+                    لیست ناوگان های پروژه
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    endIcon={<SvgSPrite icon="receipt" color="inherit" />}
+                    onClick={() => {
+                      if (data?.waybills?.length > 0) {
+                        setShowModal("waybill");
+                      } else {
+                        toast.error("بارنامه ای یافت نشد");
+                      }
+                    }}
+                  >
+                    بارنامه ها
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    endIcon={<SvgSPrite icon="scroll-old" color="inherit" />}
+                    onClick={() => {
+                      if (data?.drafts?.length > 0) {
+                        setShowModal("draft");
+                      } else {
+                        toast.error("حواله ای یافت نشد");
+                      }
+                    }}
+                  >
+                    حواله ها
                   </Button>
                 </Stack>
               </Card>
@@ -231,7 +379,16 @@ const ProjectDetailModal = ({ data, show, onClose }) => {
           onClose={closeModal}
           fleetVehicle={data?.fleets}
         />
-
+        <WaybillModal
+          show={showModal === "waybill"}
+          onClose={closeModal}
+          waybills={data?.waybills}
+        />
+        <DraftModal
+          show={showModal === "draft"}
+          onClose={closeModal}
+          drafts={data?.drafts}
+        />
         <DriversPerFleetVehicleModal
           show={showModal === "drivers"}
           onClose={closeModal}
@@ -264,7 +421,7 @@ const DriversPerFleetVehicleModal = memo(({ drivers, show, onClose }) => {
           </Typography>
 
           <Grid container spacing={2}>
-            {drivers.map((item) => {
+            {drivers?.map((item) => {
               return (
                 <Grid key={item.id} item xs={12} md={4}>
                   <Card sx={{ p: 2 }}>
@@ -284,7 +441,7 @@ const DriversPerFleetVehicleModal = memo(({ drivers, show, onClose }) => {
                           }}
                         />
                         <Typography variant="subtitle2" lineHeight="inherit">
-                          {enToFaNumber(item?.mobile ?? "-")}
+                          {renderMobileFormat(item?.mobile ?? "-")}
                         </Typography>
                       </Stack>
                       <Button
@@ -311,7 +468,165 @@ const DriversPerFleetVehicleModal = memo(({ drivers, show, onClose }) => {
     )
   );
 });
+const WaybillModal = memo(({ waybills, show, onClose }) => {
+  const [showDetailsWaybill, setShowDetailsWaybill] = useState(false);
+  const [dataWaybill, setDataWaybill] = useState(null);
 
+  return (
+    show && (
+      <>
+        <Modal onClose={onClose} open={show}>
+          <Typography
+            variant="h5"
+            mb={3}
+            typography={{ md: "h5", xs: "body2" }}
+          >
+            لیست بارنامه در درخواست های پروژه
+          </Typography>
+
+          <Grid container spacing={2}>
+            {waybills?.map((item) => {
+              return (
+                <Grid key={item.id} item xs={12} md={4}>
+                  <Card sx={{ p: 2 }}>
+                    <Stack justifyContent="center" spacing={3}>
+                      <Stack direction="row" alignItems="center" lineHeight={1}>
+                        <Typography variant="subtitle1" lineHeight="inherit">
+                          شماره
+                        </Typography>
+                        <Divider
+                          sx={{
+                            borderBottomWidth: "medium",
+                            borderBottomStyle: "dashed",
+                            mx: 1,
+                            flex: 1,
+                          }}
+                        />
+                        <Typography variant="subtitle2" lineHeight="inherit">
+                          {item?.WayBillNumber ?? "-"}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" lineHeight={1}>
+                        <Typography variant="subtitle1" lineHeight="inherit">
+                          سریال
+                        </Typography>
+                        <Divider
+                          sx={{
+                            borderBottomWidth: "medium",
+                            borderBottomStyle: "dashed",
+                            mx: 1,
+                            flex: 1,
+                          }}
+                        />
+                        <Typography variant="subtitle2" lineHeight="inherit">
+                          {item?.WayBillSerial ?? "-"}
+                        </Typography>
+                      </Stack>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => {
+                          setDataWaybill(item);
+                          setTimeout(() => {
+                            setShowDetailsWaybill(!showDetailsWaybill);
+                          }, 100);
+                        }}
+                      >
+                        نمایش
+                      </Button>
+                    </Stack>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Modal>
+
+        {/* modals */}
+
+        {/* waybill details Modal */}
+        <WaybillDetailsModal
+          open={showDetailsWaybill}
+          onClose={() => {
+            setShowDetailsWaybill(false);
+          }}
+          data={dataWaybill}
+        />
+      </>
+    )
+  );
+});
+const DraftModal = memo(({ drafts, show, onClose }) => {
+  const [dataDraft, setDataDraft] = useState(null);
+  const [showModal, setShowModal] = useState(null);
+
+  const closeModal = () => {
+    setShowModal(null);
+  };
+
+  const handleShowDraft = (draft) => {
+    setDataDraft(draft);
+    setShowModal("draftDetail");
+  };
+  return (
+    show && (
+      <>
+        <Modal onClose={onClose} open={show}>
+          <Typography
+            variant="h5"
+            mb={3}
+            typography={{ md: "h5", xs: "body2" }}
+          >
+            لیست حواله ها در درخواست های پروژه
+          </Typography>
+
+          <Grid container spacing={2}>
+            {drafts?.map((item) => {
+              return (
+                <Grid key={item.id} item xs={12} md={4}>
+                  <Card sx={{ p: 2 }}>
+                    <Stack justifyContent="center" spacing={3}>
+                      <Stack direction="row" alignItems="center" lineHeight={1}>
+                        <Typography variant="subtitle1" lineHeight="inherit">
+                          شماره
+                        </Typography>
+                        <Divider
+                          sx={{
+                            borderBottomWidth: "medium",
+                            borderBottomStyle: "dashed",
+                            mx: 1,
+                            flex: 1,
+                          }}
+                        />
+                        <Typography variant="subtitle2" lineHeight="inherit">
+                          {item?.DraftNumber ?? "-"}
+                        </Typography>
+                      </Stack>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => {
+                          handleShowDraft(item);
+                        }}
+                      >
+                        نمایش
+                      </Button>
+                    </Stack>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Modal>
+        <DraftDetailsModal
+          open={showModal === "draftDetail"}
+          onClose={closeModal}
+          data={dataDraft}
+        />
+      </>
+    )
+  );
+});
 const FleetVehiclesPerDriverModal = memo(({ fleetVehicle, show, onClose }) => {
   const [showModal, setShowModal] = useState(null);
   const [fVehicle, setFVehicle] = useState(null);
@@ -343,7 +658,7 @@ const FleetVehiclesPerDriverModal = memo(({ fleetVehicle, show, onClose }) => {
           </Typography>
 
           <Grid container spacing={2}>
-            {fleetVehicle.map((item) => {
+            {fleetVehicle?.map((item) => {
               return (
                 <Grid key={item.id} item xs={12} sm={6} md={4}>
                   <Card sx={{ p: 2 }}>

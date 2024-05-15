@@ -68,14 +68,14 @@ function ColorlibStepIcon(props, item, size) {
   );
 }
 
-const BarestanRequestStepper = ({ status, size = 30, STEPS }) => {
+const BarestanRequestStepper = ({ status, size = 30, STEPS, sx }) => {
   return (
     <>
       <Stepper
         alternativeLabel
         activeStep={STEPS.findIndex((item) => item.name === status) ?? 0}
         connector={<ColorlibConnector size={size} />}
-        sx={{ mb: 4, overflowX: "auto" }}
+        sx={{ mb: 4, overflowX: "auto", ...sx }}
       >
         {STEPS.map((item) => (
           <Step key={item.name}>

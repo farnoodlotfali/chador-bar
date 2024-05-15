@@ -196,6 +196,7 @@ const FilterSection = (props) => {
               size="small"
               value={per_page}
               onChange={handleChangePageLength}
+              defaultValue={filters?.pageLength ?? 10}
             >
               <MenuItem value={10}>{enToFaNumber(10)}</MenuItem>
               <MenuItem value={50}>{enToFaNumber(50)}</MenuItem>

@@ -32,6 +32,7 @@ import {
   enToFaNumber,
   renderChip,
   renderChipForInquiry,
+  renderMobileFormat,
   renderPlaqueObjectToString,
   renderSelectOptions2,
   zipCodeRegexPattern,
@@ -61,6 +62,7 @@ const NewShippingPlanning = () => {
   const navigate = useNavigate();
   const [submitType, setSubmitType] = useState(0);
   const [addressModal, setAddressModal] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
   const [filters, dispatch] = useReducer(filterReducer, initialState);
   const { renderMap, locationName, center } = Map({
     showCenterMarker: true,
@@ -68,10 +70,12 @@ const NewShippingPlanning = () => {
   });
   const [addressType, setAddressType] = useState(ADDRESS_TYPES[0]);
   const [addresses, setAddresses] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const {
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setValue,
     watch,
     control,
@@ -349,11 +353,11 @@ const NewShippingPlanning = () => {
       return [];
     }
 
-    project.destination_zones.forEach((item) => dIds.push(item.zone_id));
-    project.source_zones.forEach((item) => {
-      sIds.push(item.zone_id);
-      if (dIds.includes(item.zone_id)) {
-        bothIds.push(item.zone_id);
+    project?.destination_zones?.forEach((item) => dIds?.push(item?.zone_id));
+    project?.source_zones?.forEach((item) => {
+      sIds.push(item?.zone_id);
+      if (dIds?.includes(item?.zone_id)) {
+        bothIds?.push(item?.zone_id);
       }
     });
 
@@ -382,14 +386,14 @@ const NewShippingPlanning = () => {
     isLoading: isLoadingProject,
     isFetching: isFetchingProject,
     isError: isErrorProject,
-  } = useProject(filters.project);
+  } = useProject(filters?.project);
 
   const {
     data: allFleets,
     isLoading: isLoadingFleet,
     isFetching: isFetchingFleet,
     isError: isErrorFleet,
-  } = useFleet(filters.fleet);
+  } = useFleet(filters?.fleet);
 
   if (addMutation.isLoading || addMutation.isFetching) {
     return <LoadingSpinner />;
@@ -485,6 +489,8 @@ const NewShippingPlanning = () => {
                         fullWidth
                         placeholder="جستجو پروژه"
                         onEnter={getFilterProjects}
+                        searchVal={searchVal}
+                        setSearchVal={setSearchVal}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -527,7 +533,7 @@ const NewShippingPlanning = () => {
                                     {enToFaNumber(row.requests_count)}
                                   </TableCell>
                                   <TableCell scope="row">
-                                    {enToFaNumber(row.active_requests.length)}
+                                    {enToFaNumber(row.active_requests_count)}
                                   </TableCell>
                                   <TableCell scope="row">
                                     {row.product.title}
@@ -731,7 +737,9 @@ const NewShippingPlanning = () => {
                               />
                               <RenderItem
                                 title={"موبایل راننده"}
-                                value={enToFaNumber(watch("driver").mobile)}
+                                value={renderMobileFormat(
+                                  watch("driver").mobile
+                                )}
                               />
                             </>
                           )}
@@ -924,6 +932,8 @@ const NewShippingPlanning = () => {
                               ...addresses[1].ids,
                               ...addresses[2].ids,
                             ]}
+                            loading={loading}
+                            setLoading={setLoading}
                           />
 
                           {watch("project").places?.map((place, i) => {

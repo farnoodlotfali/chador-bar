@@ -7,7 +7,8 @@ import "@amir04lm26/react-modern-calendar-date-picker/lib/DatePicker.css";
 import { enToFaNumber } from "Utility/utils";
 
 const SelectDate = (props) => {
-  const { open, onClose, data, setData, dataKey } = props;
+  const { open, onClose, data, setData, dataKey, minimumDate, maximumDate } =
+    props;
   const [selected, setSelected] = useState({});
   const [mounted, setMounted] = useState(false);
 
@@ -40,7 +41,7 @@ const SelectDate = (props) => {
   const handleValue = () => {
     let result = null;
     if (data[`${dataKey}_fa`] && !mounted) {
-      let arr = data[`${dataKey}_fa`].split("/");
+      let arr = data[`${dataKey}_fa`]?.split("/");
       result = {
         year: Number(arr[0]),
         month: Number(arr[1]),
@@ -48,7 +49,7 @@ const SelectDate = (props) => {
       };
     } else if (selected[`${dataKey}_fa`]) {
       const value = selected[`${dataKey}_fa`];
-      const dataArray = value.split("/");
+      const dataArray = value?.split("/");
       result = {
         year: Number(dataArray[0]),
         month: Number(dataArray[1]),
@@ -72,6 +73,8 @@ const SelectDate = (props) => {
             value={handleValue()}
             onChange={handleDateChange}
             shouldHighlightWeekends
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
             renderFooter={() => (
               <Stack>
                 <Button

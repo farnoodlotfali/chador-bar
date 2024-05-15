@@ -11,7 +11,12 @@ import {
   TableHead,
   Button,
 } from "@mui/material";
-import { enToFaNumber, numberWithCommas } from "Utility/utils";
+import {
+  enToFaNumber,
+  numberWithCommas,
+  renderMobileFormat,
+  renderWeight,
+} from "Utility/utils";
 import { styled } from "@mui/material/styles";
 import Barcode from "react-barcode";
 import { useRef } from "react";
@@ -157,7 +162,7 @@ const Sec1 = ({ data }) => {
                 تاریخ صدور:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DraftIssueDateTime) ?? "-"}
+                {enToFaNumber(data?.DraftIssueDateTime) ?? "-"}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -165,7 +170,7 @@ const Sec1 = ({ data }) => {
                 شماره حواله:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DraftNumber) ?? "-"}
+                {enToFaNumber(data?.DraftNumber) ?? "-"}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -173,7 +178,7 @@ const Sec1 = ({ data }) => {
                 شماره بیمه:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.CivilInsuranceNo ?? "-")}
+                {enToFaNumber(data?.CivilInsuranceNo ?? "-")}
               </Typography>
             </Stack>
           </Stack>
@@ -197,7 +202,7 @@ const Sec2 = ({ data }) => {
                 <Typography variant="subtitle2" fontWeight="bold">
                   نام/عنوان:
                 </Typography>
-                <Typography variant="subtitle2">{data.SenderName}</Typography>
+                <Typography variant="subtitle2">{data?.SenderName}</Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -206,7 +211,7 @@ const Sec2 = ({ data }) => {
                   کد ملی/شناسه ملی:
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.SenderNationalId)}
+                  {enToFaNumber(data?.SenderNationalId)}
                 </Typography>
               </Stack>
             </Grid>
@@ -219,7 +224,7 @@ const Sec2 = ({ data }) => {
                 آدرس :
               </Typography>
               <Typography variant="subtitle2">
-                {data.SourceDepotAddress}
+                {data?.SourceDepotAddress}
               </Typography>
             </Stack>
           </Stack>
@@ -232,7 +237,7 @@ const Sec2 = ({ data }) => {
                   کد پستی:
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.DestDepotPostalCode)}
+                  {enToFaNumber(data?.DestDepotPostalCode)}
                 </Typography>
               </Stack>
             </Grid>
@@ -242,7 +247,7 @@ const Sec2 = ({ data }) => {
                   تلفن :
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.SourceDepotTelephone) ?? "-"}
+                  {enToFaNumber(data?.SourceDepotTelephone) ?? "-"}
                 </Typography>
               </Stack>
             </Grid>
@@ -263,7 +268,9 @@ const Sec3 = ({ data }) => {
                 <Typography variant="subtitle2" fontWeight="bold">
                   نام/عنوان:
                 </Typography>
-                <Typography variant="subtitle2">{data.ReceiverName}</Typography>
+                <Typography variant="subtitle2">
+                  {data?.ReceiverName}
+                </Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -272,7 +279,7 @@ const Sec3 = ({ data }) => {
                   کد ملی/شناسه ملی:
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.ReceiverNationalId)}
+                  {enToFaNumber(data?.ReceiverNationalId)}
                 </Typography>
               </Stack>
             </Grid>
@@ -285,7 +292,7 @@ const Sec3 = ({ data }) => {
                 آدرس:
               </Typography>
               <Typography variant="subtitle2">
-                {data.DestDepotAddress}
+                {data?.DestDepotAddress}
               </Typography>
             </Stack>
           </Stack>
@@ -298,7 +305,7 @@ const Sec3 = ({ data }) => {
                   کد پستی:
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.DestDepotPostalCode)}
+                  {enToFaNumber(data?.DestDepotPostalCode)}
                 </Typography>
               </Stack>
             </Grid>
@@ -308,7 +315,7 @@ const Sec3 = ({ data }) => {
                   تلفن:
                 </Typography>
                 <Typography variant="subtitle2">
-                  {enToFaNumber(data.DestDepotTelephone) ?? "-"}
+                  {enToFaNumber(data?.DestDepotTelephone) ?? "-"}
                 </Typography>
               </Stack>
             </Grid>
@@ -328,14 +335,16 @@ const Sec4 = ({ data }) => {
               <Typography variant="subtitle2" fontWeight="bold">
                 نام/عنوان:
               </Typography>
-              <Typography variant="subtitle2">{data.DriverFullName}</Typography>
+              <Typography variant="subtitle2">
+                {data?.DriverFullName}
+              </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
               <Typography variant="subtitle2" fontWeight="bold">
                 شماره گواهینامه :
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DriverCertificateNumber)}
+                {enToFaNumber(data?.DriverCertificateNumber)}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -343,7 +352,7 @@ const Sec4 = ({ data }) => {
                 شماره تلفن همراه:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DriverMobile)}
+                {renderMobileFormat(data?.DriverMobile)}
               </Typography>
             </Stack>
           </Stack>
@@ -355,7 +364,7 @@ const Sec4 = ({ data }) => {
                 کد ملی/شناسه ملی:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DriverNationalCode)}
+                {enToFaNumber(data?.DriverNationalCode)}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -363,7 +372,7 @@ const Sec4 = ({ data }) => {
                 محل صدور:
               </Typography>
               <Typography variant="subtitle2">
-                {data.DriverCertificateNumberIssueDate ?? "-"}
+                {data?.DriverCertificateNumberIssueDate ?? "-"}
               </Typography>
             </Stack>
           </Stack>
@@ -374,14 +383,14 @@ const Sec4 = ({ data }) => {
               <Typography variant="subtitle2" fontWeight="bold">
                 شهر سکونت:
               </Typography>
-              <Typography variant="subtitle2">{data.DriverAddress}</Typography>
+              <Typography variant="subtitle2">{data?.DriverAddress}</Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
               <Typography variant="subtitle2" fontWeight="bold">
                 کارت هوشمند:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.DriverSmartCardNo)}
+                {enToFaNumber(data?.DriverSmartCardNo)}
               </Typography>
             </Stack>
           </Stack>
@@ -401,9 +410,9 @@ const Sec6 = ({ data }) => {
                 پلاک:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.VehiclePlaqueNo)}
+                {enToFaNumber(data?.VehiclePlaqueNo)}
                 ایران
-                {enToFaNumber(data.VehiclePlaqueSerial)}
+                {enToFaNumber(data?.VehiclePlaqueSerial)}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -427,7 +436,7 @@ const Sec6 = ({ data }) => {
                 کارت هوشمند:
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.VehicleSmartCardNo)}
+                {enToFaNumber(data?.VehicleSmartCardNo)}
               </Typography>
             </Stack>
           </Stack>
@@ -439,7 +448,7 @@ const Sec6 = ({ data }) => {
                 نوع بارگیر:
               </Typography>
               <Typography variant="subtitle2">
-                {data.TrailerTypeName}
+                {data?.TrailerTypeName}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -494,50 +503,57 @@ const Sec7 = ({ data }) => {
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                borderLeft: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {data.GoodsName}
+              {data?.GoodsName}
             </TableCell>
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {numberWithCommas(enToFaNumber(data.LoadWeight))} کیلوگرم
+              {numberWithCommas(enToFaNumber(renderWeight(data?.LoadWeight)))}
             </TableCell>
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {data.PackName}
+              {data?.PackName}
             </TableCell>
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {data.LoadPacket}
+              {data?.LoadPacket}
             </TableCell>
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {data.SourceDepotName}
+              {data?.SourceDepotName}
             </TableCell>
             <TableCell
               sx={{
                 borderRight: "2px solid",
+                textAlign: "center",
               }}
               scope="row"
             >
-              {data.DestDepotName}
+              {data?.DestDepotName}
             </TableCell>
           </TableRow>
         </MuiTable>
@@ -555,7 +571,7 @@ const Sec8 = ({ data }) => {
               <Typography variant="subtitle2" fontWeight="bold">
                 نام :
               </Typography>
-              <Typography variant="subtitle2">{data.BranchName}</Typography>
+              <Typography variant="subtitle2">{data?.BranchName}</Typography>
             </Stack>
             <Stack direction="row" spacing={1}>
               <Typography variant="subtitle2" fontWeight="bold">
@@ -572,7 +588,7 @@ const Sec8 = ({ data }) => {
                 تلفن :
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.BranchTel)}
+                {enToFaNumber(data?.BranchTel)}
               </Typography>
             </Stack>
           </Stack>
@@ -584,7 +600,7 @@ const Sec8 = ({ data }) => {
                 کد شرکت :
               </Typography>
               <Typography variant="subtitle2">
-                {enToFaNumber(data.BranchCode)}
+                {enToFaNumber(data?.BranchCode)}
               </Typography>
             </Stack>
           </Stack>

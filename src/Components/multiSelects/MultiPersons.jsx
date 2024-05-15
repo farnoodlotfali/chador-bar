@@ -21,7 +21,7 @@ import React, { Fragment, useEffect, useState } from "react";
 import { useFieldArray, useFormState } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { enToFaNumber } from "Utility/utils";
+import { enToFaNumber, renderMobileFormat } from "Utility/utils";
 
 const MultiPersons = (props) => {
   const [filters, setFilters] = useState({});
@@ -192,7 +192,7 @@ const MultiPersons = (props) => {
                               person.last_name || ""
                             }`}</Typography>
                             <Typography>
-                              {enToFaNumber(person.mobile)}
+                              {renderMobileFormat(person.mobile)}
                             </Typography>
                           </Stack>
                         </Button>

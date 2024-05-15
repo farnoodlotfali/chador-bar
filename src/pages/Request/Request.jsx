@@ -14,6 +14,10 @@ import {
   compareTimes,
   enToFaNumber,
   numberWithCommas,
+  removeInvalidValues,
+  renderDataFormat,
+  renderUtcToTime,
+  renderWeight,
   zipCodeRegexPattern,
 } from "Utility/utils";
 import { ChooseDriver } from "Components/choosers/driver/ChooseDriver";
@@ -27,6 +31,7 @@ import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
 import { ChooseSalon } from "Components/choosers/ChooseSalon";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseOwner } from "Components/choosers/ChooseOwner";
 
 export default function Request() {
   const queryClient = useQueryClient();
@@ -85,12 +90,32 @@ export default function Request() {
         high_price: requestData?.high_price,
         low_price: requestData?.low_price,
       });
+
+      setValue("weight", requestData?.weight / 1000);
+
       if (!requestData?.proposed_price) {
         setValue("proposed_price", "قیمت توافقی");
       }
 
-      renderDataAndTime(requestData?.discharge_time, "discharge_time");
-      renderDataAndTime(requestData?.load_time, "load_time");
+      setValue(
+        "discharge_time",
+        renderDataFormat("discharge_time", requestData?.discharge_time)
+      );
+      setValue(
+        `discharge_time_upto`,
+        renderUtcToTime(requestData?.discharge_time_upto)
+      );
+      setValue(
+        `discharge_time_duration`,
+        renderUtcToTime(requestData?.discharge_time)
+      );
+
+      setValue(
+        "load_time",
+        renderDataFormat("load_time", requestData?.load_time)
+      );
+      setValue(`load_time_upto`, renderUtcToTime(requestData?.load_time_upto));
+      setValue(`load_time_duration`, renderUtcToTime(requestData?.load_time));
 
       setTimeout(() => {
         setIsDataLoaded(true);
@@ -98,27 +123,12 @@ export default function Request() {
     }
   }, [isSuccess]);
 
-  const renderDataAndTime = (val, name) => {
-    if (!val) {
-      return;
-    }
-    setValue(name, {
-      [name]: moment(val).locale("en").format("YYYY/MM/DD"),
-      [`${name}_fa`]: moment(val).locale("fa").format("YYYY/MM/DD"),
-      [`${name}_text`]: enToFaNumber(
-        moment(val).locale("fa").format("YYYY/MM/DD")
-      ),
-    });
-
-    setValue(`${name}_duration`, moment(val).locale("en").format("hh:mm"));
-  };
-
-  useEffect(() => {
-    if (watch("fleet"))
-      setValue("driver", watch("fleet")?.drivers?.[0], {
-        shouldValidate: true,
-      });
-  }, [watch("fleet")]);
+  // useEffect(() => {
+  //   if (watch("fleet"))
+  //     setValue("driver", watch("fleet")?.drivers?.[0], {
+  //       shouldValidate: true,
+  //     });
+  // }, [watch("fleet")]);
 
   useEffect(() => {
     if (watch("project")) {
@@ -138,9 +148,6 @@ export default function Request() {
     }
   }, [watch("project")]);
 
-  // discharge_time_upto is dependent on discharge_time_duration.
-  // if discharge_time_duration is bigger than discharge_time_upto, then
-  // discharge_time_upto value should same as discharge_time_duration value
   useEffect(() => {
     let tUpto = watch("discharge_time_upto");
     let tDuration = watch("discharge_time_duration");
@@ -149,9 +156,6 @@ export default function Request() {
     }
   }, [watch("discharge_time_duration")]);
 
-  // discharge_time_duration is dependent on discharge_time_upto.
-  // if discharge_time_upto is lower than discharge_time_duration, then
-  // discharge_time_duration value should same as discharge_time_upto value
   useEffect(() => {
     let tUpto = watch("discharge_time_upto");
     let tDuration = watch("discharge_time_duration");
@@ -160,9 +164,6 @@ export default function Request() {
     }
   }, [watch("discharge_time_upto")]);
 
-  // load_time_upto is dependent on load_time_duration.
-  // if load_time_duration is bigger than load_time_upto, then
-  // load_time_upto value should same as load_time_duration value
   useEffect(() => {
     let tUpto = watch("load_time_upto");
     let tDuration = watch("load_time_duration");
@@ -171,9 +172,6 @@ export default function Request() {
     }
   }, [watch("load_time_duration")]);
 
-  // load_time_duration is dependent on load_time_upto.
-  // if load_time_upto is lower than load_time_duration, then
-  // load_time_duration value should same as load_time_upto value
   useEffect(() => {
     let tUpto = watch("load_time_upto");
     let tDuration = watch("load_time_duration");
@@ -182,7 +180,6 @@ export default function Request() {
     }
   }, [watch("load_time_upto")]);
 
-  // if data is loading or fetching
   if (!isDataLoaded || isLoading || isFetching) {
     return <LoadingSpinner />;
   }
@@ -236,7 +233,7 @@ export default function Request() {
     {
       type: "custom",
       customView: (
-        <ChoosePerson
+        <ChooseOwner
           control={control}
           name={"owner"}
           rules={{
@@ -271,6 +268,7 @@ export default function Request() {
           rules={{
             required: "کد سالن را وارد کنید",
           }}
+          defaultGlobalSalon={true}
         />
       ),
       gridProps: { md: 4 },
@@ -287,6 +285,9 @@ export default function Request() {
       customView: <></>,
       gridProps: { md: 12 },
     },
+  ];
+
+  const ProductInputs = [
     {
       type: "number",
       name: "weight",
@@ -297,6 +298,14 @@ export default function Request() {
       rules: {
         required: { value: true, message: "وزن را وارد کنید" },
       },
+    },
+    {
+      type: "number",
+      name: "quantity",
+      label: "تعداد",
+      control: control,
+      noInputArrow: true,
+      splitter: true,
     },
     {
       type: "number",
@@ -330,6 +339,7 @@ export default function Request() {
       gridProps: { md: 12 },
     },
   ];
+
   const VehicleTypeInputs = [
     {
       type: "custom",
@@ -386,9 +396,6 @@ export default function Request() {
         <ChooseFleet
           control={control}
           name={"fleet"}
-          rules={{
-            required: " کد ناوگان را وارد کنید",
-          }}
           filterData={{
             shipping_company: watch("shipping_company"),
           }}
@@ -405,9 +412,6 @@ export default function Request() {
           dataArray={watch("fleet")}
           isLoadFromApi={false}
           label="راننده اول"
-          rules={{
-            required: "راننده را وارد کنید",
-          }}
         />
       ),
       gridProps: { md: 4 },
@@ -449,30 +453,24 @@ export default function Request() {
       name: "load_time_upto",
       label: "حداکثر ساعت بارگیری",
       control: control,
-      rules: { required: "حداکثر ساعت بارگیری را وارد کنید" },
     },
     {
       type: "date",
       name: "discharge_time",
       label: "تاریخ تخلیه",
       control: control,
-      rules: {
-        required: " تاریخ تخلیه را وارد کنید",
-      },
     },
     {
       type: "time",
       name: "discharge_time_duration",
       label: "ساعت تخلیه",
       control: control,
-      rules: { required: "ساعت تخلیه را وارد کنید" },
     },
     {
       type: "time",
       name: "discharge_time_upto",
       label: "حداکثر ساعت تخلیه",
       control: control,
-      rules: { required: "حداکثر ساعت تخلیه را وارد کنید" },
     },
   ];
   const DestinationInputs = [
@@ -517,9 +515,6 @@ export default function Request() {
       splitter: true,
       control: control,
       noInputArrow: true,
-      rules: {
-        required: { value: true, message: "مبلغ را وارد کنید" },
-      },
     },
   ];
 
@@ -542,8 +537,8 @@ export default function Request() {
       ...newData
     } = data;
 
-    newData.driver_id = driver.id;
-    newData.second_driver_id = second_driver?.id;
+    newData.driver_id = driver?.account_id;
+    newData.second_driver_id = second_driver?.account_id;
     newData.fleet_id = fleet.id;
     newData.owner_id = owner.id;
 
@@ -552,18 +547,23 @@ export default function Request() {
     newData.receiver_id = receiver.id;
     newData.sender_id = sender.id;
     newData.salon_id = salon.id ?? null;
-    newData.load_time =
-      load_time.load_time.replaceAll("/", "-") +
-      " " +
-      load_time_duration +
-      ":00";
-    newData.discharge_time =
-      discharge_time.discharge_time.replaceAll("/", "-") +
-      " " +
-      discharge_time_duration +
-      ":00";
 
-    newData = JSON.stringify(newData);
+    const loadTimeValue = load_time?.load_time?.replaceAll("/", "-");
+    const dischargeTimeValue = discharge_time?.discharge_time?.replaceAll(
+      "/",
+      "-"
+    );
+
+    newData.load_time = loadTimeValue + " " + load_time_duration + ":00";
+    newData.load_time_upto =
+      loadTimeValue + " " + newData.load_time_upto + ":00";
+
+    newData.discharge_time =
+      dischargeTimeValue + " " + discharge_time_duration + ":00";
+    newData.discharge_time_upto =
+      dischargeTimeValue + " " + newData.discharge_time_upto + ":00";
+
+    newData = JSON.stringify(removeInvalidValues(newData));
     try {
       const res = await updateRequest.mutateAsync(newData);
 
@@ -629,9 +629,9 @@ export default function Request() {
 
             <Divider sx={{ my: 5 }} />
 
-            <FormTypography>رانندگان</FormTypography>
+            <FormTypography>مشخصات بار</FormTypography>
 
-            <FormInputs gridProps={{ md: 3 }} inputs={DriversInputs} />
+            <FormInputs gridProps={{ md: 3 }} inputs={ProductInputs} />
 
             <Divider sx={{ my: 5 }} />
 
@@ -665,6 +665,12 @@ export default function Request() {
 
             <Divider sx={{ my: 5 }} />
 
+            <FormTypography>ناوگان</FormTypography>
+
+            <FormInputs gridProps={{ md: 3 }} inputs={DriversInputs} />
+
+            <Divider sx={{ my: 5 }} />
+
             <FormTypography>قیمت</FormTypography>
 
             <FormInputs inputs={PricesInputs}>
@@ -674,7 +680,7 @@ export default function Request() {
                 </Typography>
                 <Typography fontSize={14} mt={1}>
                   {prices.high_price
-                    ? numberWithCommas(prices.high_price) + " تومان"
+                    ? numberWithCommas(prices.high_price) + " ریال"
                     : "بدون قیمت"}
                 </Typography>
               </Grid>
@@ -685,7 +691,7 @@ export default function Request() {
                 </Typography>
                 <Typography fontSize={14} mt={1}>
                   {prices.low_price
-                    ? numberWithCommas(prices.low_price) + " تومان"
+                    ? numberWithCommas(prices.low_price) + " ریال"
                     : "بدون قیمت"}
                 </Typography>
               </Grid>

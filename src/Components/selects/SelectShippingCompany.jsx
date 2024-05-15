@@ -28,7 +28,7 @@ export default function SelectShippingCompany({ data, setData }) {
   if (isError) {
     return <div className="">error</div>;
   }
-  const { data: ShippingCompanies } = allShippingCompanies;
+  const { data: ShippingCompanies } = allShippingCompanies.items;
   return (
     <>
       <Grid container>
@@ -85,7 +85,7 @@ export default function SelectShippingCompany({ data, setData }) {
             })
           ) : (
             <Typography pt={2} pl={2}>
-              راننده یافت نشد
+              شرکت حملی یافت نشد
             </Typography>
           )}
         </Grid>

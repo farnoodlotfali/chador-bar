@@ -23,7 +23,10 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { enToFaNumber } from "Utility/utils";
 
 const MultiProducts = (props) => {
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    "sort[column]": "title",
+    "sort[dir]": "asc",
+  });
   const [showModal, setShowModal] = useState(false);
   const [searchVal, setSearchVal] = useState("");
   const { ref, inView } = useInView();
@@ -74,7 +77,7 @@ const MultiProducts = (props) => {
   }, [location.search, allProducts?.pages?.length]);
 
   const getProducts = (value) => {
-    setFilters({ q: value });
+    setFilters((prev) => ({ ...prev, q: value }));
   };
 
   const { fields, append, remove } = useFieldArray({

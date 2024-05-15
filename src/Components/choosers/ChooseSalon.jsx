@@ -1,3 +1,5 @@
+/* eslint-disable no-empty-pattern */
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Button,
   FormControl,
@@ -5,7 +7,6 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import FormTypography from "Components/FormTypography";
@@ -17,7 +18,7 @@ import { useController } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 
 export const GLOBAL_SALON = {
-  id: 0,
+  id: "0",
   name: "سراسری",
   drivers: [],
   owners: [],
@@ -41,7 +42,7 @@ export const ChooseSalon = ({ control, name, rules, defaultGlobalSalon }) => {
     ["salon", salon_id],
     () => axiosApi({ url: `salon/${salon_id}` }).then((res) => res.data.Data),
     {
-      enabled: !!salon_id && salon_id != 0,
+      enabled: !!salon_id && salon_id !== 0,
       staleTime: 10 * 60 * 1000,
     }
   );
@@ -50,8 +51,6 @@ export const ChooseSalon = ({ control, name, rules, defaultGlobalSalon }) => {
   useEffect(() => {
     if (salon && salon_id) {
       field.onChange(salon);
-    } else {
-      field.onChange(GLOBAL_SALON);
     }
   }, [salon_id, salon]);
 

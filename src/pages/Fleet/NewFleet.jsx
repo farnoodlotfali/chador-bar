@@ -18,6 +18,7 @@ import {
   Step,
   StepLabel,
   Container,
+  StepIcon,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
@@ -35,6 +36,7 @@ import {
   enToFaNumber,
   renderChip,
   renderChipForInquiry,
+  renderMobileFormat,
   renderPlaqueObjectToString,
 } from "Utility/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +44,6 @@ import { axiosApi } from "api/axiosApi";
 import { useFieldArray, useForm } from "react-hook-form";
 import { ChooseVModel } from "Components/choosers/vehicle/model/ChooseVModel";
 import { ChooseVColor } from "Components/choosers/vehicle/color/ChooseVColor";
-import { useVehicleColor } from "hook/useVehicleColor";
 
 import { useVehicle } from "hook/useVehicle";
 import Modal from "Components/versions/Modal";
@@ -191,7 +192,15 @@ export default function NewFleet() {
         <Stepper activeStep={step} alternativeLabel>
           {stepsLabels.map((label) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel
+                StepIconComponent={(props) => {
+                  return (
+                    <StepIcon {...props} icon={enToFaNumber(props.icon)} />
+                  );
+                }}
+              >
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
@@ -216,7 +225,6 @@ const StepOne = (props) => {
   const [openCollapse, setOpenCollapse] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedV, setSelectedV] = useState(null);
-  const { data: colors, isFetching: isFetchingColor } = useVehicleColor();
 
   const {
     data: vehicles,
@@ -236,7 +244,7 @@ const StepOne = (props) => {
     }
   );
 
-  if (isLoading || isFetching || isFetchingColor) {
+  if (isLoading || isFetching) {
     return <LoadingSpinner />;
   }
   if (isError) {
@@ -266,7 +274,6 @@ const StepOne = (props) => {
           value: 1350,
           message: "سال تولید باید از 1350 بزرگتر باشد",
         },
-        required: "سال را وارد کنید",
         minLength: {
           value: 4,
           message: "سال باید 4 رقمی باشد",
@@ -300,21 +307,12 @@ const StepOne = (props) => {
     },
     {
       type: "number",
-      name: "imei",
-      splitter: true,
-      label: "IMEI",
+      name: "gps_code",
+      label: "کد Gps",
       control: control,
       noInputArrow: true,
       rules: {
-        required: "IMEI را وارد کنید",
-        minLength: {
-          value: 15,
-          message: "IMEI  باید 15 حرفی باشد",
-        },
-        maxLength: {
-          value: 15,
-          message: "IMEI  باید 15 حرفی باشد",
-        },
+        required: "gps_code را وارد کنید",
       },
     },
     {
@@ -322,13 +320,13 @@ const StepOne = (props) => {
       name: "شماره کارت هوشمند",
       label: "شماره کارت هوشمند",
       control: control,
-      rules: {
-        required: "شماره کارت هوشمند را وارد کنید",
-        minLength: {
-          value: 17,
-          message: "شماره کارت هوشمند  باید 17 حرفی باشد",
-        },
-      },
+      // rules: {
+      //   required: "شماره کارت هوشمند را وارد کنید",
+      //   minLength: {
+      //     value: 17,
+      //     message: "شماره کارت هوشمند  باید 17 حرفی باشد",
+      //   },
+      // },
     },
     {
       type: "plaque",
@@ -383,13 +381,14 @@ const StepOne = (props) => {
   // handle on submit new vehicle
   const onSubmit = (data) => {
     data = JSON.stringify({
-      plaque: data.plaque,
-      vehicle_model_id: data.vehicle_model.id,
-      color: data.color[0],
-      container_type_id: data.container_type.id,
-      vin: data.vin.toUpperCase(),
-      imei: data.imei,
-      year: data.year,
+      plaque: data?.plaque,
+      vehicle_model_id: data?.vehicle_model?.id,
+      color: data?.color?.length > 0 ? data?.color[0] : null,
+      container_type_id: data?.container_type?.id,
+      vin: data?.vin?.toUpperCase(),
+      imei: data?.imei,
+      gps_code: data?.gps_code,
+      year: data?.year,
       status: 1,
       inquiry: 0,
     });
@@ -507,7 +506,7 @@ const StepOne = (props) => {
                   {renderPlaqueObjectToString(row.plaque)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {colors[row.color]}
+                  {row.color}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.year)}
@@ -550,7 +549,7 @@ const StepOne = (props) => {
               )}
               {renderItem(
                 "رنگ ",
-                colors[selectedV.color],
+                selectedV.color,
                 <SvgSPrite icon="brush" MUIColor="error" />
               )}
               {renderItem(
@@ -792,9 +791,7 @@ const StepTwo = (props) => {
     }
   };
 
-  const onSubmit1 = async (data) => {
-    console.log("onSubmit1 = ", data);
-  };
+  const onSubmit1 = async (data) => {};
 
   // handle on change inputs
   const handleChange = (name, value) => {
@@ -924,7 +921,7 @@ const StepTwo = (props) => {
                     (row.person.last_name || " ")}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.mobile)}
+                  {renderMobileFormat(row.mobile)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.person.national_code ?? "-")}
@@ -1470,7 +1467,7 @@ const StepFour = (props) => {
                   (item.person.last_name ?? "")}
               </TableCell>
               <TableCell align="center" scope="row">
-                {enToFaNumber(item.person.mobile) ?? "-"}
+                {renderMobileFormat(item.person.mobile) ?? "-"}
               </TableCell>
               <TableCell align="center" scope="row">
                 {enToFaNumber(item.person.national_card) ?? "-"}
@@ -1542,7 +1539,7 @@ const StepFive = (props) => {
       <Container maxWidth="xs" sx={{ pt: 10 }}>
         <Card sx={{ p: 3, mb: 2, boxShadow: 1, overflow: "visible" }}>
           <Stack spacing={2} alignItems={"center"}>
-            <SvgSPrite icon="party-horn" color="lime" size={65} />
+            <SvgSPrite icon="party-horn" MUIColor="primary" size={65} />
 
             <Typography>با موفقیت اطلاعات ناوگان ثبت شد.</Typography>
           </Stack>

@@ -1,0 +1,457 @@
+export const HEADER_HEIGHT = 60;
+export const DRAWER_WIDTH = 250;
+export const DRAWER_TRANSITION =
+  "width 0.3s ease-in-out, left 0.3s ease-in-out";
+//  links
+export const DRAWER_MENU_ITEMS = [
+  {
+    id: 0,
+    text: "میزکار",
+    icon: "objects-column",
+    routeName: "/desktop",
+    name: "desktop",
+  },
+  {
+    id: 2,
+    text: "بارنامه ها",
+    icon: "receipt",
+    routeName: "null",
+    childrenLinks: [
+      {
+        text: "ثبت حواله",
+        icon: null,
+        routeName: "/waybill/NewDraft",
+        name: "draft.store",
+      },
+      {
+        text: "لیست حواله",
+        icon: null,
+        routeName: "/waybill/Draft",
+        name: "draft.index",
+      },
+      {
+        text: "ثبت بارنامه",
+        icon: null,
+        routeName: "/waybill/newWaybill",
+        name: "waybill.store",
+      },
+      {
+        text: "لیست بارنامه",
+        icon: null,
+        routeName: "/waybill",
+        name: "waybill.index",
+      },
+    ],
+  },
+  {
+    id: 10,
+    text: "قرارداد ها",
+    routeName: null,
+    icon: "handshake",
+    childrenLinks: [
+      {
+        text: "قرارداد جدید",
+        icon: null,
+        routeName: "/contract/new",
+        name: "contract.store",
+      },
+      {
+        text: "لیست",
+        icon: null,
+        routeName: "/contract",
+        name: "contract.index",
+      },
+      {
+        text: "انبارها",
+        icon: null,
+        routeName: "/contract/storage",
+        name: "contract.storage",
+      },
+    ],
+  },
+  {
+    id: 311,
+    text: "پروژه‌ها",
+    routeName: null,
+    icon: "briefcase-blank",
+    childrenLinks: [
+      {
+        text: "ثبت پروژه",
+        icon: null,
+        routeName: "/project/new",
+        name: "project.store",
+      },
+      {
+        text: "لیست پروژه",
+        icon: null,
+        routeName: "/project",
+        name: "project.index",
+      },
+    ],
+  },
+  {
+    id: 56,
+    text: "برنامه‌ریزی حمل",
+    routeName: null,
+    icon: "handshake-angle",
+    childrenLinks: [
+      {
+        text: "درخواست حمل جدید",
+        icon: null,
+        routeName: "/request/new",
+        name: "request.store",
+      },
+      {
+        text: "درخواست‌های حمل",
+        icon: null,
+        routeName: "/request",
+        name: "request.index",
+      },
+      {
+        text: "برنامه‌ریزی پروژه",
+        icon: null,
+        routeName: "/project/shipping-plan-new",
+        name: "request.store",
+      },
+      {
+        text: "لیست سالن بار",
+        icon: null,
+        routeName: "/request/salon",
+        name: "salon.store",
+      },
+      {
+        text: "تخصیص ناوگان",
+        icon: null,
+        routeName: "/request/fleet-allocation",
+        name: "fleet.allocation",
+      },
+      {
+        text: "ثبت آهنگ پروژه",
+        icon: null,
+        routeName: "/request/new-tune",
+        name: "project-plan.store",
+      },
+      {
+        text: "آهنگ های پروژه",
+        icon: null,
+        routeName: "/request/tune",
+        name: "project-plan.index",
+      },
+    ],
+  },
+  {
+    id: 11,
+    text: "ناوگان",
+    routeName: null,
+    icon: "car-bus",
+    childrenLinks: [
+      {
+        text: " شرکت حمل و نقل",
+        icon: null,
+        routeName: "/shippingCompany",
+        name: "shipping-company.index",
+      },
+      {
+        text: "گروه ناوگان",
+        icon: null,
+        routeName: "/fleet/group",
+        name: "fleet-group.index",
+      },
+      {
+        text: "ناوگان",
+        icon: null,
+        routeName: "/fleet",
+        name: "fleet.index",
+      },
+      {
+        text: "ناوگان جدید",
+        icon: null,
+        routeName: "/fleet/new",
+        name: "fleet.store",
+      },
+      {
+        text: "ذی‌نفعان",
+        icon: null,
+        routeName: "/beneficiary",
+        name: "beneficiary.index",
+      },
+      {
+        text: "گزارش ناوگان آزاد",
+        icon: null,
+        routeName: "/fleet/free",
+        name: "fleet.index",
+      },
+    ],
+  },
+  {
+    id: 5,
+    text: "خودروها",
+    routeName: null,
+    icon: "cars",
+    childrenLinks: [
+      {
+        text: "لیست خودروها",
+        icon: null,
+        routeName: "/vehicle",
+        name: "vehicle.index",
+      },
+      {
+        text: "نوع کامیون",
+        icon: null,
+        routeName: "/vehicle/category",
+        name: "vehicle-category.index",
+      },
+      {
+        text: "برند (مارک) ",
+        icon: null,
+        routeName: "/vehicle/brand",
+        name: "vehicle-brand.index",
+      },
+      {
+        text: "نوع بارگیر",
+        icon: null,
+        routeName: "/vehicle/type",
+        name: "vehicle-type.index",
+      },
+      {
+        text: "مدل",
+        icon: null,
+        routeName: "/vehicle/model",
+        name: "vehicle-model.index",
+      },
+      {
+        text: "سوخت گیری",
+        icon: null,
+        routeName: "/vehicle/refueling",
+        name: "refueling.index",
+      },
+    ],
+  },
+  {
+    id: 105,
+    text: " محصولات",
+    routeName: null,
+    icon: "box",
+    childrenLinks: [
+      {
+        text: "لیست محصولات",
+        icon: null,
+        routeName: "/product",
+        name: "product.index",
+      },
+      {
+        text: "گروه محصول",
+        icon: null,
+        routeName: "/product/group",
+        name: "product-group.index",
+      },
+      {
+        text: "واحد شمارشی",
+        icon: null,
+        routeName: "/product/unit",
+        name: "product-unit.index",
+      },
+      {
+        text: "نوع بسته‌بندی",
+        icon: null,
+        routeName: "/product/packing",
+        name: "product-packing.index",
+      },
+    ],
+  },
+  {
+    id: 42,
+    text: "افراد",
+    routeName: null,
+    icon: "users",
+    childrenLinks: [
+      {
+        text: "لیست رانندگان",
+        icon: null,
+        routeName: "/driver",
+        name: "driver.index",
+      },
+      {
+        text: "راننده جدید",
+        icon: null,
+        routeName: "/driver/new",
+        name: "driver.store",
+      },
+      {
+        text: "لیست صاحبان بار",
+        icon: null,
+        routeName: "/customer",
+        name: "customer.index",
+      },
+      {
+        text: "صاحب‌بار جدید",
+        icon: null,
+        routeName: "/customer/new",
+        name: "customer.store",
+      },
+      {
+        text: "ثبت فرستنده و گیرنده",
+        icon: null,
+        routeName: "/person/new",
+        name: "person.store",
+      },
+      {
+        text: "فرستندگان و گیرندگان",
+        icon: null,
+        routeName: "/person",
+        name: "person.index",
+      },
+    ],
+  },
+  {
+    id: 53,
+    text: "پیام‌ها",
+    routeName: null,
+    icon: "envelopes-bulk",
+    childrenLinks: [
+      {
+        text: "ارسال پیام",
+        routeName: "/messages/send",
+        name: "messages.store",
+        icon: null,
+      },
+      {
+        text: "پیام‌ها",
+        routeName: "/messages",
+        icon: null,
+        name: "messages.index",
+      },
+      {
+        text: "لیست هشدار‌ها",
+        routeName: "/messages/alerts",
+        icon: null,
+        name: "alert.index",
+      },
+      {
+        text: "پیام‌های من",
+        routeName: "/messages/my",
+        icon: null,
+        name: "my-messages.index",
+      },
+      {
+        text: "الگوهای پیام‌",
+        routeName: "/messages/templates",
+        name: "messages-template.index",
+        icon: null,
+      },
+    ],
+  },
+  {
+    text: "گزارشات",
+    icon: "file-chart-column",
+    id: 57,
+    routeName: null,
+
+    childrenLinks: [
+      {
+        text: "گزارش مانده پروژه",
+        icon: null,
+        routeName: "/project/report",
+        name: "",
+      },
+      {
+        text: "گزارش عملکرد راننده",
+        routeName: "/driver/report",
+        icon: null,
+        name: "",
+      },
+      {
+        text: "گزارش بار کشور",
+        routeName: "/request/requests-by-provinces",
+        icon: null,
+        name: "",
+      },
+      {
+        text: "گزارش ناوگان آزاد",
+        routeName: "/fleet/free",
+        icon: null,
+        name: "",
+      },
+      {
+        text: "گزارش قرارداد",
+        routeName: "/contract/report",
+        icon: null,
+        name: "",
+      },
+      {
+        text: "گزارش فراوانی درخواست محصول",
+        routeName: "/request/requests-by-products",
+        icon: null,
+        name: "",
+      },
+      {
+        text: "گزارش فراوانی درخواست شهر",
+        routeName: "/request/requests-by-cities",
+        icon: null,
+        name: "",
+      },
+    ],
+  },
+  {
+    id: 6,
+    text: "کاربران",
+    routeName: null,
+    icon: "user-group",
+    childrenLinks: [
+      {
+        text: "لیست",
+        icon: null,
+        routeName: "/user",
+        name: "user.index",
+      },
+      {
+        text: "نقش ها",
+        icon: null,
+        routeName: "/role",
+        name: "role.index",
+      },
+    ],
+  },
+  {
+    id: 7,
+    text: "مدیریت سوپر اپ",
+    routeName: null,
+    icon: "mobile",
+    childrenLinks: [
+      {
+        text: "اضافه کردن گروه",
+        icon: null,
+        routeName: "/super-app",
+        name: "group.index",
+      },
+    ],
+  },
+  {
+    id: 8,
+    text: "رویداد ها",
+    icon: "calendar-check",
+    routeName: "/event",
+    name: "event.index",
+  },
+  {
+    id: 69,
+    text: "مانیتورینگ",
+    icon: "desktop",
+    routeName: "/monitoring",
+    name: "monitoring.index",
+  },
+  {
+    id: 118,
+    text: "قیمت ها",
+    icon: "circle-dollar",
+    routeName: "/prices",
+    name: "price",
+  },
+  {
+    id: 128,
+    text: "تنظیمات",
+    icon: "gear",
+    routeName: "/settings",
+    name: "setting.index",
+  },
+];

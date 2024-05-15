@@ -1,9 +1,8 @@
 import { redirect } from "react-router";
 import Cookies from "js-cookie";
-import { lazy, Suspense, useContext } from "react";
+import { lazy, Suspense } from "react";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { Box } from "@mui/material";
-import { AppContext } from "context/appContext";
 
 import NotFound from "pages/Error/NotFound";
 import { deepCopy } from "Utility/utils";
@@ -35,8 +34,24 @@ export const BlankLayoutPaths = {
     },
   ],
 };
+export const BlankLayoutWithAuthPaths = {
+  element: lazyLoadRoutes("BlankLayoutWithAuth", "layouts"),
+  path: "/",
+  children: [
+    {
+      path: "monitoring",
+      children: [
+        {
+          index: true,
+          element: lazyLoadRoutes("Monitoring"),
+          name: "monitoring.index",
+        },
+      ],
+    },
+  ],
+};
 
-const PanelLayoutRoutes = {
+export const PanelLayoutRoutes = {
   element: lazyLoadRoutes(
     "PanelLayout",
     `layouts/versions/${process.env.REACT_APP_VERSION_CODE}`
@@ -77,9 +92,24 @@ const PanelLayoutRoutes = {
           name: "contract.store",
         },
         {
+          path: "storage",
+          element: lazyLoadRoutes("Contract/Storage/"),
+          name: "contract.storage",
+        },
+        {
           path: ":id",
           element: lazyLoadRoutes("Contract/Contract"),
           name: "contract.show",
+        },
+        {
+          path: "report",
+          element: lazyLoadRoutes("Contract/Report"),
+          name: "contract.report",
+        },
+        {
+          path: "report/:id",
+          element: lazyLoadRoutes("Contract/Report"),
+          name: "contract.report",
         },
       ],
     },
@@ -101,10 +131,21 @@ const PanelLayoutRoutes = {
           element: lazyLoadRoutes("ShippingPlanning/NewShippingPlanning"),
           name: "request.store",
         },
+
         {
           path: ":id",
           element: lazyLoadRoutes("Project/SingleProject"),
           name: "project.show",
+        },
+        {
+          path: "report/:id",
+          element: lazyLoadRoutes("Project/Report"),
+          name: "",
+        },
+        {
+          path: "report",
+          element: lazyLoadRoutes("Project/Report"),
+          name: "",
         },
       ],
     },
@@ -139,7 +180,7 @@ const PanelLayoutRoutes = {
         {
           path: "/request/salon",
           element: lazyLoadRoutes("Request/Salon"),
-          name: "salon.store",
+          name: "salon.index",
         },
         {
           path: ":id",
@@ -155,6 +196,27 @@ const PanelLayoutRoutes = {
           path: "new-tune",
           element: lazyLoadRoutes("Request/NewTune"),
           name: "project-plan.store",
+        },
+        {
+          path: "requests-by-products",
+          element: lazyLoadRoutes("Request/RequestsByProducts"),
+          name: "",
+        },
+        {
+          path: "requests-by-provinces",
+          element: lazyLoadRoutes("Request/RequestsByProvinces"),
+          name: "",
+        },
+        {
+          path: "requests-by-cities",
+          element: lazyLoadRoutes("Request/RequestsByCities"),
+          name: "",
+        },
+
+        {
+          path: "report",
+          element: lazyLoadRoutes("Request/Report"),
+          name: "",
         },
         {
           path: "tune",
@@ -185,6 +247,26 @@ const PanelLayoutRoutes = {
           path: ":id",
           element: lazyLoadRoutes("Request"),
           name: "shipping-company.show",
+        },
+        {
+          path: "report",
+          element: lazyLoadRoutes("ShippingCompany/Report"),
+          name: "",
+        },
+      ],
+    },
+    {
+      path: "LegalAndCompany",
+      children: [
+        {
+          index: true,
+          element: lazyLoadRoutes("LegalAndCompany"),
+          name: "company.index",
+        },
+        {
+          path: ":id",
+          element: lazyLoadRoutes("Request"),
+          name: "company.show",
         },
       ],
     },
@@ -227,6 +309,11 @@ const PanelLayoutRoutes = {
           name: "fleet-group.index",
         },
         {
+          path: "report",
+          element: lazyLoadRoutes("Fleet/Report"),
+          name: "",
+        },
+        {
           path: ":id",
           element: lazyLoadRoutes("Fleet/SingleFleet"),
           name: "fleet.show",
@@ -234,22 +321,27 @@ const PanelLayoutRoutes = {
       ],
     },
     {
-      path: "customer",
+      path: "owner",
       children: [
         {
           index: true,
-          element: lazyLoadRoutes("Customer"),
-          name: "customer.index",
+          element: lazyLoadRoutes("Owner"),
+          name: "owner.index",
         },
         {
           path: ":id",
-          element: lazyLoadRoutes("Customer/Customer"),
-          name: "customer.show",
+          element: lazyLoadRoutes("Owner/Owner"),
+          name: "owner.show",
         },
         {
           path: "new",
-          element: lazyLoadRoutes("Customer/NewCustomer"),
-          name: "customer.store",
+          element: lazyLoadRoutes("Owner/NewOwner"),
+          name: "owner.store",
+        },
+        {
+          path: "report",
+          element: lazyLoadRoutes("Owner/Report"),
+          name: "",
         },
       ],
     },
@@ -271,8 +363,49 @@ const PanelLayoutRoutes = {
           element: lazyLoadRoutes("Driver/NewDriver"),
           name: "driver.store",
         },
+        {
+          path: "report",
+          element: lazyLoadRoutes("Driver/Report"),
+          name: "",
+        },
       ],
     },
+    {
+      path: "messages",
+      children: [
+        {
+          index: true,
+          element: lazyLoadRoutes("Message"),
+          name: "message.index",
+        },
+        {
+          path: "alerts",
+          element: lazyLoadRoutes("Message/Alerts"),
+          name: "alert.index",
+        },
+        {
+          path: "my",
+          element: lazyLoadRoutes("Message/MyMessages"),
+          name: "my-messages.index",
+        },
+        {
+          path: "send",
+          element: lazyLoadRoutes("Message/SendMessage"),
+          name: "messages.store",
+        },
+        {
+          path: "sendManual",
+          element: lazyLoadRoutes("Message/ManualMessage"),
+          name: "messages.store",
+        },
+        {
+          path: "templates",
+          element: lazyLoadRoutes("Message/MessageTemplates"),
+          name: "message-template.index",
+        },
+      ],
+    },
+
     {
       path: "vehicle",
       children: [
@@ -315,11 +448,6 @@ const PanelLayoutRoutes = {
           path: "refueling",
           element: lazyLoadRoutes("Vehicle/Refueling"),
           name: "refueling.index",
-        },
-        {
-          path: ":id",
-          element: lazyLoadRoutes("Vehicle/SingleVehicle"),
-          name: "vehicle.show",
         },
       ],
     },
@@ -392,6 +520,11 @@ const PanelLayoutRoutes = {
           name: "waybill.store",
         },
         {
+          path: "newGroupWaybill",
+          element: lazyLoadRoutes("Waybill/NewGroupWaybill"),
+          name: "waybill.store",
+        },
+        {
           path: "draft",
           element: lazyLoadRoutes("Waybill/Draft"),
           name: "draft.index",
@@ -404,7 +537,7 @@ const PanelLayoutRoutes = {
         {
           path: ":id",
           element: lazyLoadRoutes("Waybill/Waybill"),
-          name: "Waybill.show",
+          name: "waybill.index",
         },
       ],
     },
@@ -414,7 +547,7 @@ const PanelLayoutRoutes = {
         {
           index: true,
           element: lazyLoadRoutes("Survey"),
-          name: "survey.index",
+          name: "reason.index",
         },
       ],
     },
@@ -446,6 +579,42 @@ const PanelLayoutRoutes = {
           element: lazyLoadRoutes("products/Groups"),
           name: "product-group.index",
         },
+        {
+          path: "packing",
+          element: lazyLoadRoutes("products/Packing"),
+          name: "product-packing.index",
+        },
+      ],
+    },
+    {
+      path: "financial",
+      children: [
+        {
+          path: "transaction",
+          element: lazyLoadRoutes("Financial/TransactionList"),
+          name: "transaction.index",
+        },
+        {
+          path: "invoice",
+          element: lazyLoadRoutes("Financial/InvoiceList"),
+          name: "invoice.index",
+        },
+        {
+          path: "account",
+          element: lazyLoadRoutes("Financial/AccountList"),
+          name: "account.index",
+        },
+      ],
+    },
+    {
+      path: "salon",
+      children: [
+        {
+          index: true,
+          path: "report",
+          element: lazyLoadRoutes("Salon/Report"),
+          name: "salon.show",
+        },
       ],
     },
     {
@@ -472,10 +641,10 @@ const PanelLayoutRoutes = {
   ],
 };
 
-export const renderPanelRoute = (notPermissions) => {
-  const newPanelLayoutRoutes = deepCopy(PanelLayoutRoutes);
-  filterRoutes(newPanelLayoutRoutes.children, notPermissions);
-  return newPanelLayoutRoutes;
+export const renderPanelRoute = (routes, notPermissions) => {
+  const newRoutes = deepCopy(routes);
+  filterRoutes(newRoutes.children, notPermissions);
+  return newRoutes;
 };
 const filterRoutes = (routes, notPermissions) => {
   routes.forEach((route) => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Button,
   FormControl,
@@ -16,7 +17,13 @@ import { useEffect, useState } from "react";
 import { useController } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 
-export const ChooseProject = ({ control, name, rules, filters = {} }) => {
+export const ChooseProject = ({
+  control,
+  name,
+  rules,
+  filters = {},
+  readOnly = false,
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [searchParams] = useSearchParams();
   const project_id = searchParams.get("project_id");
@@ -53,7 +60,7 @@ export const ChooseProject = ({ control, name, rules, filters = {} }) => {
   const projectName = isFetching
     ? "بارگیری..."
     : field.value
-    ? `${field.value.code}`
+    ? `${field.value.code} - ${field.value.title}`
     : `پروژه`;
 
   const selectProject = (project) => {
@@ -85,7 +92,11 @@ export const ChooseProject = ({ control, name, rules, filters = {} }) => {
           error={error}
           endAdornment={
             <InputAdornment position="end">
-              <Button color="secondary" onClick={toggleShowModal}>
+              <Button
+                color="secondary"
+                onClick={toggleShowModal}
+                disabled={readOnly}
+              >
                 انتخاب
               </Button>
             </InputAdornment>

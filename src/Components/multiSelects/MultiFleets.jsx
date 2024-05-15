@@ -17,9 +17,10 @@ import SearchInput from "Components/SearchInput";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInfiniteFleet } from "hook/useFleet";
 import { Fragment, useEffect, useState } from "react";
-import { useFieldArray, useForm, useFormState } from "react-hook-form";
+import { useController, useFieldArray, useForm } from "react-hook-form";
 import {
   enToFaNumber,
+  removeInvalidValues,
   renderPlaqueObjectToString,
   stopPropagate,
 } from "Utility/utils";
@@ -30,13 +31,23 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import FormTypography from "Components/FormTypography";
 import MultiFleetGroup from "./MultiFleetGroup";
 
-const MultiFleets = (props) => {
+const MultiFleets = ({ control, rules, name }) => {
   const [filters, setFilters] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [searchVal, setSearchVal] = useState("");
   const { ref, inView } = useInView();
   const [searchParams] = useSearchParams();
   const fleet_id = searchParams.getAll("fleet_id");
+  const {
+    field,
+    formState: {},
+    fieldState: { error },
+  } = useController({
+    name: name,
+    control: control,
+    defaultValue: [],
+  });
+
   const {
     data: allFleets,
     isLoading,
@@ -85,36 +96,32 @@ const MultiFleets = (props) => {
   };
 
   const { fields, append, remove } = useFieldArray({
-    control: props.control,
-    name: props.name,
+    control: control,
+    name: name,
     keyName: "customId",
-    rules: props.rules,
+    rules: rules,
   });
 
   const {
-    control,
+    control: filterFormControl,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
     setValue,
     watch,
   } = useForm();
 
-  const { errors } = useFormState({
-    control: props.control,
-    name: props.name,
-  });
-
   const toggleShowModal = () => setShowModal((prev) => !prev);
   const renderValue = () => {
+    const array = field.value ?? [];
     if (isFetching) {
       return "";
     }
-    const length = Math.max(fields.length, fleet_id.length);
-    if (!fields.length) {
+    const length = Math.max(array.length, fleet_id.length);
+    if (!array.length) {
       return (length ? enToFaNumber(length) + " " : "") + "ناوگان";
     }
 
-    let str = fields?.[0]?.vehicle?.plaque;
+    let str = array?.[0]?.vehicle?.plaque;
     let appropriatePlaqueNum = str
       ? enToFaNumber(str?.firstPart) +
         str?.letter +
@@ -139,8 +146,8 @@ const MultiFleets = (props) => {
       type: "custom",
       customView: (
         <MultiFleetGroup
-          control={control}
-          name={"fleet_group"}
+          control={filterFormControl}
+          name={"fleet_group_id"}
           label="گروه ناوگان"
           needMoreInfo={true}
         />
@@ -153,11 +160,15 @@ const MultiFleets = (props) => {
 
   // handle on submit new vehicle
   const onSubmit = (data) => {
-    setFilters((prev) => ({
-      ...prev,
-      fleet_group_id: data.fleet_group?.id,
-    }));
+    console.log(data);
+    setFilters((prev) =>
+      removeInvalidValues({
+        ...prev,
+        ...data,
+      })
+    );
   };
+
   return (
     <>
       <FormControl variant="outlined" sx={{ width: "100%" }}>
@@ -165,10 +176,10 @@ const MultiFleets = (props) => {
         <OutlinedInput
           sx={{ width: "100%" }}
           label={"ناوگان"}
-          name={props.name}
+          name={name}
           value={renderValue()}
           readOnly
-          error={errors?.[props.name]}
+          error={!!error}
           endAdornment={
             <InputAdornment position="end">
               <Button color="secondary" onClick={toggleShowModal}>
@@ -184,9 +195,9 @@ const MultiFleets = (props) => {
             )
           }
         />
-        {errors?.[props.name]?.root?.message && (
+        {!!error && (
           <FormHelperText error variant="outlined">
-            {errors?.[props.name]?.root?.message}
+            {error.root?.message}
           </FormHelperText>
         )}
       </FormControl>
@@ -235,7 +246,7 @@ const MultiFleets = (props) => {
               allFleets?.pages.map((page, i) => (
                 <Fragment key={i}>
                   {page?.items?.data.map((fleet) => {
-                    const findIndex = fields.findIndex(
+                    const findIndex = field.value?.findIndex(
                       (item) => item.id === fleet.id
                     );
 
@@ -263,7 +274,9 @@ const MultiFleets = (props) => {
                             sx={{ width: "100%" }}
                           >
                             <Typography>
-                              {renderPlaqueObjectToString(fleet.vehicle.plaque)}
+                              {renderPlaqueObjectToString(
+                                fleet?.vehicle?.plaque
+                              )}
                             </Typography>
                             <Typography>
                               {fleet?.vehicle?.vehicle_model?.title}

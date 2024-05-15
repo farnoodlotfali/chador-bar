@@ -383,7 +383,6 @@ const EditSchematicModal = ({ schematic, open, onClose }) => {
   } = useForm();
 
   useEffect(() => {
-    console.log(schematic);
     reset(schematic);
   }, [schematic]);
 

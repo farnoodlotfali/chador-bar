@@ -15,6 +15,63 @@ export const useRequest = (filters = {}, options = {}) => {
   return { ...request };
 };
 
+export const useRequestFree = (filters = {}, options = {}) => {
+  const queryParams = filteringMethod(filters);
+  const request = useQuery({
+    queryKey: ["requestFree", filters],
+    queryFn: () =>
+      axiosApi({ url: `/free-requests-info${queryParams}` }).then(
+        (res) => res.data.Data
+      ),
+    keepPreviousData: true,
+    ...options,
+  });
+
+  return { ...request };
+};
+export const useRequestFreeProducts = (filters = {}, options = {}) => {
+  const queryParams = filteringMethod(filters);
+  const request = useQuery({
+    queryKey: ["requestFreeProducts", filters],
+    queryFn: () =>
+      axiosApi({ url: `/free-requests-products${queryParams}` }).then(
+        (res) => res.data.Data
+      ),
+    keepPreviousData: true,
+    ...options,
+  });
+
+  return { ...request };
+};
+
+export const useRequestFreeCitiesSource = (filters = {}, options = {}) => {
+  const queryParams = filteringMethod(filters);
+  const request = useQuery({
+    queryKey: ["requestFreeCities", filters],
+    queryFn: () =>
+      axiosApi({
+        url: `/free-requests-cities${queryParams}`,
+      }).then((res) => res.data.Data),
+    keepPreviousData: true,
+    ...options,
+  });
+
+  return { ...request };
+};
+export const useRequestFreeCitiesDestination = (filters = {}, options = {}) => {
+  const queryParams = filteringMethod(filters);
+  const request = useQuery({
+    queryKey: ["requestFreeCities", filters],
+    queryFn: () =>
+      axiosApi({
+        url: `/free-requests-cities${queryParams}`,
+      }).then((res) => res.data.Data),
+    keepPreviousData: true,
+    ...options,
+  });
+
+  return { ...request };
+};
 export const useInfiniteRequest = (filters = {}, options = {}) => {
   const infiniteRequest = useInfiniteQuery(
     ["requestFree", filters, { infinite: true }],

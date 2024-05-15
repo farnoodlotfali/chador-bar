@@ -16,7 +16,7 @@ import { BOXSHADOW } from "./BoxShadow";
 import { BORDER_RADIUS } from "./BorderRadius";
 import { SPACING } from "./Spacing";
 
-defaults.font.family = "IRANSansXV, sans-serif";
+defaults.font.family = "Vazirmatn, sans-serif";
 
 // Theme configuration
 const commonStyles = {
@@ -26,13 +26,13 @@ const commonStyles = {
     borderRadius: BORDER_RADIUS,
   },
   typography: {
-    fontFamily: "IRANSansXV, sans-serif",
+    fontFamily: "Vazirmatn, sans-serif",
     small: {
       fontSize: 10,
-      fontFamily: "IRANSansXV, sans-serif",
+      fontFamily: "Vazirmatn, sans-serif",
     },
     clickable: {
-      fontFamily: "IRANSansXV, sans-serif",
+      fontFamily: "Vazirmatn, sans-serif",
       cursor: "pointer",
       width: "fit-content",
       margin: "auto",

@@ -82,7 +82,7 @@ const PricingList = () => {
                   {row.container_type.name ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.PRICE ? numberWithCommas(row.PRICE) + " تومان" : "-"}
+                  {row.PRICE ? numberWithCommas(row.PRICE) + " ریال" : "-"}
                 </TableCell>
               </TableRow>
             );

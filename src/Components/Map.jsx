@@ -9,6 +9,9 @@ import {
 } from "react-leaflet";
 import axios from "axios";
 
+// we can rotate icon or marker with this package
+import "leaflet-rotatedmarker";
+
 import Marker from "Assets/images/marker.png";
 
 // this loads css and img from leaflet
@@ -33,6 +36,7 @@ const Map = (props) => {
       bottom: null,
       zIndex: 499,
     },
+    cedarmapsFile = true,
   } = props;
   const [leafMap, setLeafMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
@@ -42,21 +46,25 @@ const Map = (props) => {
   const [flyTo, setFlyTo] = useState(false);
   const [isSetCenter, setIsSetCenter] = useState(false);
 
-  const handleOnChange = (e) => {
+  const handleOnChange = (e, z) => {
+    // e === coordinates
+    // z === zoom
     setCenter(e);
-    leafMap.flyTo(e);
+    leafMap.flyTo(e, z);
+    setZoom(z);
   };
   const renderMap = (children) => {
     return (
       <>
-        <Helmet>
-          <script src="https://api.cedarmaps.com/cedarmaps.js/v1.8.0/cedarmaps.js"></script>
-          <link
-            href="https://api.cedarmaps.com/cedarmaps.js/v1.8.0/cedarmaps.css"
-            rel="stylesheet"
-          />
-        </Helmet>
-
+        {cedarmapsFile && (
+          <Helmet>
+            <script src="https://api.cedarmaps.com/cedarmaps.js/v1.8.0/cedarmaps.js"></script>
+            <link
+              href="https://api.cedarmaps.com/cedarmaps.js/v1.8.0/cedarmaps.css"
+              rel="stylesheet"
+            />
+          </Helmet>
+        )}
         <MapContainer
           style={{ width: "100%", height: "100%" }}
           center={center}
@@ -188,10 +196,11 @@ const MapHandler = ({ bounds, onMoveEnd, flyTo, setFlyTo, center }) => {
   });
 
   useEffect(() => {
-    if (bounds && bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [70, 70] });
+    if (bounds && bounds?.length > 0) {
+      map?.fitBounds(bounds, { padding: [70, 70] });
     }
   }, [bounds]);
+
   useEffect(() => {
     if (flyTo) {
       const newLocations = [center[0], center[1]];
@@ -226,16 +235,18 @@ const getLocationName = async (center, returnAllData = false) => {
 };
 const getPathCoordinates = async (path) => {
   let coordinates = [];
+  let bbox = [];
   let distance = 0;
   let time = 0;
   const url = `https://api.cedarmaps.com/v1/direction/cedarmaps.driving/${path[0][0]},${path[0][1]};${path[1][0]},${path[1][1]}?access_token=${CedarmapToken}`;
   await axios.get(url).then((res) => {
     coordinates = res.data.result.routes[0].geometry.coordinates;
+    bbox = res?.data?.result?.routes[0]?.bbox;
     distance = res.data.result.routes[0].distance / 1000;
     time = res.data.result.routes[0].time / 1000 / 60;
   });
 
-  return { coordinates, distance, time };
+  return { coordinates, distance, time, bbox };
 };
 
 const validateCenterMap = (center) => {

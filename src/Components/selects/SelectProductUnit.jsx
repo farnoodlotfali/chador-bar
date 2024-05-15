@@ -34,7 +34,7 @@ export default function SelectProductUnit({ data, setData }) {
         <Grid item xs={12} md={4}>
           <SearchInput
             sx={{ width: "100%" }}
-            placeholder="جستجو نوع دسته‌بندی"
+            placeholder="جستجو واحد شمارشی"
             onEnter={getProductUnits}
             searchVal={searchVal}
             setSearchVal={setSearchVal}
@@ -79,7 +79,7 @@ export default function SelectProductUnit({ data, setData }) {
             })
           ) : (
             <Typography pt={2} pl={2}>
-              دسته‌بندی یافت نشد
+              واحد شمارشی یافت نشد
             </Typography>
           )}
         </Grid>

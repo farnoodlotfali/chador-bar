@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 
 import Modal from "Components/versions/Modal";
-import { enToFaNumber, renderChip } from "Utility/utils";
+import { enToFaNumber, renderChip, renderMobileFormat } from "Utility/utils";
 import NormalTable from "Components/NormalTable";
 import { Link } from "react-router-dom";
 import FormTypography from "Components/FormTypography";
@@ -109,7 +109,7 @@ const ShippingCompanyDetailModal = ({ data, onClose, show }) => {
                 )}
                 {RowLabelAndData(
                   "شماره تماس",
-                  enToFaNumber(data.mobile) ?? "-",
+                  renderMobileFormat(data.mobile) ?? "-",
                   <SvgSPrite icon="phone" MUIColor="success" />
                 )}{" "}
                 {RowLabelAndData(

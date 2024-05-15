@@ -7,6 +7,7 @@ import {
   Typography,
   Box,
   Button,
+  Chip,
 } from "@mui/material";
 
 import Table from "Components/versions/Table";
@@ -34,12 +35,18 @@ import { FormContainer, FormInputs } from "Components/Form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import ContractDetailModal from "Components/modals/ContractDetailModal";
+import { useRef } from "react";
 
 const headCells = [
   {
     id: "id",
     label: "شناسه",
     sortable: true,
+  },
+  {
+    id: "code",
+    label: "شماره قرارداد",
   },
   {
     id: "owner",
@@ -55,10 +62,10 @@ const headCells = [
     label: "هزینه",
     sortable: true,
   },
-  {
-    id: "transportation_type",
-    label: "نوع حمل ‌و نقل",
-  },
+  // {
+  //   id: "transportation_type",
+  //   label: "نوع حمل ‌و نقل",
+  // },
   {
     id: "start_date",
     label: "زمان شروع",
@@ -74,23 +81,53 @@ const headCells = [
     label: "نوع مالک",
   },
   {
+    id: "actions_",
+    label: "تغییر وضعیت",
+  },
+  {
+    id: "status",
+    label: "وضعیت",
+  },
+  {
     id: "actions",
     label: "عملیات",
   },
 ];
-
+export const contractStatus = {
+  set: {
+    title: "ثبت اولیه",
+    color: "info",
+  },
+  wait_for_shipping: {
+    title: "منتظر تایید شرکت حمل",
+    color: "warning",
+  },
+  shipping_accept: {
+    title: "تایید شرکت حمل",
+    color: "info",
+  },
+  owner_accept: {
+    title: "تایید صاحب بار",
+    color: "info",
+  },
+  final: {
+    title: "نهایی",
+    color: "success",
+  },
+};
 export default function ContractList() {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
 
   const queryClient = useQueryClient();
   const { data: ownerTypes } = useOwnerTypes();
   const { data: transportationTypes } = useTransportationTypes();
+  const [selectedContract, setSelectedContract] = useState(null);
   const [ownerDetail, setOwnerDetail] = useState({});
   const [showModalDetail, setShowModalDetail] = useState(false);
-
+  const [showContractModal, setShowContractModal] = useState(false);
   const [requestItem, setRequestItem] = useState(null);
   const [acceptRemoveModal, setAcceptRemoveModal] = useState(false);
-
+  const buttonStatus = useRef("");
   const {
     data: allContract,
     isLoading,
@@ -111,28 +148,50 @@ export default function ContractList() {
       },
     }
   );
-
+  const changeStatusMutation = useMutation(
+    (data) =>
+      axiosApi({
+        url: `/contract-change-status/${data?.id}`,
+        method: "post",
+        data: data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["contracts"]);
+        toast.success("درخواست شما با موفقیت انجام شد");
+      },
+    }
+  );
   if (isError) {
     return <div className="">isError</div>;
   }
 
   const showModalToRemove = (request) => {
+    buttonStatus.current = "delete";
     setRequestItem(request);
     setAcceptRemoveModal(true);
   };
 
   // Remove request
   const handleRemoveRequest = () => {
-    deleteMutation.mutate(requestItem.id);
-    setAcceptRemoveModal(false);
-    setRequestItem(null);
+    if (buttonStatus.current === "delete") {
+      deleteMutation.mutate(requestItem.id);
+      setAcceptRemoveModal(false);
+      setRequestItem(null);
+    } else {
+      changeStatusMutation.mutate(requestItem);
+      setAcceptRemoveModal(false);
+    }
   };
 
   const handleShowOwnerDetail = (owner) => {
     setOwnerDetail(owner);
     setShowModalDetail(true);
   };
-
+  const handleShowDetail = (item) => {
+    setSelectedContract(item);
+    setShowContractModal(true);
+  };
   return (
     <>
       <HelmetTitlePage title="قراردادها" />
@@ -151,20 +210,53 @@ export default function ContractList() {
       >
         <TableBody>
           {allContract?.items.data.map((row) => {
+            let buttons_1 = [
+              {
+                tooltip: "پذیرفتن",
+                color: "success",
+                icon: "check",
+                name: "customer.change-status",
+                disabled: !row?.can_accept,
+                onClick: () => {
+                  buttonStatus.current = "accept";
+                  setRequestItem({ id: row?.id, action: "accept" });
+                  setAcceptRemoveModal(!acceptRemoveModal);
+                },
+              },
+              {
+                tooltip: "رد کردن",
+                color: "error",
+                icon: "xmark",
+                name: "customer.change-status",
+                disabled: !row?.can_reject,
+                onClick: () => {
+                  buttonStatus.current = "reject";
+                  changeStatusMutation.mutate({
+                    id: row?.id,
+                    action: "reject",
+                  });
+                },
+              },
+            ];
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.id)}
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row.code)}
                 </TableCell>
                 <TableCell align="center">
                   <Typography
                     variant="clickable"
                     onClick={() => handleShowOwnerDetail(row.owner)}
                   >
-                    {row.owner
-                      ? (row.owner.first_name ?? "") +
+                    {row?.owner_type === "natural"
+                      ? (row?.owner?.first_name ?? "") +
                         " " +
-                        (row.owner.last_name ?? "")
+                        (row?.owner?.last_name ?? "")
+                      : row?.owner_type === "legal"
+                      ? row?.owner.name ?? ""
                       : "-"}
                   </Typography>
                 </TableCell>
@@ -172,9 +264,9 @@ export default function ContractList() {
                 <TableCell align="center">
                   {numberWithCommas(row.total_amount) + " ریال" || "-"}
                 </TableCell>
-                <TableCell align="center">
+                {/* <TableCell align="center">
                   {transportationTypes[row.transportation_type]}
-                </TableCell>
+                </TableCell> */}
                 <TableCell align="center">
                   {row.start_date ? (
                     <Typography variant="subtitle2">
@@ -196,9 +288,25 @@ export default function ContractList() {
                 <TableCell align="center">
                   {ownerTypes[row.owner_type]}
                 </TableCell>
+                <TableCell align="center">
+                  <TableActionCell buttons={buttons_1} />
+                </TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={contractStatus[row.status]?.title}
+                    color={contractStatus[row.status]?.color}
+                  />
+                </TableCell>
                 <TableCell>
                   <TableActionCell
                     buttons={[
+                      {
+                        tooltip: "مشاهده جزئیات",
+                        color: "secondary",
+                        icon: "eye",
+                        onClick: () => handleShowDetail(row),
+                        name: "contract.show",
+                      },
                       {
                         tooltip: "ویرایش",
                         color: "warning",
@@ -233,6 +341,11 @@ export default function ContractList() {
         open={showModalDetail}
         onClose={() => setShowModalDetail(false)}
       />
+      <ContractDetailModal
+        show={showContractModal}
+        onClose={() => setShowContractModal((prev) => !prev)}
+        data={selectedContract}
+      />
     </>
   );
 }
@@ -257,16 +370,16 @@ const SearchBoxContract = ({ transportationTypes, ownerTypes }) => {
       placeholder: "جستجو",
       control: control,
     },
-    {
-      type: "select",
-      name: "transportation_type",
-      valueKey: "id",
-      labelKey: "title",
-      label: "نوع حمل و نقل",
-      options: renderSelectOptions({ all: "همه", ...transportationTypes }),
-      defaultValue: "all",
-      control: control,
-    },
+    // {
+    //   type: "select",
+    //   name: "transportation_type",
+    //   valueKey: "id",
+    //   labelKey: "title",
+    //   label: "نوع حمل و نقل",
+    //   options: renderSelectOptions({ all: "همه", ...transportationTypes }),
+    //   defaultValue: "all",
+    //   control: control,
+    // },
     {
       type: "select",
       name: "owner_type",

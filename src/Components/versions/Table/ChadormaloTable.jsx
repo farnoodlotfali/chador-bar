@@ -255,7 +255,7 @@ const FilterSection = (props) => {
         <TextField
           id="standard-select-currency"
           select
-          defaultValue={10}
+          defaultValue={filters?.pageLength ?? 10}
           helperText="سطر در صفحه"
           variant="standard"
           value={per_page}

@@ -1,24 +1,109 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Box,
   Button,
   Card,
+  Chip,
   CircularProgress,
+  Divider,
   Grid,
+  IconButton,
+  Link,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
 import PieChart from "Components/charts/PieChart";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 import BarChart from "Components/charts/BarChart";
 import { useNavigate } from "react-router-dom";
 
 import { SvgSPrite } from "Components/SvgSPrite";
-import { enToFaNumber } from "Utility/utils";
+import { enToFaNumber, filteringMethod, requestStatus } from "Utility/utils";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { useForm } from "react-hook-form";
+import { FormContainer, FormInputs } from "Components/Form";
+import moment from "jalali-moment";
+import { useEffect, useState } from "react";
 
 const Desktop = () => {
+  const {
+    control,
+    formState: { errors },
+    setValue,
+    watch,
+    handleSubmit,
+  } = useForm({});
+
+  const [filters, setFilters] = useState({});
+  const [statuses, setStatuses] = useState({});
+
+  useEffect(() => {
+    const startDate = moment().subtract(1, "week").format("YYYY-MM-DD");
+    const endDate = moment().format("YYYY-MM-DD");
+    setValue("start_date", {
+      start_date: startDate.replaceAll("-", "/"),
+      start_date_fa: moment
+        .from(startDate, "YYYY-MM-DD")
+        .format("jYYYY/jMM/jDD"),
+      start_date_text: enToFaNumber(
+        moment.from(startDate, "YYYY-MM-DD").format("jYYYY-jMM-jDD")
+      ),
+    });
+    setValue("end_date", {
+      end_date: endDate.replaceAll("-", "/"),
+      end_date_fa: moment.from(endDate, "YYYY-MM-DD").format("jYYYY/jMM/jDD"),
+      end_date_text: enToFaNumber(
+        moment.from(endDate, "YYYY-MM-DD").format("jYYYY-jMM-jDD")
+      ),
+    });
+    setFilters({
+      end_date: endDate.replaceAll("-", "/"),
+      start_date: startDate.replaceAll("-", "/"),
+    });
+  }, []);
+  useEffect(() => {
+    if (!localStorage.getItem("reload")) {
+      localStorage.setItem("reload", true);
+      window.location.reload();
+    }
+  }, []);
+  const Inputs = [
+    {
+      type: "date",
+      name: "start_date",
+      label: "تاریخ شروع ",
+      control: control,
+      minimumDate: {
+        year: Number(moment().subtract(6, "month").format("jYYYY")),
+        month: Number(moment().subtract(6, "month").format("jMM")),
+        day: Number(moment().subtract(6, "month").format("jDD")),
+      },
+    },
+    {
+      type: "date",
+      name: "end_date",
+      label: "تاریخ پایان ",
+      control: control,
+      maximumDate: {
+        year: Number(moment().format("jYYYY")),
+        month: Number(moment().format("jMM")),
+        day: Number(moment().format("jDD")),
+      },
+    },
+  ];
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  // handle on submit new vehicle
+  const onSubmit = (data) => {
+    setFilters({
+      end_date: data?.end_date?.end_date,
+      start_date: data?.start_date?.start_date,
+    });
+  };
   return (
     <>
       <HelmetTitlePage title="میزکار" />
@@ -40,26 +125,86 @@ const Desktop = () => {
           );
         })}
       </Grid>
+      <Paper sx={{ p: 3, mt: 4 }}>
+        <Typography variant="h5" fontWeight={600}>
+          انتخاب تاریخ
+        </Typography>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          style={{ marginTop: 20, marginBottom: 5 }}
+        >
+          <FormContainer
+            data={watch()}
+            setData={handleChange}
+            errors={errors}
+          />
 
-      <Grid container spacing={2} mt={0.5}>
-        {[<RequestStatuses />, <RequestPerDays />].map((item, i) => {
-          return (
-            <Grid key={i} item xs={12} md={6}>
-              {item}
-            </Grid>
-          );
-        })}
-      </Grid>
+          <FormInputs inputs={Inputs} gridProps={{ md: 6 }} />
+
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent={"end"}
+            mt={2}
+            mb={4}
+          >
+            <Button variant="contained" type="submit">
+              اعمال فیلتر
+            </Button>
+          </Stack>
+        </form>
+        <Divider />
+        <Grid container mt={0.5}>
+          {[
+            <RequestStatuses filters={filters} setStatuses={setStatuses} />,
+            <RequestPerDays filters={filters} />,
+          ].map((item, i) => {
+            return (
+              <Grid key={i} item xs={12} md={6}>
+                {item}
+              </Grid>
+            );
+          })}
+        </Grid>
+        <Divider />
+        <Grid container spacing={1} mt={1}>
+          {Object.keys(statuses).map((item, index) => {
+            return (
+              <Grid key={index} item xs={12} md={2}>
+                <Stack direction={"row"}>
+                  <Link href={`/request?status=${item}`}>
+                    <Chip
+                      label={requestStatus[item]?.title}
+                      variant="filled"
+                      color={requestStatus[item]?.color}
+                      icon={
+                        <SvgSPrite
+                          icon={requestStatus[item]?.icon}
+                          size="small"
+                        />
+                      }
+                      size="small"
+                    />
+                  </Link>
+                </Stack>
+              </Grid>
+            );
+          })}
+        </Grid>
+      </Paper>
     </>
   );
 };
 const HEIGHT = 400;
 
-const RequestPerDays = () => {
+const RequestPerDays = ({ filters }) => {
+  const queryParams = filteringMethod(filters);
   const { data, isError, isFetching, isLoading } = useQuery({
-    queryKey: ["requestsPerDay"],
+    queryKey: ["requestsPerDay", filters],
     queryFn: () =>
-      axiosApi({ url: `/requests-per-day` }).then((res) => res.data.Data),
+      axiosApi({ url: `/requests-per-day${queryParams}` }).then(
+        (res) => res.data.Data
+      ),
   });
 
   const renderBarLabels = () => {
@@ -69,9 +214,9 @@ const RequestPerDays = () => {
     return arr;
   };
   return (
-    <Paper elevation={2} sx={{ p: 3 }}>
+    <Stack p={3}>
       <Typography variant="h5" fontWeight={600}>
-        درخواست های حمل هفته اخیر
+        درخواست های حمل اخیر
       </Typography>
 
       {isError ? (
@@ -89,15 +234,19 @@ const RequestPerDays = () => {
           />
         </Box>
       )}
-    </Paper>
+    </Stack>
   );
 };
 
-const RequestStatuses = () => {
+const RequestStatuses = ({ filters, setStatuses }) => {
+  const queryParams = filteringMethod(filters);
   const { data, isError, isFetching, isLoading } = useQuery({
-    queryKey: ["requestsByStatus"],
+    queryKey: ["requestsByStatus", filters],
     queryFn: () =>
-      axiosApi({ url: `/requests-by-status` }).then((res) => res.data.Data),
+      axiosApi({ url: `/requests-by-status${queryParams}` }).then((res) => {
+        setStatuses(res.data.Data?.statuses);
+        return res.data.Data;
+      }),
   });
 
   const renderPieLabels = () => {
@@ -107,8 +256,8 @@ const RequestStatuses = () => {
     return arr;
   };
   return (
-    <Paper elevation={2}>
-      <Typography variant="h5" fontWeight={600} p={3}>
+    <Stack p={3}>
+      <Typography variant="h5" fontWeight={600}>
         وضعیت درخواست های حمل
       </Typography>
 
@@ -128,7 +277,7 @@ const RequestStatuses = () => {
           />
         </Box>
       )}
-    </Paper>
+    </Stack>
   );
 };
 
@@ -143,9 +292,9 @@ const FleetsCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="ناوگان‌ها"
+      name="ناوگان‌"
       link="/fleet"
-      CardIcon={"car-bus"}
+      CardIcon={"truck-front"}
       counts={data?.fleets_count}
     />
   );
@@ -161,7 +310,7 @@ const DraftsCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="حواله‌ها"
+      name="حواله‌"
       link="/waybill/Draft"
       CardIcon={"scroll-old"}
       counts={data?.drafts_count}
@@ -179,7 +328,7 @@ const ProjectsCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="پروژه‌ها"
+      name="پروژه‌"
       link="/project"
       CardIcon={"briefcase"}
       counts={data?.projects_count}
@@ -197,7 +346,7 @@ const ContractsCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="قرارداد‌ها"
+      name="قرارداد‌"
       link="/contract"
       CardIcon={"handshake"}
       counts={data?.contracts_count}
@@ -215,7 +364,7 @@ const RequestsCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="درخواست‌های حمل فعال"
+      name="درخواست‌ حمل فعال"
       link="/request"
       CardIcon={"handshake-angle"}
       counts={data?.requests_count}
@@ -233,7 +382,7 @@ const OwnersCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="صاحبان بار"
+      name="صاحب بار"
       link="/customer"
       CardIcon={"users"}
       counts={data?.owners_count}
@@ -251,7 +400,7 @@ const DriversCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="رانندگان"
+      name="راننده"
       link="/driver"
       CardIcon={"people-pants-simple"}
       counts={data?.drivers_count}
@@ -269,7 +418,7 @@ const WayBillCount = () => {
     <CardInfo
       loading={isFetching || isLoading}
       isError={isError}
-      name="بارنامه‌ها"
+      name="بارنامه‌"
       link="/waybill"
       CardIcon={"receipt"}
       counts={data?.waybills_count}

@@ -33,7 +33,7 @@ const WAVES = [
 function ChadormaloModal({ onClose, children }) {
   return (
     <>
-      <Paper sx={{ p: 3, position: "relative" }}>
+      <Paper sx={{ p: 3, position: "relative"}}>
         <Box
           component="button"
           onClick={onClose}

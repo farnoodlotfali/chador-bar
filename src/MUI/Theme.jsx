@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { responsiveFontSizes, ThemeProvider } from "@mui/material/styles";
 import { CacheProvider, keyframes } from "@emotion/react";
 import createCache from "@emotion/cache";
@@ -16,10 +17,10 @@ const cacheRtl = createCache({
 
 export default function Theme({ children }) {
   const [theme, setTheme] = useState(null);
+
   const { appTheme } = useContext(AppContext);
 
   useEffect(() => {
-    console.log(loadENV());
     import(`./versions/${process.env.REACT_APP_VERSION_CODE}`).then(
       (module) => {
         const finalTheme = module[`${loadENV()}Theme`];
@@ -77,7 +78,7 @@ const LoadingTheme = () => {
           display: "inline-block",
           textAlign: "center",
           lineHeight: "60px",
-          fontFamily: "IRANSansXV, sans-serif",
+          fontFamily: "Vazirmatn, sans-serif",
           position: "relative",
           padding: "0 48px",
           fontSize: { sm: 25, x: 16 },

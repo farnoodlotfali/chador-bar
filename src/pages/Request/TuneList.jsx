@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable array-callback-return */
 import { useEffect, useRef, useState } from "react";
 
@@ -86,6 +87,7 @@ export default function TuneList() {
   const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [showModal, setShowModal] = useState(null);
+  const [valid, setValid] = useState(true);
   const [selectedTune, setSelectedTune] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -94,7 +96,7 @@ export default function TuneList() {
     isLoading,
     isFetching,
     isError,
-  } = useProjectTune(searchParamsFilter);
+  } = useProjectTune({ ...searchParamsFilter, valid: valid ? 1 : 0 });
 
   const deleteProjectMutation = useMutation(
     (id) => axiosApi({ url: `/project-plan/${id}`, method: "delete" }),
@@ -144,7 +146,11 @@ export default function TuneList() {
     <>
       <HelmetTitlePage title="آهنگ های حمل" />
 
-      <SearchBoxTune />
+      <SearchBoxTune
+        onChangeCheckBox={() => {
+          setValid(!valid);
+        }}
+      />
 
       <Table
         {...projectsTune?.items}
@@ -255,7 +261,7 @@ export default function TuneList() {
   );
 }
 
-const SearchBoxTune = () => {
+const SearchBoxTune = ({ onChangeCheckBox }) => {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [openCollapse, setOpenCollapse] = useState(false);
 
@@ -266,7 +272,13 @@ const SearchBoxTune = () => {
     watch,
     handleSubmit,
     reset,
-  } = useForm({ defaultValues: searchParamsFilter });
+  } = useForm({ defaultValues: { ...searchParamsFilter, checkbox: true } });
+
+  useEffect(() => {
+    if (watch("checkbox") !== null) {
+      onChangeCheckBox();
+    }
+  }, [watch("checkbox")]);
 
   const Inputs = [
     {
@@ -283,6 +295,13 @@ const SearchBoxTune = () => {
     {
       type: "custom",
       customView: <ChooseContract control={control} name={"contract"} />,
+    },
+    {
+      type: "checkbox",
+      name: "checkbox",
+      label: "عدم نمایش آهنگ های حمل منقضی شده",
+      control: control,
+      gridProps: { md: 6 },
     },
   ];
   const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);
@@ -361,7 +380,7 @@ const TuneDetailModal = ({ onClose, open, data = null }) => {
     {
       onSuccess: (res) => {
         if (res?.data?.Data?.requests?.length > 0) {
-          setRequestData(res?.data?.Data?.requests);
+          setRequestData(res?.data?.Data);
           setShowRequestModal(true);
         }
       },
@@ -418,7 +437,7 @@ const TuneDetailModal = ({ onClose, open, data = null }) => {
     queryClient.invalidateQueries(["projectTune"]);
     // data.data.Message
     setShowModal(false);
-    toast.success("با موفقیت ثبت شد");
+
     onClose();
   };
 
@@ -445,15 +464,10 @@ const TuneDetailModal = ({ onClose, open, data = null }) => {
               اطلاعات آهنگ پروژه ({`${enToFaNumber(data.id)}`})
             </Typography>
             <Grid container spacing={2}>
-              <CostumeItem
-                title={"وزن"}
-                text={`${enToFaNumber(numberWithCommas(data.weight))} کیلوگرم`}
-              />
+              <CostumeItem title={"وزن"} text={renderWeight(data?.weight)} />
               <CostumeItem
                 title="وزن باقیمانده"
-                text={`${enToFaNumber(
-                  numberWithCommas(data.remaining_weight)
-                )} کیلوگرم`}
+                text={renderWeight(data?.remaining_weight)}
               />
               <CostumeItem
                 title="محصول"
@@ -593,7 +607,7 @@ const RequestModal = ({ onClose, open, data = null }) => {
   const [requestData, setRequestData] = useState(data);
   useEffect(() => {
     if (data) {
-      setRequestData(data);
+      setRequestData(data?.requests);
     }
   }, [data]);
 
@@ -638,58 +652,68 @@ const RequestModal = ({ onClose, open, data = null }) => {
   );
 
   return (
-    requestData && (
-      <>
-        <Modal onClose={onClose} open={open} maxWidth="md">
-          <Table {...requestData} headCells={headCells1}>
-            <TableBody>
-              {requestData?.map((row) => {
-                if (typeof row === "object") {
-                  return (
-                    <TableRow hover tabIndex={-1} key={row.id}>
-                      <TableCell align="center" scope="row">
-                        {enToFaNumber(row.id)}
-                      </TableCell>
-                      <TableCell align="center" scope="row">
-                        {row.code ?? "-"}
-                      </TableCell>
-                      <TableCell align="center" scope="row">
-                        {enToFaNumber(row.load_time_fa) ?? "-"}
-                      </TableCell>
-                      <TableCell align="center" scope="row">
-                        {enToFaNumber(row.discharge_time_fa) ?? "-"}
-                      </TableCell>
-                      <TableCell scope="row">
-                        <TableActionCell
-                          buttons={[
-                            {
-                              tooltip: "حذف",
-                              color: "error",
-                              icon: "trash-xmark",
-                              onClick: () => {
-                                requestId.current = row?.id;
-                                setShowConfirmModal(!showConfirmModal);
-                              },
+    <>
+      <Modal onClose={onClose} open={open} maxWidth="md">
+        <Card sx={{ p: 2, boxShadow: 1, mb: 1, mt: 2 }}>
+          <Stack
+            alignItems="center"
+            justifyContent={"space-between"}
+            flexDirection={"row"}
+          >
+            <Typography>جمع تناژ کل : {enToFaNumber(data?.weight)}</Typography>
+            <Typography>
+              تعداد درخواست های تولیدی : {enToFaNumber(data?.total_requests)}
+            </Typography>
+          </Stack>
+        </Card>
+        <Table {...requestData} headCells={headCells1}>
+          <TableBody>
+            {requestData?.map((row) => {
+              if (typeof row === "object") {
+                return (
+                  <TableRow hover tabIndex={-1} key={row.id}>
+                    <TableCell align="center" scope="row">
+                      {enToFaNumber(row.id)}
+                    </TableCell>
+                    <TableCell align="center" scope="row">
+                      {row.code ?? "-"}
+                    </TableCell>
+                    <TableCell align="center" scope="row">
+                      {enToFaNumber(row.load_time_fa) ?? "-"}
+                    </TableCell>
+                    <TableCell align="center" scope="row">
+                      {enToFaNumber(row.discharge_time_fa) ?? "-"}
+                    </TableCell>
+                    <TableCell scope="row">
+                      <TableActionCell
+                        buttons={[
+                          {
+                            tooltip: "حذف",
+                            color: "error",
+                            icon: "trash-xmark",
+                            onClick: () => {
+                              requestId.current = row?.id;
+                              setShowConfirmModal(!showConfirmModal);
                             },
-                          ]}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-              })}
-            </TableBody>
-          </Table>
-        </Modal>
-        <ActionConfirm
-          open={showConfirmModal}
-          onClose={() => setShowConfirmModal((prev) => !prev)}
-          onAccept={() => {
-            deleteRequestMutation.mutate(requestId.current);
-          }}
-          message="آیا از حذف درخواست مطمئن هستید؟"
-        />
-      </>
-    )
+                          },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+            })}
+          </TableBody>
+        </Table>
+      </Modal>
+      <ActionConfirm
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal((prev) => !prev)}
+        onAccept={() => {
+          deleteRequestMutation.mutate(requestId.current);
+        }}
+        message="آیا از حذف درخواست مطمئن هستید؟"
+      />
+    </>
   );
 };

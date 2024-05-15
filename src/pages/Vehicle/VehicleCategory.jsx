@@ -307,8 +307,8 @@ const AddNewVehicleCategory = () => {
   // handle on submit new Category
   const onSubmit = (data) => {
     data = JSON.stringify({
-      title: data.title,
-      code: data.code,
+      title: data?.title,
+      code: data?.code,
       status: 1,
     });
     AddCategoryMutation.mutate(data);
@@ -324,7 +324,6 @@ const AddNewVehicleCategory = () => {
       open={openCollapse}
       title="افزودن نوع کامیون"
       name="vehicle-category.store"
-      
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ p: 2 }}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Grid,
@@ -14,7 +14,11 @@ import {
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import ActionConfirm from "Components/ActionConfirm";
-import { enToFaNumber, renderPlaqueObjectToString } from "Utility/utils";
+import {
+  enToFaNumber,
+  removeInvalidValues,
+  renderPlaqueObjectToString,
+} from "Utility/utils";
 import { axiosApi } from "api/axiosApi";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +35,8 @@ import Modal from "Components/versions/Modal";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { ChooseShippingCompany } from "Components/choosers/ChooseShippingCompany";
+import FleetGroupDetailModal from "Components/modals/FleetGroupDetailModal";
+import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 const headCells = [
   {
     id: "id",
@@ -56,10 +62,9 @@ const headCells = [
 const Group = () => {
   const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
-  const [showDetails, setShowDetails] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [acceptRemoveModal, setAcceptRemoveModal] = useState(false);
-  const [fleetItem, setFleetItem] = useState(null);
-  const [selectedRowData, setSelectedRowData] = useState();
+  const [selectedFleetGroup, setSelectedFleetGroup] = useState();
 
   const {
     data: allFleetGroup,
@@ -88,15 +93,29 @@ const Group = () => {
   // UI functions
 
   const showModalToRemove = (row) => {
-    setFleetItem(row?.id);
+    setSelectedFleetGroup(row);
     setAcceptRemoveModal(true);
   };
 
-  // Remove Beneficiary
+  // Remove
   const handleRemoveGroup = () => {
-    deleteMutation.mutate(fleetItem);
+    deleteMutation.mutate(selectedFleetGroup?.id);
     setAcceptRemoveModal(false);
-    setFleetItem(null);
+    setSelectedFleetGroup(null);
+  };
+
+  const handleShowDetail = (item) => {
+    setSelectedFleetGroup(item);
+    setShowModal("detail");
+  };
+
+  const handleShowEditModal = (item) => {
+    setSelectedFleetGroup(item);
+    setShowModal("edit");
+  };
+
+  const toggleModal = () => {
+    setShowModal(null);
   };
 
   return (
@@ -104,14 +123,6 @@ const Group = () => {
       <HelmetTitlePage title="گروه ناوگان" />
 
       <AddNewGroup />
-
-      <DetailsModal
-        open={showDetails}
-        onClose={() => {
-          setShowDetails(false);
-        }}
-        data={selectedRowData}
-      />
 
       <Table
         {...allFleetGroup}
@@ -139,12 +150,15 @@ const Group = () => {
                         tooltip: "مشاهده",
                         color: "secondary",
                         icon: "eye",
-                        onClick: () => {
-                          setSelectedRowData(row);
-
-                          setShowDetails(!showDetails);
-                        },
+                        onClick: () => handleShowDetail(row),
                         name: "fleet-group.show",
+                      },
+                      {
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => handleShowEditModal(row),
+                        name: "fleet-group.update",
                       },
                       {
                         tooltip: "حذف کردن",
@@ -161,6 +175,18 @@ const Group = () => {
           })}
         </TableBody>
       </Table>
+
+      <FleetGroupDetailModal
+        open={showModal === "detail"}
+        onClose={toggleModal}
+        data={selectedFleetGroup}
+      />
+
+      <EditFleetGroup
+        onClose={toggleModal}
+        open={showModal === "edit"}
+        fleetGroup={selectedFleetGroup}
+      />
 
       <ActionConfirm
         message="ایا مطمئن هستید؟"
@@ -191,7 +217,7 @@ const AddNewGroup = () => {
       onSuccess: () => {
         reset();
         queryClient.invalidateQueries(["fleet-group"]);
-        toast.success("درخواست شما با اضافه شد");
+        toast.success("  با موفقیت اضافه شد");
       },
       onError: () => {
         toast.error("خطا  ");
@@ -205,7 +231,7 @@ const AddNewGroup = () => {
       name: "name",
       label: "نام",
       control: control,
-      rules: { required: "نام ناوگان را وارد کنید" },
+      rules: { required: "نام گروه را وارد کنید" },
     },
     {
       type: "custom",
@@ -215,30 +241,43 @@ const AddNewGroup = () => {
           name={"fleets"}
           label="ناوگان"
           needMoreInfo={true}
+          rules={{ required: " ناوگان را انتخاب کنید" }}
         />
       ),
     },
     {
       type: "custom",
       customView: (
-        <ChooseShippingCompany control={control} name={"shipping_company"} />
+        <ChooseShippingCompany
+          control={control}
+          name={"shipping_company"}
+          rules={{ required: " شرکت حمل را انتخاب کنید" }}
+        />
       ),
       gridProps: { md: 4 },
     },
   ];
-  // handle on submit new Beneficiary
-  const onSubmit = (data) => {
-    data.fleets = data.fleets.map((i) => i.id);
-    if (data?.fleets?.length === 0) {
+
+  // handle on submit new
+  const onSubmit = async (data) => {
+    if (!data?.fleets?.length) {
       toast.error("لطفا ناوگان را انتخاب کنید");
+      return;
     }
+    data.fleets = data?.fleets?.map((i) => i?.id);
+
     data = {
       ...data,
       shipping_company_id: data?.shipping_company?.id,
     };
     data = JSON.stringify(data);
 
-    AddGroupMutation.mutate(data);
+    try {
+      const res = await AddGroupMutation.mutateAsync(data);
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   // handle on change inputs
@@ -278,101 +317,119 @@ const AddNewGroup = () => {
     </CollapseForm>
   );
 };
-const DetailsModal = ({ open, onClose, data }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <FormTypography>اطلاعات گروه</FormTypography>
-      <Box sx={{ maxHeight: "300px", overflowY: "scroll", mt: 1, p: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Card>
-              <Stack
-                direction={"row"}
-                sx={{ justifyContent: "space-between", padding: 2 }}
-              >
-                <Typography>نام گروه</Typography>
-                <Typography>{data?.name}</Typography>
-              </Stack>
-              <Stack
-                direction={"row"}
-                sx={{ justifyContent: "space-between", padding: 2 }}
-              >
-                <Typography>نام شرکت حمل</Typography>
-                <Typography> {data?.shipping_company?.name ?? "-"}</Typography>
-              </Stack>
-            </Card>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="h5" mt={2}>
-              ناوگان ها
-            </Typography>
-          </Grid>
 
-          {data ? (
-            data.fleets?.map((fleet) => {
-              return (
-                <Grid item xs={12} md={4}>
-                  <Card sx={{ padding: 2 }}>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%" }}
-                    >
-                      <Typography>کد </Typography>
-                      <Typography fontSize={14}>{fleet.code}</Typography>
-                    </Stack>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%", mt: 2 }}
-                    >
-                      <Typography>پلاک</Typography>
-                      <Typography>
-                        {renderPlaqueObjectToString(fleet?.vehicle?.plaque)}
-                      </Typography>
-                    </Stack>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%", mt: 2 }}
-                    >
-                      <Typography>نوع خودرو</Typography>
-                      <Typography>
-                        {fleet.vehicle?.container_type?.vehicle_category?.title}
-                      </Typography>
-                    </Stack>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%", mt: 2 }}
-                    >
-                      <Typography>نوع بارگیر</Typography>
-                      <Typography>
-                        {fleet.vehicle?.container_type?.title}
-                      </Typography>
-                    </Stack>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%", mt: 2 }}
-                    >
-                      <Typography>مدل خودرو</Typography>
-                      <Typography>
-                        {fleet.vehicle?.vehicle_model?.title}
-                      </Typography>
-                    </Stack>
-                  </Card>
-                </Grid>
-              );
-            })
-          ) : (
-            <Typography pt={2} pl={2}>
-              ناوگانی یافت نشد
-            </Typography>
-          )}
-        </Grid>
-      </Box>
+const EditFleetGroup = ({ open, onClose, fleetGroup }) => {
+  const queryClient = useQueryClient();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm();
+
+  useEffect(() => {
+    reset(fleetGroup);
+  }, [fleetGroup]);
+
+  const updateFleetGroupMutation = useMutation(
+    (data) =>
+      axiosApi({
+        url: `/fleet-group/${fleetGroup.id}`,
+        method: "put",
+        data: data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["fleet-group"]);
+        toast.success(" با موفقیت ویرایش شد");
+      },
+      onError: () => {
+        toast.error("خطا  ");
+      },
+    }
+  );
+
+  const Inputs = [
+    {
+      type: "text",
+      name: "name",
+      label: "نام",
+      control: control,
+      rules: { required: "نام گروه را وارد کنید" },
+    },
+    {
+      type: "custom",
+      customView: (
+        <MultiFleets
+          control={control}
+          name={"fleets"}
+          label="ناوگان"
+          needMoreInfo={true}
+          rules={{ required: " ناوگان را انتخاب کنید" }}
+        />
+      ),
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseShippingCompany
+          control={control}
+          name={"shipping_company"}
+          rules={{ required: " شرکت حمل را انتخاب کنید" }}
+        />
+      ),
+      gridProps: { md: 4 },
+    },
+  ];
+  // handle on submit
+  const onSubmit = async (data) => {
+    if (data?.fleets?.length === 0) {
+      toast.error("لطفا ناوگان را انتخاب کنید");
+      return;
+    }
+    data.fleets = data.fleets.map((i) => i.id);
+
+    data = {
+      ...data,
+      shipping_company_id: data?.shipping_company?.id,
+    };
+
+    try {
+      const res = await updateFleetGroupMutation.mutateAsync(
+        removeInvalidValues(data)
+      );
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  return (
+    <Modal onClose={onClose} open={open}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormTypography>ویرایش گروه ناوگان</FormTypography>
+        <FormContainer data={watch()} setData={handleChange} errors={errors}>
+          <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
+          <Stack mt={2} alignItems="flex-end">
+            <LoadingButton
+              variant="contained"
+              loading={isSubmitting}
+              type="submit"
+            >
+              ویرایش
+            </LoadingButton>
+          </Stack>
+        </FormContainer>
+      </form>
     </Modal>
   );
 };
+
 export default Group;

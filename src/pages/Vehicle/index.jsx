@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -23,6 +23,7 @@ import {
   enToFaNumber,
   removeInvalidValues,
   renderChipForInquiry,
+  renderDataFormat,
   renderPlaqueObjectToString,
 } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ import { axiosApi } from "api/axiosApi";
 import { useForm } from "react-hook-form";
 import { ChooseVModel } from "Components/choosers/vehicle/model/ChooseVModel";
 import { ChooseVColor } from "Components/choosers/vehicle/color/ChooseVColor";
-import { useVehicleColor } from "hook/useVehicleColor";
 import { useVehicle } from "hook/useVehicle";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import CollapseForm from "Components/CollapseForm";
@@ -41,6 +41,7 @@ import { SvgSPrite } from "Components/SvgSPrite";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { useHasPermission } from "hook/useHasPermission";
+import Modal from "Components/versions/Modal";
 
 const headCells = [
   {
@@ -73,8 +74,8 @@ const headCells = [
     label: "سال ",
   },
   {
-    id: "IMEI",
-    label: "IMEI",
+    id: "gps_code",
+    label: "کد GPS",
   },
   {
     id: "smart_card_no",
@@ -100,12 +101,6 @@ export default function VehicleList() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showModal, setShowModal] = useState(false);
-
-  const {
-    data: colors,
-    isFetching: isFetchingColor,
-    isLoading: isLoadingColor,
-  } = useVehicleColor();
 
   const {
     data: vehicles,
@@ -171,14 +166,16 @@ export default function VehicleList() {
     setSelectedVehicle(vehicle);
   };
 
+  const handleEditVehicle = (vehicle) => {
+    setShowModal("editVehicle");
+    setSelectedVehicle(vehicle);
+  };
+
   return (
     <>
       <HelmetTitlePage title="خودروها" />
-
       <AddNewVehicle />
-
       <SearchBoxVehicle />
-
       <Table
         {...vehicles}
         headCells={headCells}
@@ -187,8 +184,6 @@ export default function VehicleList() {
         loading={
           isLoading ||
           isFetching ||
-          isFetchingColor ||
-          isLoadingColor ||
           deleteVehicleMutation.isLoading ||
           updateVehicleMutation.isLoading
         }
@@ -215,20 +210,20 @@ export default function VehicleList() {
                       variant="clickable"
                       onClick={() => showVehicleTypeModal(row)}
                     >
-                      {row.container_type?.title}
+                      {enToFaNumber(row.container_type?.title)}
                     </Typography>
                   ) : (
                     "-"
                   )}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {colors[row.color]}
+                  {row.color ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.year)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.imei) ?? "-"}
+                  {enToFaNumber(row.gps_code) ?? "-"}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {enToFaNumber(row.smart_card_no) ?? "-"}
@@ -265,6 +260,13 @@ export default function VehicleList() {
                         name: "vehicle.show",
                       },
                       {
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => handleEditVehicle(row),
+                        name: "vehicle.update",
+                      },
+                      {
                         tooltip: "حذف",
                         color: "error",
                         icon: "trash-xmark",
@@ -279,24 +281,26 @@ export default function VehicleList() {
           })}
         </TableBody>
       </Table>
-
       <ActionConfirm
         open={showConfirmModal}
         onClose={() => setShowConfirmModal((prev) => !prev)}
         onAccept={deleteVehicle}
         message="آیا از حذف خودرو مطمئن هستید؟"
       />
-
       <VehicleDetailModal
         show={showModal === "vehicle"}
         onClose={handleClose}
         data={selectedVehicle}
       />
-
       <VehicleTypeDetailModal
         show={showModal === "containerType"}
         onClose={handleClose}
         data={selectedVehicle?.container_type}
+      />
+      <EditVehicleModal
+        open={showModal === "editVehicle"}
+        onClose={handleClose}
+        data={selectedVehicle}
       />
     </>
   );
@@ -417,7 +421,6 @@ const AddNewVehicle = () => {
           value: 1350,
           message: "سال تولید باید از 1350 بزرگتر باشد",
         },
-        required: "سال را وارد کنید",
         minLength: {
           value: 4,
           message: "سال باید 4 رقمی باشد",
@@ -451,33 +454,40 @@ const AddNewVehicle = () => {
     },
     {
       type: "number",
-      name: "imei",
-      label: "IMEI",
+      name: "gps_code",
+      label: "کد GPS",
       control: control,
       noInputArrow: true,
       rules: {
-        required: "IMEI را وارد کنید",
-        minLength: {
-          value: 15,
-          message: "IMEI  باید 15 حرفی باشد",
-        },
-        maxLength: {
-          value: 15,
-          message: "IMEI  باید 15 حرفی باشد",
-        },
+        required: "کد GPS را وارد کنید",
       },
     },
     {
       type: "text",
-      name: "شماره کارت هوشمند",
+      name: "smart_card_no",
       label: "شماره کارت هوشمند",
       control: control,
       rules: {
         required: "شماره کارت هوشمند را وارد کنید",
-        minLength: {
-          value: 17,
-          message: "شماره کارت هوشمند  باید 17 حرفی باشد",
-        },
+      },
+    },
+    {
+      type: "number",
+      name: "insurance_no",
+      label: "شماره بیمه شخص ثالث",
+      control: control,
+      noInputArrow: true,
+      rules: {
+        required: "شماره بیمه شخص ثالث را وارد کنید",
+      },
+    },
+    {
+      type: "date",
+      name: "insurance_expire_date",
+      label: "تاریخ انقضا بیمه شخص ثالث",
+      control: control,
+      rules: {
+        required: "تاریخ انقضا بیمه شخص ثالث را وارد کنید",
       },
     },
     {
@@ -531,19 +541,27 @@ const AddNewVehicle = () => {
   ];
 
   // handle on submit new vehicle
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     data = JSON.stringify({
+      ...data,
       plaque: data.plaque,
       vehicle_model_id: data.vehicle_model.id,
       container_type_id: data.container_type.id,
+      insurance_expire_date:
+        data.insurance_expire_date.insurance_expire_date_fa,
       color: data.color[0],
       vin: data.vin.toUpperCase(),
       year: data.year,
-      imei: data.imei,
+      gps_code: data.gps_code,
       status: 1,
       inquiry: 0,
     });
-    AddVehicleMutation.mutate(data);
+    try {
+      const res = await AddVehicleMutation.mutateAsync(data);
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
   // handle on change inputs
   const handleChange = (name, value) => {
@@ -579,5 +597,226 @@ const AddNewVehicle = () => {
         </Box>
       </form>
     </CollapseForm>
+  );
+};
+
+const EditVehicleModal = ({ onClose, open, data }) => {
+  const queryClient = useQueryClient();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm();
+
+  useEffect(() => {
+    reset(data);
+    setValue(
+      "insurance_expire_date",
+      renderDataFormat(
+        "insurance_expire_date",
+        data?.insurance_expire_date,
+        "fa"
+      )
+    );
+  }, [data]);
+
+  const updateVehicleMutation = useMutation(
+    (formData) =>
+      axiosApi({ url: `/vehicle/${data.id}`, method: "put", data: formData }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["vehicle"]);
+        toast.success("با موفقیت اضافه شد");
+      },
+    }
+  );
+
+  const Inputs = [
+    {
+      type: "number",
+      name: "year",
+      label: "سال تولید",
+      control: control,
+      noInputArrow: true,
+      rules: {
+        required: "سال تولید را وارد کنید",
+        min: {
+          value: 1350,
+          message: "سال تولید باید از 1350 بزرگتر باشد",
+        },
+        minLength: {
+          value: 4,
+          message: "سال باید 4 رقمی باشد",
+        },
+        maxLength: {
+          value: 4,
+          message: "سال باید 4 رقمی باشد",
+        },
+      },
+    },
+    {
+      type: "text",
+      name: "vin",
+      label: "vin",
+      control: control,
+      rules: {
+        required: "vin را وارد کنید",
+        minLength: {
+          value: 17,
+          message: "vin  باید 17 حرفی باشد",
+        },
+        maxLength: {
+          value: 17,
+          message: "vin  باید 17 حرفی باشد",
+        },
+        pattern: {
+          value: /^[A-Za-z\d]+$/i,
+          message: "vin فقط شامل عدد و حروف انگلیسی می‌باشد",
+        },
+      },
+    },
+    {
+      type: "number",
+      name: "gps_code",
+      label: "کد GPS",
+      control: control,
+      noInputArrow: true,
+      rules: {
+        required: "کد GPS را وارد کنید",
+      },
+    },
+    {
+      type: "text",
+      name: "smart_card_no",
+      label: "شماره کارت هوشمند",
+      control: control,
+      rules: {
+        required: "شماره کارت هوشمند را وارد کنید",
+      },
+    },
+    {
+      type: "number",
+      name: "insurance_no",
+      label: "شماره بیمه شخص ثالث",
+      control: control,
+      noInputArrow: true,
+      rules: {
+        required: "شماره بیمه شخص ثالث را وارد کنید",
+      },
+    },
+    {
+      type: "date",
+      name: "insurance_expire_date",
+      label: "تاریخ انقضا بیمه شخص ثالث",
+      control: control,
+      rules: {
+        required: "تاریخ انقضا بیمه شخص ثالث را وارد کنید",
+      },
+    },
+    {
+      type: "plaque",
+      name: "plaque",
+      label: "",
+      gridProps: { md: 4 },
+      control: control,
+      rules: { required: "پلاک را وارد کنید" },
+    },
+
+    {
+      type: "custom",
+      customView: (
+        <ChooseVColor
+          control={control}
+          name={"color"}
+          rules={{
+            required: "رنگ را وارد کنید",
+          }}
+          label="رنگ خودرو"
+        />
+      ),
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseVModel
+          control={control}
+          name={"vehicle_model"}
+          rules={{
+            required: "مدل را وارد کنید",
+          }}
+          label="مدل خودرو"
+        />
+      ),
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseVType
+          control={control}
+          name={"container_type"}
+          rules={{
+            required: "نوع بارگیر را وارد کنید",
+          }}
+          label="نوع بارگیر"
+        />
+      ),
+    },
+  ];
+
+  // handle on submit  vehicle
+  const onSubmit = async (data) => {
+    data = JSON.stringify({
+      ...data,
+      plaque: data.plaque,
+      vehicle_model_id: data.vehicle_model.id,
+      container_type_id: data.container_type.id,
+      insurance_expire_date:
+        data.insurance_expire_date.insurance_expire_date_fa,
+      color: data.color[0],
+      vin: data.vin.toUpperCase(),
+      year: data.year,
+      gps_code: data.gps_code,
+      status: 1,
+      inquiry: 0,
+    });
+    try {
+      const res = await updateVehicleMutation.mutateAsync(data);
+      return res;
+    } catch (error) {
+      return;
+    }
+  };
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Box sx={{ p: 2 }}>
+          <FormContainer data={watch()} setData={handleChange} errors={errors}>
+            <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
+
+            <Stack direction="row" justifyContent="end" mt={3}>
+              <LoadingButton
+                sx={{
+                  px: 6,
+                  py: 1,
+                }}
+                variant="contained"
+                type="submit"
+                loading={isSubmitting}
+              >
+                ویرایش
+              </LoadingButton>
+            </Stack>
+          </FormContainer>
+        </Box>
+      </form>
+    </Modal>
   );
 };

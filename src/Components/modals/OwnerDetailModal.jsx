@@ -1,10 +1,19 @@
-import { Grid, Paper, Stack, Typography, Avatar } from "@mui/material";
+import {Avatar, Box, Grid, Paper, Rating, Stack, Tooltip, Typography} from "@mui/material";
 import Modal from "Components/versions/Modal";
-import { enToFaNumber, genderType } from "Utility/utils";
+import {enToFaNumber, genderType, renderChip, renderMobileFormat} from "Utility/utils";
+import {SvgSPrite} from "../SvgSPrite";
+import {useState} from "react";
+import ShowPersonScoreModal from "./ShowPersonScoreModal";
 
 const OwnerDetailModal = ({ open, onClose, owner }) => {
+  const [showHistory, setShowHistory] = useState(false);
+
+  const toggleShowHistory = () => {
+    setShowHistory((prev) => !prev);
+  };
   return (
     open && (
+        <>
       <Modal maxWidth={"sm"} open={open} onClose={onClose}>
         <Paper elevation={3} sx={{ marginTop: 4, padding: 2 }}>
           <Grid container spacing={3}>
@@ -60,30 +69,50 @@ const OwnerDetailModal = ({ open, onClose, owner }) => {
             <Grid item xs={12} md={6}>
               <Stack direction={"row"} spacing={2}>
                 <Typography fontWeight={700}>موبایل:</Typography>
-                <Typography>{enToFaNumber(owner.mobile) ?? "-"}</Typography>
+                <Typography>{renderMobileFormat(owner.mobile) ?? "-"}</Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Stack direction={"row"} spacing={2}>
+              <Stack direction={"row"} spacing={2} alignItems="baseline">
                 <Typography fontWeight={700}>وضعیت:</Typography>
-                <Typography>{owner.status ?? "-"}</Typography>
+                <Typography>{renderChip(owner.status)}</Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Stack direction={"row"} spacing={2}>
+              <Stack direction={"row"} spacing={2} alignItems="baseline">
                 <Typography fontWeight={700}>استعلام:</Typography>
-                <Typography>{owner.inquiry ?? "-"}</Typography>
+                <Typography>{renderChip(owner.inquiry)}</Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Stack direction={"row"} spacing={2}>
-                <Typography fontWeight={700}>license_card:</Typography>
-                <Typography>{owner.license_card ?? "-"}</Typography>
+              <Stack direction="row" spacing={1} alignItems="baseline">
+                <Typography fontWeight={700}>امتیاز:</Typography>
+                <Rating precision={0.2} value={owner?.rating} size="small" readOnly/>
+                <Tooltip placement="top" title="مشاهده تاریخچه امتیازات">
+                  <Box
+                      sx={{cursor: "pointer"}}
+                      onClick={toggleShowHistory}
+                  >
+                    <SvgSPrite
+                        icon="rectangle-history-circle-user"
+                        size={20}
+                    />
+                  </Box>
+                </Tooltip>
               </Stack>
             </Grid>
+
+            {/*<Grid item xs={12} md={6}>*/}
+            {/*  <Stack direction={"row"} spacing={2}>*/}
+            {/*    <Typography fontWeight={700}>license_card:</Typography>*/}
+            {/*    <Typography>{owner.license_card ?? "-"}</Typography>*/}
+            {/*  </Stack>*/}
+            {/*</Grid>*/}
           </Grid>
         </Paper>
       </Modal>
+          <ShowPersonScoreModal show={showHistory} onClose={toggleShowHistory}/>
+        </>
     )
   );
 };

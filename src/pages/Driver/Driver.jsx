@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Card, Typography, Stack, Grid } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 
@@ -14,7 +15,7 @@ import { toast } from "react-toastify";
 
 import { ChooseVehicle } from "Components/choosers/vehicle/ChooseVehicle";
 import moment from "jalali-moment";
-import { enToFaNumber } from "Utility/utils";
+import { enToFaNumber, renderSelectOptions } from "Utility/utils";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 
@@ -70,22 +71,28 @@ export default function Driver() {
     if (isSuccess) {
       setIsDataLoaded(false);
       reset(driverData?.person);
-      const EnDate = moment
-        .from(driverData?.person?.birth_date, "fa", "YYYY-MM-DD")
-        .format("YYYY-MM-DD");
-      const FnDate = moment
-        .from(driverData?.person?.birth_date, "fa", "YYYY-MM-DD")
-        .format("jYYYY/jMM/jDD");
 
       setValue("vehicle", driverData?.vehicle);
-      setValue("birth_date", {
-        birth_date: EnDate.replaceAll("-", "/"),
-        birth_date_fa: FnDate,
-        birth_date_text: enToFaNumber(FnDate),
-      });
+      setValue("inquiry", driverData?.inquiry === 1 ? "valid" : "inValid");
+      if (driverData?.birth_date) {
+        const EnDate = moment
+          .from(driverData?.person?.birth_date, "fa", "YYYY-MM-DD")
+          .format("YYYY-MM-DD");
+        const FnDate = moment
+          .from(driverData?.person?.birth_date, "fa", "YYYY-MM-DD")
+          .format("jYYYY/jMM/jDD");
+        setValue("birth_date", {
+          birth_date: EnDate.replaceAll("-", "/"),
+          birth_date_fa: FnDate,
+          birth_date_text: enToFaNumber(FnDate),
+        });
+      }
+
       setTimeout(() => {
         setIsDataLoaded(true);
       }, 20);
+
+      setValue("mobile", "0" + parseInt(driverData.mobile));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess]);
@@ -125,7 +132,11 @@ export default function Driver() {
       noInputArrow: true,
       control: control,
       readOnly: true,
-      rules: { required: "موبایل را وارد کنید" },
+      rules: {
+        required: "موبایل را وارد کنید",
+        maxLength: { value: 11, message: "موبایل باید 11 رقم باشد" },
+        minLength: { value: 11, message: "موبایل باید 11 رقم باشد" },
+      },
     },
     {
       type: "select",
@@ -151,26 +162,17 @@ export default function Driver() {
       rules: { required: "کدملی را وارد کنید" },
     },
     {
-      type: "email",
-      name: "email",
-      label: "ایمیل",
+      type: "number",
+      name: "license_no",
+      label: "شماره گواهینامه",
+      noInputArrow: true,
       control: control,
+      rules: {
+        required: "شماره گواهینامه را وارد کنید",
+        maxLength: { value: 10, message: "شماره گواهینامه باید 10 رقم باشد" },
+        minLength: { value: 10, message: "شماره گواهینامه باید 10 رقم باشد" },
+      },
     },
-    // {
-    //   type: "text",
-    //   name: "national_card",
-    //   label: "کارت هوشمند",
-    //   control: control,
-    //   rules: { required: "کارت هوشمند را وارد کنید" },
-    // },
-    // {
-    //   type: "number",
-    //   name: "license_card",
-    //   label: "گواهینامه",
-    //   noInputArrow: true,
-    //   control: control,
-    //   rules: { required: "گواهینامه را وارد کنید" },
-    // },
     {
       type: "custom",
       customView: (
@@ -185,6 +187,48 @@ export default function Driver() {
       ),
       gridProps: { md: 4.8 },
     },
+    // {
+    //   type: "select",
+    //   name: "inquiry_national_code",
+    //   label: "وضعیت کدملی",
+    //   options: renderSelectOptions({
+    //     valid: "معتبر",
+    //     inValid: "نامعتبر",
+    //   }),
+    //   valueKey: "id",
+    //   labelKey: "title",
+    //   control: control,
+    //   defaultValue: "all",
+    //   gridProps: { md: 4 },
+    // },
+    // {
+    //   type: "select",
+    //   name: "inquiry_vehicle",
+    //   label: "وضعیت خودرو",
+    //   options: renderSelectOptions({
+    //     valid: "معتبر",
+    //     inValid: "نامعتبر",
+    //   }),
+    //   valueKey: "id",
+    //   labelKey: "title",
+    //   control: control,
+    //   defaultValue: "all",
+    //   gridProps: { md: 4 },
+    // },
+    {
+      type: "select",
+      name: "inquiry",
+      label: "وضعیت فعالیت",
+      options: renderSelectOptions({
+        valid: "معتبر",
+        inValid: "نامعتبر",
+      }),
+      valueKey: "id",
+      labelKey: "title",
+      control: control,
+      defaultValue: "all",
+      gridProps: { md: 4 },
+    },
   ];
 
   // handle on submit
@@ -196,8 +240,9 @@ export default function Driver() {
       father_name: data.father_name,
       national_code: data.national_code,
       gender: data.gender,
-      email: data.email,
-      birth_date: data.birth_date?.birth_date_fa,
+      birth_date: data.birth_date?.birth_date,
+      license_no: data.license_no,
+      inquiry: data?.inquiry === "valid" ? 1 : 0,
     });
 
     updateDriverMutation.mutate(data);
@@ -206,19 +251,6 @@ export default function Driver() {
   // handle on change inputs
   const handleChange = (name, value) => {
     setValue(name, value);
-  };
-
-  const renderItem = (title, value) => {
-    return (
-      <Grid item xs={12} sm={6} md={3}>
-        <Stack spacing={1} direction="row">
-          <Typography variant="caption" alignSelf={"center"} fontWeight={"700"}>
-            {title}:
-          </Typography>
-          <Typography variant="caption">{value}</Typography>
-        </Stack>
-      </Grid>
-    );
   };
 
   return (

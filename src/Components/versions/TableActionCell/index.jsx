@@ -20,7 +20,7 @@ const TableActionCell = ({ buttons = [] }) => {
           return (
             <div key={`table-action-${index}`}>
               {button.link ? (
-                <Link to={button.link}>
+                <Link to={button.link} target={button.target}>
                   <Suspense
                     fallback={
                       <Skeleton variant="rectangular" width={33} height={33} />

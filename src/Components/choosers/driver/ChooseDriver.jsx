@@ -1,3 +1,4 @@
+/* eslint-disable no-empty-pattern */
 import {
   Button,
   FormControl,
@@ -38,7 +39,13 @@ export const ChooseDriver = ({
   const [showModal, setShowModal] = useState(false);
 
   const driverName = field.value
-    ? `${field.value?.first_name ?? "فاقد نام"} ${field.value?.last_name ?? ""}`
+    ? field.value?.person
+      ? `${field.value?.person?.first_name ?? "فاقد نام"} ${
+          field.value?.person?.last_name ?? ""
+        }`
+      : `${field.value?.first_name ?? "فاقد نام"} ${
+          field.value?.last_name ?? ""
+        }`
     : "راننده";
 
   const selectDriver = (driver) => {

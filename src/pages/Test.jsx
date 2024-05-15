@@ -1,22 +1,52 @@
-import { Button } from "@mui/material";
-import Modal from "Components/versions/Modal";
-import React, { useState } from "react";
+import { Box, Button, Stack } from "@mui/material";
+import { FormContainer, FormInputs } from "Components/Form";
+import { useForm } from "react-hook-form";
 
 const Test = () => {
-  const [first, setfirst] = useState(false);
-  return (
-    <>
-      <Button onClick={() => setfirst(true)}>first Button</Button>
+  const {
+    control,
+    formState: { errors },
+    setValue,
+    watch,
+    handleSubmit,
+    reset,
+  } = useForm({});
 
-      <Modal open={first} onClose={() => setfirst(false)}>
-        <span>
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Rerum magni
-          omnis similique magnam illo vero modi ullam fuga tempora, nobis
-          temporibus, explicabo nostrum corrupti dolorem quaerat ab facere
-          accusantium id!
-        </span>
-      </Modal>
-    </>
+  const zoneInput = [
+    {
+      type: "zone",
+      name: "zones",
+      control: control,
+      // rules: {
+      //   required: "zones را وارد کنید",
+      // },
+      gridProps: { md: 12 },
+      height: "100vh",
+    },
+  ];
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  // handle on submit new vehicle
+  const onSubmit = (data) => {};
+  return (
+    <div>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Box sx={{ p: 2 }}>
+          <FormContainer data={watch()} setData={handleChange} errors={errors}>
+            <FormInputs inputs={zoneInput} gridProps={{ md: 12 }} />
+            <Stack direction="row" spacing={2} justifyContent={"end"} mt={2}>
+              <Button variant="contained" type="submit">
+                اعمال فیلتر
+              </Button>
+            </Stack>
+          </FormContainer>
+        </Box>
+      </form>
+    </div>
   );
 };
 

@@ -12,7 +12,9 @@ import {
   enToFaNumber,
   handleDate,
   numberWithCommas,
+  renderMobileFormat,
   renderPlaqueObjectToString,
+  renderWeight,
 } from "Utility/utils";
 
 import Timeline from "Components/versions/Timeline";
@@ -21,6 +23,7 @@ import DrivingDirection from "Components/DrivingDirection";
 import { SvgSPrite } from "Components/SvgSPrite";
 import { useState } from "react";
 import ShowPersonScoreModal from "./ShowPersonScoreModal";
+import RequestStepper from "Components/versions/RequestStepper";
 
 const CardsStyle = {
   width: "100%",
@@ -64,6 +67,9 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
     <>
       <Modal open={open} onClose={onClose}>
         <Grid container spacing={2}>
+          <Grid item xs={12} mt={2}>
+            <RequestStepper status={data?.status} size={30} sx={{ mb: 0 }} />
+          </Grid>
           <Grid item xs={12} md={6}>
             <Card sx={CardsStyle}>
               <Stack
@@ -79,29 +85,44 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
               <Stack spacing={1} mt={3}>
                 {RowLabelAndData(
                   "کد آگهی",
-                  data.code ?? "-",
+                  data?.code ?? "-",
                   <SvgSPrite icon="spell-check" MUIColor="primary" />
                 )}
-
                 {RowLabelAndData(
                   "قیمت پیشنهادی",
-                  `${enToFaNumber(numberWithCommas(data.proposed_price))} ریال`,
+                  `${enToFaNumber(
+                    numberWithCommas(data?.proposed_price) ?? "-"
+                  )} ریال`,
                   <SvgSPrite icon="money-bill-wave" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "حداقل قیمت سامانه",
-                  `${enToFaNumber(numberWithCommas(data.low_price))} ریال`,
+                  `${enToFaNumber(
+                    numberWithCommas(data?.low_price) ?? "-"
+                  )} ریال`,
                   <SvgSPrite icon="scanner-keyboard" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "حداکثر قیمت سامانه",
-                  `${enToFaNumber(numberWithCommas(data.high_price))} ریال`,
+                  `${enToFaNumber(
+                    numberWithCommas(data?.high_price) ?? "-"
+                  )} ریال`,
                   <SvgSPrite icon="scanner-gun" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "قیمت نهایی",
-                  `${enToFaNumber(numberWithCommas(data.price))} ریال`,
+                  `${enToFaNumber(numberWithCommas(data?.price) ?? "-")} ریال`,
                   <SvgSPrite icon="money-bill" MUIColor="primary" />
+                )}
+                {RowLabelAndData(
+                  "تعداد",
+                  numberWithCommas(data?.quantity),
+                  <SvgSPrite icon="tally-4" MUIColor="primary" />
+                )}
+                {RowLabelAndData(
+                  "شرکت حمل",
+                  enToFaNumber(data?.shipping_company?.name) ?? "-",
+                  <SvgSPrite icon="truck-tow" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "نام فرستنده",
@@ -112,17 +133,19 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                 )}
                 {RowLabelAndData(
                   "شماره موبایل فرستنده",
-                  data?.sender?.mobile ? "0" + data?.sender?.mobile : "",
+                  data?.sender?.mobile
+                    ? renderMobileFormat(data?.sender?.mobile)
+                    : "",
                   <SvgSPrite icon="mobile" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "کد پستی مبداء",
-                  data.source_zip_code ?? "-",
+                  enToFaNumber(data?.source_zip_code) ?? "-",
                   <SvgSPrite icon="hashtag" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "مبدا",
-                  data.source_address ?? "-",
+                  data?.source_address ?? "-",
                   <SvgSPrite icon="location-dot" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
@@ -136,73 +159,70 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                 )}
                 {RowLabelAndData(
                   "شماره موبایل گیرنده",
-                  data?.receiver?.mobile ? "0" + data?.receiver?.mobile : "",
+                  data?.receiver?.mobile
+                    ? renderMobileFormat(data?.receiver?.mobile)
+                    : "",
                   <SvgSPrite icon="mobile" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "کد پستی مقصد",
-                  data.destination_zip_code ?? "-",
+                  enToFaNumber(data?.destination_zip_code) ?? "-",
                   <SvgSPrite icon="hashtag" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "مقصد",
-                  data.destination_address ?? "-",
+                  data?.destination_address ?? "-",
                   <SvgSPrite icon="location-check" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "کد ناوگان",
-                  data.fleet?.code ?? "-",
+                  data?.fleet?.code ?? "-",
                   <SvgSPrite icon="hashtag" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "نوع بارگیر",
-                  data.vehicle_type?.title ?? "-",
+                  data?.vehicle_type?.title ?? "-",
                   <SvgSPrite icon="truck-ramp" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "نام محصول",
-                  data.product?.title ?? "-",
+                  data?.product?.title ?? "-",
                   <SvgSPrite icon="box" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "سریال بارنامه",
-                  data.waybill_serial ?? "-",
+                  data?.waybill_serial ?? "-",
                   <SvgSPrite icon="hashtag" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "شماره بارنامه",
-                  data.waybill_number ?? "-",
+                  data?.waybill_number ?? "-",
                   <SvgSPrite icon="hashtag" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "زمان بارگیری",
-                  data.load_time_fa ?? "-",
+                  enToFaNumber(data?.load_time_fa) ?? "-",
                   <SvgSPrite icon="clock-three" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "زمان تخلیه",
-                  data.discharge_time_fa ?? "-",
+                  enToFaNumber(data?.discharge_time_fa) ?? "-",
                   <SvgSPrite icon="clock-one" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "زمان ثبت",
                   `${
-                    handleDate(data.created_at, "YYYY/MM/DD") +
+                    handleDate(data?.created_at, "YYYY/MM/DD") +
                     "  " +
-                    handleDate(data.created_at, "HH:MM")
+                    handleDate(data?.created_at, "HH:MM")
                   }`,
                   <SvgSPrite icon="clock-two" MUIColor="primary" />
                 )}
                 {RowLabelAndData(
                   "وزن",
-                  `${
-                    data.weight
-                      ? enToFaNumber(numberWithCommas(data.weight)) + " کیلوگرم"
-                      : "-"
-                  }`,
+                  `${renderWeight(data?.weight)}`,
                   <SvgSPrite icon="weight-scale" MUIColor="primary" />
                 )}
-
                 <Stack direction={"row"} justifyContent="space-between">
                   <Typography
                     sx={{
@@ -224,10 +244,9 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                     );
                   })}
                 </Stack>
-
                 {RowLabelAndData(
                   "توضیحات",
-                  data.description ?? "-",
+                  data?.description ?? "-",
                   <SvgSPrite icon="file" MUIColor="primary" />
                 )}
               </Stack>
@@ -235,7 +254,7 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
           </Grid>
           <Grid item xs={12} md={6}>
             <Card sx={CardsStyle}>
-              <DrivingDirection showModal={false} rowData={data} />
+              <DrivingDirection rowData={data} />
             </Card>
           </Grid>
           <Grid item xs={12}>
@@ -251,26 +270,28 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                   <SvgSPrite icon="user-simple" MUIColor="warning" />
                 </Stack>
                 <Stack spacing={1} mt={3}>
-                  {data.owner ? (
+                  {data?.owner ? (
                     <>
                       {RowLabelAndData(
                         "نام",
                         `${
-                          data.owner.first_name
-                            ? data.owner.first_name + " " + data.owner.last_name
+                          data?.owner.first_name
+                            ? data?.owner.first_name +
+                              " " +
+                              data?.owner.last_name
                             : ""
                         }`,
                         <SvgSPrite icon="user" MUIColor="primary" />
                       )}
                       {RowLabelAndData(
                         "شماره موبایل",
-                        enToFaNumber("0" + data.owner.mobile),
+                        renderMobileFormat(data?.owner.mobile),
 
                         <SvgSPrite icon="mobile" MUIColor="primary" />
                       )}
                       {RowLabelAndData(
                         "کد ملی",
-                        enToFaNumber(data.owner?.national_code) ?? "-",
+                        enToFaNumber(data?.owner?.national_code) ?? "-",
 
                         <SvgSPrite icon="hashtag" MUIColor="primary" />
                       )}
@@ -279,7 +300,7 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                         <Stack direction="row" spacing={1}>
                           <Rating
                             precision={0.2}
-                            value={data.owner?.rating}
+                            value={data?.owner?.rating}
                             size="small"
                             readOnly
                             color="inherit"
@@ -319,31 +340,33 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                   <SvgSPrite icon="car" size="large" MUIColor="warning" />
                 </Stack>
                 <Stack spacing={1} mt={3}>
-                  {data.driver ? (
+                  {data?.driver ? (
                     <>
                       {RowLabelAndData(
                         "نام",
                         `${
-                          data.driver.first_name ??
-                          "-" + " " + data.driver.last_name ??
-                          ""
+                          data?.driver.first_name
+                            ? data?.driver.first_name +
+                              " " +
+                              data?.driver.last_name
+                            : ""
                         }`,
                         <SvgSPrite icon="person" MUIColor="primary" />
                       )}
                       {RowLabelAndData(
                         "شماره موبایل",
-                        enToFaNumber(data.driver.mobile),
+                        renderMobileFormat(data?.driver.mobile),
                         <SvgSPrite icon="mobile" MUIColor="primary" />
                       )}
 
                       {RowLabelAndData(
                         "نوع کامیون",
-                        data.vehicle?.category?.title ?? "-",
+                        data?.vehicle?.category?.title ?? "-",
                         <SvgSPrite icon="truck" MUIColor="primary" />
                       )}
                       {RowLabelAndData(
                         "نام خودرو",
-                        data.vehicle?.title ?? "-",
+                        data?.vehicle?.title ?? "-",
                         <SvgSPrite icon="car" MUIColor="primary" />
                       )}
                       {RowLabelAndData(
@@ -356,7 +379,7 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
                         <Stack direction="row" spacing={1}>
                           <Rating
                             precision={0.2}
-                            value={data.driver?.rating}
+                            value={data?.driver?.rating}
                             size="small"
                             readOnly
                             color="inherit"
@@ -401,7 +424,7 @@ const RequestDetailModal = ({ open, onClose, data = {}, historyActions }) => {
               </Stack>
 
               <Timeline
-                data={data.histories}
+                data={data?.histories}
                 colors={historyStatusesColor}
                 historyActions={historyActions}
               />

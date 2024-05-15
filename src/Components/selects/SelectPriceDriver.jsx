@@ -1,33 +1,23 @@
 import { useState, useEffect, Fragment } from "react";
-import {
-  Typography,
-  Grid,
-  Box,
-  Switch,
-  FormControlLabel,
-  Card,
-  Stack,
-} from "@mui/material";
+import { Typography, Grid, Box, Card, Stack } from "@mui/material";
 import SearchInput from "Components/SearchInput";
 import { useInfiniteDriver } from "hook/useDriver";
-import DriverItem from "Components/choosers/driver/Item";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInView } from "react-intersection-observer";
-import { IOSSwitch } from "Components/switchField/IOSSwitch";
 import SwitchWithLabel from "Components/switchField/SwitchWithLabel";
-import { enToFaNumber, numberWithCommas } from "Utility/utils";
+import { numberWithCommas, renderMobileFormat } from "Utility/utils";
 
 export default function SelectPriceDriver({
   data,
   setData,
   outFilters = {},
-  timeLine,
   listDrivers = [],
+  setShowAllDrivers,
+  showAllDrivers,
 }) {
   const [filters, setFilters] = useState(outFilters);
   const { ref, inView } = useInView();
   const [searchVal, setSearchVal] = useState("");
-  const [showAllDrivers, setShowAllDrivers] = useState(false);
 
   const {
     data: allDrivers,
@@ -164,7 +154,7 @@ const DriverPriceItem = ({ data, setData, driver, showPrice = true }) => {
             (driver?.person?.last_name ?? "")}
         </Typography>
         <Typography color="grey.600" variant="body2" letterSpacing={1}>
-          {enToFaNumber(driver?.person?.mobile)}
+          {renderMobileFormat(driver?.person?.mobile)}
         </Typography>
         {driver?.price ? (
           <Stack
@@ -181,7 +171,7 @@ const DriverPriceItem = ({ data, setData, driver, showPrice = true }) => {
               قیمت پیشنهادی
             </Typography>
             <Typography fontSize="inherit" variant="subtitle2">
-              {numberWithCommas(driver?.price)} تومان
+              {numberWithCommas(driver?.price)} ریال
             </Typography>
           </Stack>
         ) : (

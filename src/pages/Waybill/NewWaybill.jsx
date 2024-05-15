@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
 import { Card, Divider, Stack, Typography } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 
 import { FormContainer, FormInputs } from "Components/Form";
@@ -10,16 +10,16 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { removeInvalidValues } from "Utility/utils";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ChooseDraft } from "Components/choosers/ChooseDraft";
 import { ChooseProvince } from "Components/choosers/ChooseProvince";
 import { ChooseCity } from "Components/choosers/ChooseCity";
-import { ChooseCustomer } from "Components/choosers/ChooseCustomer";
+// import { ChooseCustomer } from "Components/choosers/ChooseCustomer";
 import { ChooseProductUnit } from "Components/choosers/ChooseProductUnit";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 
-const NewWaybill = () => {
+const NewWaybill = ({ RequestId }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -44,6 +44,22 @@ const NewWaybill = () => {
       },
     }
   );
+  const { data: waybillByRequest, isSuccess } = useQuery(
+    ["waybill-by-request", RequestId],
+    () =>
+      axiosApi({ url: `/waybill-by-request/${RequestId}` }).then(
+        (res) => res.data?.Data
+      ),
+    {
+      enabled: !!RequestId,
+    }
+  );
+
+  useEffect(() => {
+    if (isSuccess) {
+      reset(waybillByRequest);
+    }
+  }, [isSuccess]);
 
   // inputs
   const DataInput = useMemo(
@@ -54,9 +70,9 @@ const NewWaybill = () => {
           <ChooseDraft
             control={control}
             name={"DraftNumber"}
-            rules={{
-              required: " حواله را وارد کنید",
-            }}
+            // rules={{
+            //   required: " حواله را وارد کنید",
+            // }}
             label="حواله"
           />
         ),
@@ -67,27 +83,27 @@ const NewWaybill = () => {
         name: "WayBillNumber",
         label: "شماره بارنامه",
         control: control,
-        rules: {
-          required: "شماره بارنامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره بارنامه را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "WayBillSerial",
         label: "سریال بارنامه",
         control: control,
-        rules: {
-          required: "سریال بارنامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "سریال بارنامه را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "WayBillIssueDateTime",
         label: "تاریخ بارنامه",
         control: control,
-        rules: {
-          required: "تاریخ بارنامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ بارنامه را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -96,9 +112,9 @@ const NewWaybill = () => {
         control: control,
         splitter: true,
         noInputArrow: true,
-        rules: {
-          required: "نرخ حمل راننده را وارد کنید",
-        },
+        // rules: {
+        //   required: "نرخ حمل راننده را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -107,9 +123,9 @@ const NewWaybill = () => {
         control: control,
         splitter: true,
         noInputArrow: true,
-        rules: {
-          required: "مسافت را وارد کنید",
-        },
+        // rules: {
+        //   required: "مسافت را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -118,20 +134,20 @@ const NewWaybill = () => {
         noInputArrow: true,
         control: control,
       },
-      {
-        type: "custom",
-        customView: (
-          <ChooseCustomer
-            control={control}
-            name={"LoadOwnerName"}
-            rules={{
-              required: "صاحب کالا را وارد کنید",
-            }}
-            label="صاحب کالا"
-          />
-        ),
-        gridProps: { md: 4 },
-      },
+      // {
+      //   type: "custom",
+      //   customView: (
+      //     <ChooseCustomer
+      //       control={control}
+      //       name={"LoadOwnerName"}
+      //       rules={{
+      //         required: "صاحب کالا را وارد کنید",
+      //       }}
+      //       label="صاحب کالا"
+      //     />
+      //   ),
+      //   gridProps: { md: 4 },
+      // },
       {
         type: "textarea",
         name: "WaybillDescription",
@@ -149,9 +165,9 @@ const NewWaybill = () => {
         name: "GoodsName",
         label: "نام محموله",
         control: control,
-        rules: {
-          required: "نام محموله  را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام محموله  را وارد کنید",
+        // },
       },
       {
         type: "custom",
@@ -159,10 +175,10 @@ const NewWaybill = () => {
           <ChooseProductUnit
             control={control}
             name={"PackName"}
-            rules={{
-              required: "نوع دسته‌بندی را وارد کنید",
-            }}
-            label="نوع دسته‌بندی"
+            // rules={{
+            //   required: "واحد شمارشی را وارد کنید",
+            // }}
+            label="واحد شمارشی"
           />
         ),
       },
@@ -173,9 +189,9 @@ const NewWaybill = () => {
         control: control,
         splitter: true,
         noInputArrow: true,
-        rules: {
-          required: "ارزش محموله را وارد کنید",
-        },
+        // rules: {
+        //   required: "ارزش محموله را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -184,9 +200,9 @@ const NewWaybill = () => {
         control: control,
         splitter: true,
         noInputArrow: true,
-        rules: {
-          required: "وزن محموله را وارد کنید",
-        },
+        // rules: {
+        //   required: "وزن محموله را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -195,9 +211,9 @@ const NewWaybill = () => {
         splitter: true,
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "تعداد کیسه را وارد کنید",
-        },
+        // rules: {
+        //   required: "تعداد کیسه را وارد کنید",
+        // },
       },
     ],
     []
@@ -211,9 +227,9 @@ const NewWaybill = () => {
         label: "نام فرستنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "نام فرستنده را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام فرستنده را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -221,18 +237,18 @@ const NewWaybill = () => {
         label: "کدملی فرستنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کدملی فرستنده را وارد کنید",
-        },
+        // rules: {
+        //   required: "کدملی فرستنده را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "SourceDepotName",
         label: "انبار مبدا",
         control: control,
-        rules: {
-          required: "انبار مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "انبار مبدا را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -240,18 +256,18 @@ const NewWaybill = () => {
         label: "کد پستی انبار مبدا",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد پستی انبار مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد پستی انبار مبدا را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "SourceDepotAddress",
         label: "آدرس انبار مبدا",
         control: control,
-        rules: {
-          required: "آدرس انبار مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "آدرس انبار مبدا را وارد کنید",
+        // },
         gridProps: { md: 6 },
       },
       {
@@ -260,9 +276,9 @@ const NewWaybill = () => {
           <ChooseProvince
             control={control}
             name={"DestProvince"}
-            rules={{
-              required: "استان مبدا را وارد کنید",
-            }}
+            // rules={{
+            //   required: "استان مبدا را وارد کنید",
+            // }}
             label="استان مبدا"
           />
         ),
@@ -273,9 +289,9 @@ const NewWaybill = () => {
           <ChooseCity
             control={control}
             name={"DestCityName"}
-            rules={{
-              required: " شهر مبدا را وارد کنید",
-            }}
+            // rules={{
+            //   required: " شهر مبدا را وارد کنید",
+            // }}
             label="شهر مبدا"
             provinceName={"DestProvince"}
           />
@@ -293,9 +309,9 @@ const NewWaybill = () => {
         label: "نام گیرنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "نام گیرنده را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام گیرنده را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -303,18 +319,18 @@ const NewWaybill = () => {
         label: "کدملی گیرنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کدملی گیرنده را وارد کنید",
-        },
+        // rules: {
+        //   required: "کدملی گیرنده را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DestDepotName",
         label: "انبار مقصد",
         control: control,
-        rules: {
-          required: "انبار مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: "انبار مقصد را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -322,18 +338,18 @@ const NewWaybill = () => {
         label: "کد پستی انبار مقصد",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد پستی انبار مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد پستی انبار مقصد را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DestDepotAddress",
         label: "آدرس انبار مقصد",
         control: control,
-        rules: {
-          required: "آدرس انبار مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: "آدرس انبار مقصد را وارد کنید",
+        // },
         gridProps: { md: 6 },
       },
       {
@@ -342,9 +358,9 @@ const NewWaybill = () => {
           <ChooseProvince
             control={control}
             name={"SourceProvince"}
-            rules={{
-              required: "استان مقصد را وارد کنید",
-            }}
+            // rules={{
+            //   required: "استان مقصد را وارد کنید",
+            // }}
             label="استان مقصد"
           />
         ),
@@ -355,9 +371,9 @@ const NewWaybill = () => {
           <ChooseCity
             control={control}
             name={"SourceCityName"}
-            rules={{
-              required: "شهر مقصد را وارد کنید",
-            }}
+            // rules={{
+            //   required: "شهر مقصد را وارد کنید",
+            // }}
             label="شهر مقصد"
             provinceName={"SourceProvince"}
           />
@@ -375,9 +391,9 @@ const NewWaybill = () => {
         label: "نام",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "نام را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام را وارد کنید",
+        // },
       },
       {
         type: "text",
@@ -385,9 +401,9 @@ const NewWaybill = () => {
         label: "‌نام‌خانوادگی",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "‌نام‌خانوادگی را وارد کنید",
-        },
+        // rules: {
+        //   required: "‌نام‌خانوادگی را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -395,9 +411,9 @@ const NewWaybill = () => {
         label: "کدملی",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "کدملی را وارد کنید",
-        },
+        // rules: {
+        //   required: "کدملی را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -405,9 +421,9 @@ const NewWaybill = () => {
         label: "شماره هوشمند",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره هوشمند را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره هوشمند را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -415,9 +431,9 @@ const NewWaybill = () => {
         label: "شماره گواهینامه",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره گواهینامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره گواهینامه را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -425,18 +441,18 @@ const NewWaybill = () => {
         label: "موبایل",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "موبایل را وارد کنید",
-        },
+        // rules: {
+        //   required: "موبایل را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DriverAddress",
         label: "آدرس",
         control: control,
-        rules: {
-          required: "آدرس را وارد کنید",
-        },
+        // rules: {
+        //   required: "آدرس را وارد کنید",
+        // },
         gridProps: { md: 6 },
       },
     ],
@@ -507,36 +523,36 @@ const NewWaybill = () => {
         label: "شماره هوشمند",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره هوشمند را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره هوشمند را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "VehiclePlaqueNo",
         label: "شماره پلاک",
         control: control,
-        rules: {
-          required: "شماره پلاک را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره پلاک را وارد کنید",
+        // },
       },
       {
         type: "number",
         name: "VehiclePlaqueSerial",
         label: "سریال پلاک",
         control: control,
-        rules: {
-          required: "سریال پلاک را وارد کنید",
-        },
+        // rules: {
+        //   required: "سریال پلاک را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "TruckTypeName",
         label: "نوع بارگیر",
         control: control,
-        rules: {
-          required: "نوع بارگیر را وارد کنید",
-        },
+        // rules: {
+        //   required: "نوع بارگیر را وارد کنید",
+        // },
       },
     ],
     []
@@ -687,9 +703,9 @@ const NewWaybill = () => {
         splitter: true,
         noInputArrow: true,
         gridProps: { md: 4.5 },
-        rules: {
-          required: "کرایه ناخالص را وارد کنید",
-        },
+        // rules: {
+        //   required: "کرایه ناخالص را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -699,9 +715,9 @@ const NewWaybill = () => {
         splitter: true,
         noInputArrow: true,
         gridProps: { md: 4.5 },
-        rules: {
-          required: "قابل پرداخت را وارد کنید",
-        },
+        //   rules: {
+        //     required: "قابل پرداخت را وارد کنید",
+        //   },
       },
     ],
     []
@@ -711,21 +727,20 @@ const NewWaybill = () => {
 
   // handle on submit
   const onSubmit = async (data) => {
-    data.DraftNumber = data.DraftNumber.DraftNumber;
-    data.DestCityName = data.DestCityName.name;
-    data.SourceCityName = data.SourceCityName.name;
+    data.DraftNumber = data?.DraftNumber?.DraftNumber;
+    data.DestCityName = data?.DestCityName?.name;
+    data.SourceCityName = data?.SourceCityName?.name;
     data.WayBillIssueDateTime =
-      data.WayBillIssueDateTime.WayBillIssueDateTime.split("/").join("-") +
+      data?.WayBillIssueDateTime?.WayBillIssueDateTime?.split("/")?.join("-") +
       " " +
       new Date().toLocaleTimeString("fa-IR-u-nu-latn");
     data.LoadOwnerName =
-      data.LoadOwnerName.person.first_name +
-      data.LoadOwnerName.person.last_name;
-    data.PackName = data.PackName.title;
+      data?.LoadOwnerName?.person?.first_name +
+      data?.LoadOwnerName?.person?.last_name;
+    data.PackName = data?.PackName?.title;
 
-    delete data.SourceProvince;
-    delete data.DestProvince;
-    console.log("data = ", removeInvalidValues(data));
+    delete data?.SourceProvince;
+    delete data?.DestProvince;
 
     data = JSON.stringify(removeInvalidValues(data));
     try {

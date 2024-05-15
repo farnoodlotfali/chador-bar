@@ -105,7 +105,7 @@ const VehicleDetailModal = ({ data, show, onClose }) => {
               <>
                 {RowLabelAndData(
                   "مدل",
-                  data.vehicle_model.title ?? "-",
+                  data?.vehicle_model?.title ?? "-",
                   <SvgSPrite icon="tag" size="small" MUIColor="info" />
                 )}
                 {RowLabelAndData(
@@ -124,7 +124,7 @@ const VehicleDetailModal = ({ data, show, onClose }) => {
 
             {RowLabelAndData(
               "بارگیر",
-              data.container_type.title ?? "-",
+              data?.container_type?.title ?? "-",
               <SvgSPrite icon="truck-ramp" size="small" MUIColor="primary" />
             )}
 

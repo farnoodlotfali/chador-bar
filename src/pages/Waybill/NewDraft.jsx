@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
-import { Card, Divider, Stack, Typography } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, Divider, Stack } from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
 
 import { FormContainer, FormInputs } from "Components/Form";
@@ -13,9 +13,9 @@ import { ChooseProductUnit } from "Components/choosers/ChooseProductUnit";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import { useMemo } from "react";
-import { loadFarsiVersion } from "Utility/versions";
+import { useEffect } from "react";
 
-const NewDraft = () => {
+const NewDraft = ({ RequestId }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -42,9 +42,26 @@ const NewDraft = () => {
       },
     }
   );
+  const { data: draftByRequest, isSuccess } = useQuery(
+    ["draft-by-request", RequestId],
+
+    () =>
+      axiosApi({ url: `/draft-by-request/${RequestId}` }).then(
+        (res) => res.data?.Data
+      ),
+    {
+      enabled: !!RequestId,
+    }
+  );
+
+  useEffect(() => {
+    if (isSuccess) {
+      reset(draftByRequest);
+      setValue("PackName", null);
+    }
+  }, [isSuccess]);
 
   // inputs
-
   const DataInputs = useMemo(
     () => [
       {
@@ -52,18 +69,18 @@ const NewDraft = () => {
         name: "BranchName",
         label: " نام شعبه",
         control: control,
-        rules: {
-          required: " نام شعبه را وارد کنید",
-        },
+        // rules: {
+        //   required: " نام شعبه را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "BranchCode",
         label: " کد شعبه",
         control: control,
-        rules: {
-          required: " کد شعبه را وارد کنید",
-        },
+        // rules: {
+        //   required: " کد شعبه را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -71,18 +88,18 @@ const NewDraft = () => {
         label: " تلفن شعبه",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " تلفن شعبه را وارد کنید",
-        },
+        // rules: {
+        //   required: " تلفن شعبه را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "WaybillIssueDateTime",
         label: "تاریخ صدور",
         control: control,
-        rules: {
-          required: "تاریخ صدور را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ صدور را وارد کنید",
+        // },
       },
 
       {
@@ -90,9 +107,9 @@ const NewDraft = () => {
         name: "ContractNo",
         label: "شماره قرارداد",
         control: control,
-        rules: {
-          required: "شماره قرارداد را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره قرارداد را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -101,9 +118,9 @@ const NewDraft = () => {
         splitter: true,
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " نرخ حمل راننده را وارد کنید",
-        },
+        // rules: {
+        //   required: " نرخ حمل راننده را وارد کنید",
+        // },
       },
 
       {
@@ -111,9 +128,9 @@ const NewDraft = () => {
         name: "LoadOwnerName",
         label: "نام صاحب کالا",
         control: control,
-        rules: {
-          required: "نام صاحب کالا را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام صاحب کالا را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -121,9 +138,9 @@ const NewDraft = () => {
         label: "کدملی صاحب کالا",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "کدملی صاحب کالا را وارد کنید",
-        },
+        // rules: {
+        //   required: "کدملی صاحب کالا را وارد کنید",
+        // },
       },
 
       {
@@ -132,10 +149,10 @@ const NewDraft = () => {
           <ChooseProductUnit
             control={control}
             name={"PackName"}
-            rules={{
-              required: "نوع دسته‌بندی را وارد کنید",
-            }}
-            label="نوع دسته‌بندی"
+            // rules={{
+            //   required: "واحد شمارشی را وارد کنید",
+            // }}
+            label="واحد شمارشی"
           />
         ),
       },
@@ -145,27 +162,27 @@ const NewDraft = () => {
         label: "شماره بیمه",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره بیمه را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره بیمه را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "CarrierPlanningNo",
         label: "شماره حمل",
         control: control,
-        rules: {
-          required: "شماره حمل را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره حمل را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "MojavezeHaml",
         label: "مجوز حمل",
         control: control,
-        rules: {
-          required: "مجوز حمل را وارد کنید",
-        },
+        // rules: {
+        //   required: "مجوز حمل را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -173,18 +190,18 @@ const NewDraft = () => {
         label: "شماره کاردکس",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره کاردکس را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره کاردکس را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "MojavezeHamlCardex",
         label: "کاردکس مجوز حمل",
         control: control,
-        rules: {
-          required: "کاردکس مجوز حمل را وارد کنید",
-        },
+        // rules: {
+        //   required: "کاردکس مجوز حمل را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -192,27 +209,27 @@ const NewDraft = () => {
         label: "شماره مجوز",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "شماره مجوز را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره مجوز را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "IsLargeScale",
         label: "بزرگ مقیاس",
         control: control,
-        rules: {
-          required: "بزرگ مقیاس را وارد کنید",
-        },
+        // rules: {
+        //   required: "بزرگ مقیاس را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "InsuranceCompany",
         label: "شرکت بیمه",
         control: control,
-        rules: {
-          required: "شرکت بیمه را وارد کنید",
-        },
+        // rules: {
+        //   required: "شرکت بیمه را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -221,20 +238,9 @@ const NewDraft = () => {
         label: "مسافت",
         control: control,
         splitter: true,
-        rules: {
-          required: "مسافت را وارد کنید",
-        },
-      },
-
-      {
-        type: "textarea",
-        name: "توضیحات",
-        label: "توضیحات بارنامه",
-        control: control,
-        rules: {
-          required: "توضیحات بارنامه را وارد کنید",
-        },
-        gridProps: { md: 6 },
+        // rules: {
+        //   required: "مسافت را وارد کنید",
+        // },
       },
       {
         type: "textarea",
@@ -254,9 +260,9 @@ const NewDraft = () => {
         name: "ReceiverName",
         label: "نام گیرنده",
         control: control,
-        rules: {
-          required: " نام گیرنده را وارد کنید",
-        },
+        // rules: {
+        //   required: " نام گیرنده را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -264,9 +270,9 @@ const NewDraft = () => {
         label: "کد ملی گیرنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " کد ملی گیرنده  را وارد کنید",
-        },
+        // rules: {
+        //   required: " کد ملی گیرنده  را وارد کنید",
+        // },
       },
       {
         type: "text",
@@ -283,9 +289,9 @@ const NewDraft = () => {
         label: "کدپستی مقصد",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: " کدپستی مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: " کدپستی مقصد را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -293,9 +299,9 @@ const NewDraft = () => {
         label: "کد شهر مقصد",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد شهر مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد شهر مقصد را وارد کنید",
+        // },
       },
       {
         type: "text",
@@ -308,7 +314,9 @@ const NewDraft = () => {
       },
       {
         type: "address",
-        name: "DestDepotName",
+        name: "DestDepotName_address",
+        addressKey: "DestDepotName",
+        latLngKey: "DestDepotName",
         label: "آدرس انبار مقصد",
         control: control,
         rules: {
@@ -320,9 +328,9 @@ const NewDraft = () => {
         name: "DestDepotTelephone",
         label: "تلفن مقصد",
         control: control,
-        rules: {
-          required: "تلفن مقصد را وارد کنید",
-        },
+        // rules: {
+        //   required: "تلفن مقصد را وارد کنید",
+        // },
       },
     ],
     []
@@ -334,9 +342,9 @@ const NewDraft = () => {
         name: "SenderName",
         label: "نام فرستنده",
         control: control,
-        rules: {
-          required: " نام فرستنده را وارد کنید",
-        },
+        // rules: {
+        //   required: " نام فرستنده را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -344,18 +352,18 @@ const NewDraft = () => {
         label: "کد ملی فرستنده",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد ملی فرستنده را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد ملی فرستنده را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "SourceDepotName",
         label: "انبار مبدا",
         control: control,
-        rules: {
-          required: "انبار مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "انبار مبدا را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -363,9 +371,9 @@ const NewDraft = () => {
         label: "کد پستی مبداء",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " کد پستی مبداء را وارد کنید",
-        },
+        // rules: {
+        //   required: " کد پستی مبداء را وارد کنید",
+        // },
       },
 
       {
@@ -374,27 +382,29 @@ const NewDraft = () => {
         label: "کد شهر مبدا",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد شهر مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد شهر مبدا را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "SourceCityName",
         label: "شهر مبداء",
         control: control,
-        rules: {
-          required: "شهر مبداء را وارد کنید",
-        },
+        // rules: {
+        //   required: "شهر مبداء را وارد کنید",
+        // },
       },
       {
         type: "address",
-        name: "SourceDepotAddress",
+        name: "SourceDepotAddress_address",
+        addressKey: "SourceDepotAddress",
+        latLngKey: "SourceDepotAddress",
         label: "آدرس مبداء",
         control: control,
-        rules: {
-          required: " آدرس مبداء را وارد کنید",
-        },
+        // rules: {
+        //   required: " آدرس مبداء را وارد کنید",
+        // },
       },
 
       {
@@ -402,9 +412,9 @@ const NewDraft = () => {
         name: "SourceDepotTelephone",
         label: "تلفن مبدا",
         control: control,
-        rules: {
-          required: "تلفن مبدا را وارد کنید",
-        },
+        // rules: {
+        //   required: "تلفن مبدا را وارد کنید",
+        // },
       },
     ],
     []
@@ -419,27 +429,27 @@ const NewDraft = () => {
         splitter: true,
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " وزن محموله را وارد کنید",
-        },
+        // rules: {
+        //   required: " وزن محموله را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "PackName",
         label: "نام بسته‌بندی",
         control: control,
-        rules: {
-          required: "نام بسته‌بندی را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام بسته‌بندی را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "PackCode",
         label: "کد بسته‌بندی",
         control: control,
-        rules: {
-          required: "کد بسته‌بندی را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد بسته‌بندی را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -448,54 +458,54 @@ const NewDraft = () => {
         splitter: true,
         noInputArrow: true,
         control: control,
-        rules: {
-          required: " تعداد کیسه را وارد کنید",
-        },
+        // rules: {
+        //   required: " تعداد کیسه را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "GoodsName",
         label: "نام محموله",
         control: control,
-        rules: {
-          required: "نام محموله  را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام محموله  را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "GoodsLogesticCode",
         label: "کد لجستیک کالا",
         control: control,
-        rules: {
-          required: "کد لجستیک کالا را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد لجستیک کالا را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "TerminalGoodsCode",
         label: "کد ترمینال کالا",
         control: control,
-        rules: {
-          required: "کد ترمینال کالا را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد ترمینال کالا را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "LoadValue",
         label: "ارزش محموله",
         control: control,
-        rules: {
-          required: "ارزش محموله را وارد کنید",
-        },
+        // rules: {
+        //   required: "ارزش محموله را وارد کنید",
+        // },
       },
       {
         type: "textarea",
         name: "TerminalGoodsLogesticDesc",
         label: "توضیح کالا",
         control: control,
-        rules: {
-          required: "توضیح کالا را وارد کنید",
-        },
+        // rules: {
+        //   required: "توضیح کالا را وارد کنید",
+        // },
         gridProps: { md: 4 },
       },
     ],
@@ -509,18 +519,18 @@ const NewDraft = () => {
         name: "DriverFirstName",
         label: "نام",
         control: control,
-        rules: {
-          required: "نام را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DriverLastName",
         label: "نام‌خانوادگی",
         control: control,
-        rules: {
-          required: "نام‌خانوادگی را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام‌خانوادگی را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -528,18 +538,18 @@ const NewDraft = () => {
         label: "کد ملی",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: " کد ملی را وارد کنید",
-        },
+        // rules: {
+        //   required: " کد ملی را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DriverSmartCardNo",
         label: "شماره کارت هوشمند",
         control: control,
-        rules: {
-          required: "کارت هوشمند را وارد کنید",
-        },
+        // rules: {
+        //   required: "کارت هوشمند را وارد کنید",
+        // },
       },
 
       {
@@ -548,18 +558,18 @@ const NewDraft = () => {
         label: "شماره گواهینامه",
         control: control,
         noInputArrow: true,
-        rules: {
-          required: "شماره گواهینامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره گواهینامه را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "DriverSmartCardExpireDate",
         label: "تاریخ انقضای کارت هوشمند",
         control: control,
-        rules: {
-          required: "تاریخ انقضای کارت هوشمند را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ انقضای کارت هوشمند را وارد کنید",
+        // },
       },
 
       {
@@ -567,51 +577,51 @@ const NewDraft = () => {
         name: "DriverHealthCardExpireDate",
         label: "تاریخ انقضای کارت سلامت ",
         control: control,
-        rules: {
-          required: "تاریخ انقضای کارت سلامت را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ انقضای کارت سلامت را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "DriverCertificateNumberIssueDate",
         label: "تاریخ صدور گواهینامه ",
         control: control,
-        rules: {
-          required: "تاریخ صدور گواهینامه را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ صدور گواهینامه را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "DriverMobile",
         label: "موبایل",
         control: control,
-        rules: {
-          required: "موبایل را وارد کنید",
-        },
+        // rules: {
+        //   required: "موبایل را وارد کنید",
+        // },
       },
 
       {
         type: "address",
-        name: "DriverAddress",
+        name: "DriverAddress_address",
         addressKey: "DriverAddress",
         latLngKey: "DriverAddress",
         label: "آدرس",
         control: control,
-        rules: {
-          required: "آدرس را وارد کنید",
-        },
+        // rules: {
+        //   required: "آدرس را وارد کنید",
+        // },
         gridProps: { md: 6 },
       },
       {
         type: "checkbox",
         name: "DriverHasMistake",
-        label: "خطا دارد؟",
+        label: "خلافی دارد؟",
         control: control,
       },
       {
         type: "textarea",
         name: "DriverMistakeDescription",
-        label: "توضیح خطای",
+        label: "شرح خلافی",
         control: control,
         gridProps: { md: 12 },
       },
@@ -626,9 +636,9 @@ const NewDraft = () => {
         name: "VehicleSmartCardNo",
         label: "هوشمند کامیون",
         control: control,
-        rules: {
-          required: "کارت هوشمند کامیون را وارد کنید",
-        },
+        // rules: {
+        //   required: "کارت هوشمند کامیون را وارد کنید",
+        // },
       },
 
       {
@@ -636,9 +646,9 @@ const NewDraft = () => {
         name: "VehicleVinNo",
         label: "vin وسیله نقلیه",
         control: control,
-        rules: {
-          required: "vin وسیله نقلیه را وارد کنید",
-        },
+        // rules: {
+        //   required: "vin وسیله نقلیه را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -646,27 +656,27 @@ const NewDraft = () => {
         label: "سریال پلاک",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "سریال پلاک را وارد کنید",
-        },
+        // rules: {
+        //   required: "سریال پلاک را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "VehicleBimehExpireDate",
         label: "تاریخ بیمه",
         control: control,
-        rules: {
-          required: "تاریخ بیمه را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ بیمه را وارد کنید",
+        // },
       },
       {
         type: "date",
         name: "VehicleMaynehFanniExpireDate",
-        label: "تاریخ انقضای معاینه فنی وسیله نقلیه",
+        label: "تاریخ انقضای معاینه فنی",
         control: control,
-        rules: {
-          required: "تاریخ انقضای معاینه فنی وسیله نقلیه را وارد کنید",
-        },
+        // rules: {
+        //   required: "تاریخ انقضای معاینه فنی را وارد کنید",
+        // },
       },
       {
         type: "text",
@@ -674,18 +684,18 @@ const NewDraft = () => {
         label: "نوع کامیون",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "نوع کامیون را وارد کنید",
-        },
+        // rules: {
+        //   required: "نوع کامیون را وارد کنید",
+        // },
       },
       {
         type: "number",
         name: "TruckTypeCode",
         label: "کد نوع کامیون",
         control: control,
-        rules: {
-          required: "کد نوع کامیون را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد نوع کامیون را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -693,18 +703,18 @@ const NewDraft = () => {
         label: "کد نوع بارگیر",
         noInputArrow: true,
         control: control,
-        rules: {
-          required: "کد نوع بارگیر را وارد کنید",
-        },
+        // rules: {
+        //   required: "کد نوع بارگیر را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "TrailerTypeName",
         label: "نوع بارگیر",
         control: control,
-        rules: {
-          required: "نوع بارگیر را وارد کنید",
-        },
+        // rules: {
+        //   required: "نوع بارگیر را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -713,9 +723,9 @@ const NewDraft = () => {
         noInputArrow: true,
         splitter: true,
         control: control,
-        rules: {
-          required: "حداقل وزن نوع بارگیر را وارد کنید",
-        },
+        // rules: {
+        //   required: "حداقل وزن نوع بارگیر را وارد کنید",
+        // },
       },
       {
         type: "number",
@@ -724,40 +734,56 @@ const NewDraft = () => {
         noInputArrow: true,
         splitter: true,
         control: control,
-        rules: {
-          required: "حداکثر وزن نوع بارگیر را وارد کنید",
-        },
+        // rules: {
+        //   required: "حداکثر وزن نوع بارگیر را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "ShipName",
         label: "نام محموله",
         control: control,
-        rules: {
-          required: "نام محموله را وارد کنید",
-        },
+        // rules: {
+        //   required: "نام محموله را وارد کنید",
+        // },
       },
       {
         type: "text",
         name: "VehiclePlaqueNo",
         label: "شماره پلاک",
         control: control,
-        rules: {
-          required: "شماره پلاک را وارد کنید",
-        },
+        // rules: {
+        //   required: "شماره پلاک را وارد کنید",
+        // },
       },
       {
         type: "checkbox",
         name: "VehiclesHasMistake",
-        label: "خودرو خطا دارد؟",
+        label: "خودرو خلافی دارد؟",
         control: control,
       },
       {
         type: "textarea",
         name: "VehiclesMistakeReason",
-        label: "توضیح خطای خودرو",
+        label: "شرح خلافی خودرو",
         control: control,
         gridProps: { md: 12 },
+      },
+      {
+        type: "checkbox",
+        name: "D1",
+        label: "ثبت و ارسال به سامانه صدور بارنامه",
+        control: control,
+        disabled: true,
+        gridProps: { md: 4 },
+      },
+      {
+        type: "checkbox",
+        name: "D2",
+        label: "ثبت و ارسال به راهداری",
+        control: control,
+        disabled: true,
+        gridProps: { md: 3 },
       },
     ],
     []
@@ -767,7 +793,6 @@ const NewDraft = () => {
 
   // handle on submit
   const onSubmit = (data) => {
-    console.log("data = ", data);
     let {
       fleet,
       driver,
@@ -780,15 +805,16 @@ const NewDraft = () => {
       ...newData
     } = data;
 
-    newData.driver_id = driver.id;
-    newData.fleet_id = fleet.id;
-    newData.owner_id = owner.id;
-    newData.path_id = path.id;
-    newData.product_id = product.id;
-    newData.project_id = project.id;
-    newData.receiver_id = receiver.id;
-    newData.sender_id = sender.id;
-
+    newData.driver_id = driver?.id;
+    newData.fleet_id = fleet?.id;
+    newData.owner_id = owner?.id;
+    newData.path_id = path?.id;
+    newData.product_id = product?.id;
+    newData.project_id = project?.id;
+    newData.receiver_id = receiver?.id;
+    newData.SourceDepotAddress = data?.SourceDepotAddress_address;
+    newData.DestDepotName = data?.DestDepotName_address;
+    newData.sender_id = sender?.id;
     newData = JSON.stringify(newData);
     addMutation.mutate(newData);
   };
@@ -843,23 +869,7 @@ const NewDraft = () => {
                 type="submit"
                 color={Object.keys(errors).length !== 0 ? "error" : "primary"}
               >
-                ثبت در سامانه {loadFarsiVersion()}
-              </LoadingButton>
-              <LoadingButton
-                variant="contained"
-                loading={isSubmitting}
-                type="submit"
-                color={Object.keys(errors).length !== 0 ? "error" : "primary"}
-              >
-                ثبت و ارسال به کارگو
-              </LoadingButton>
-              <LoadingButton
-                variant="contained"
-                loading={isSubmitting}
-                type="submit"
-                color={Object.keys(errors).length !== 0 ? "error" : "primary"}
-              >
-                ثبت و ارسال به راهداری
+                ثبت حواله
               </LoadingButton>
             </Stack>
           </Card>

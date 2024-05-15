@@ -1,25 +1,35 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Typography, Grid, Button, Stack, Box } from "@mui/material";
 
 import SearchInput from "Components/SearchInput";
-import { enToFaNumber, removeInvalidValues } from "Utility/utils";
-import { useState } from "react";
+import {
+  enToFaNumber,
+  removeInvalidValues,
+  stopPropagate,
+} from "Utility/utils";
+import { Fragment, useEffect, useState } from "react";
 import { FormContainer, FormInputs } from "Components/Form";
 import { LoadingButton } from "@mui/lab";
 import { ChooseVCategory } from "Components/choosers/vehicle/category/ChooseVCategory";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
-import { useVehicleType } from "hook/useVehicleType";
+import { useInfiniteVehicleType } from "hook/useVehicleType";
 import { useForm } from "react-hook-form";
+import { useInView } from "react-intersection-observer";
 
-export default function SelectVType({ data, setData }) {
+export default function SelectVType({ data, setData, weight }) {
   const [filters, setFilters] = useState({});
   const [searchVal, setSearchVal] = useState("");
-
+  const { ref, inView } = useInView();
   const {
     data: allVTypes,
     isLoading,
     isFetching,
     isError,
-  } = useVehicleType(filters);
+    isSuccess,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteVehicleType({ ...filters, weight });
 
   const {
     control,
@@ -30,21 +40,21 @@ export default function SelectVType({ data, setData }) {
     watch,
   } = useForm();
 
+  // fetch next page when reaching to end of list
+  useEffect(() => {
+    if (hasNextPage && inView) {
+      fetchNextPage();
+    }
+  }, [inView]);
+
   const getVTypes = (value) => {
     setFilters((prev) => ({ ...prev, q: value }));
   };
-
-  // if data is loading or fetching
-  if (isLoading || isFetching) {
-    return <LoadingSpinner />;
-  }
 
   // if api has got error
   if (isError) {
     return <div className="">error</div>;
   }
-
-  const { data: closeableVTypes } = allVTypes;
 
   const Inputs = [
     {
@@ -82,7 +92,7 @@ export default function SelectVType({ data, setData }) {
   };
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={stopPropagate(handleSubmit(onSubmit))}>
         <Box sx={{ p: 2 }}>
           <FormContainer data={watch()} setData={handleChange} errors={errors}>
             <FormInputs inputs={Inputs} gridProps={{ md: 3 }}>
@@ -106,42 +116,53 @@ export default function SelectVType({ data, setData }) {
 
       <Box sx={{ maxHeight: "300px", overflowY: "scroll", mt: 1, p: 3 }}>
         <Grid container spacing={2}>
-          {closeableVTypes.length > 0 ? (
-            closeableVTypes.map((vType) => {
-              return (
-                <Grid item xs={12} md={4}>
-                  <Button
-                    sx={{
-                      p: 3,
-                      width: "100%",
-                      boxShadow: 1,
-                    }}
-                    variant={
-                      (data?.id ?? data) === vType.id ? "contained" : "text"
-                    }
-                    color={
-                      (data?.id ?? data) === vType.id ? "primary" : "secondary"
-                    }
-                    onClick={() => setData(vType)}
-                  >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ width: "100%" }}
-                    >
-                      <Typography>{`${vType.title || ""}`}</Typography>
-                      <Typography>{enToFaNumber(vType.code)}</Typography>
-                    </Stack>
-                  </Button>
-                </Grid>
-              );
-            })
+          {allVTypes?.pages[0].data.length !== 0 ? (
+            allVTypes?.pages.map((page, i) => (
+              <Fragment key={i}>
+                {page?.data.map((vType) => {
+                  return (
+                    <Grid item xs={12} md={4}>
+                      <Button
+                        sx={{
+                          p: 3,
+                          width: "100%",
+                          boxShadow: 1,
+                        }}
+                        variant={
+                          (data?.id ?? data) === vType.id ? "contained" : "text"
+                        }
+                        color={
+                          (data?.id ?? data) === vType.id
+                            ? "primary"
+                            : "secondary"
+                        }
+                        onClick={() => setData(vType)}
+                      >
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          sx={{ width: "100%" }}
+                        >
+                          <Typography>{`${vType.title || ""}`}</Typography>
+                          <Typography>{enToFaNumber(vType.code)}</Typography>
+                        </Stack>
+                      </Button>
+                    </Grid>
+                  );
+                })}
+              </Fragment>
+            ))
           ) : (
             <Typography pt={2} pl={2}>
               نوعی یافت نشد
             </Typography>
           )}
         </Grid>
+        {isFetchingNextPage || isLoading || isFetching ? (
+          <LoadingSpinner />
+        ) : (
+          <div ref={ref} />
+        )}
       </Box>
     </>
   );

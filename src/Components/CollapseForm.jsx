@@ -2,6 +2,7 @@ import { Button, Card, Collapse, Stack, Typography } from "@mui/material";
 import { SvgSPrite } from "./SvgSPrite";
 import { AppContext } from "context/appContext";
 import { useContext } from "react";
+import FormTypography from "./FormTypography";
 
 const CollapseForm = ({
   children,
@@ -9,6 +10,7 @@ const CollapseForm = ({
   onToggle,
   title = "جستجوی پیشرفته",
   name = "",
+  report = false,
 }) => {
   const { notPermissions } = useContext(AppContext);
 
@@ -29,7 +31,13 @@ const CollapseForm = ({
             alignItems="center"
             sx={{ width: "100%", height: "50px" }}
           >
-            <Typography>{title} </Typography>
+            {report ? (
+              <FormTypography variant="h5" mt={2.5}>
+                {title}
+              </FormTypography>
+            ) : (
+              <Typography>{title}</Typography>
+            )}
 
             {open ? (
               <SvgSPrite icon="chevron-up" size="small" />

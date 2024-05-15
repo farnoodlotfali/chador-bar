@@ -67,7 +67,7 @@ const NewDriver = () => {
       name: "father_name",
       label: "نام پدر",
       control: control,
-      rules: { required: "نام پدر را وارد کنید" },
+      // rules: { required: "نام پدر را وارد کنید" },
     },
     {
       type: "number",
@@ -75,7 +75,11 @@ const NewDriver = () => {
       label: "موبایل",
       noInputArrow: true,
       control: control,
-      rules: { required: "موبایل را وارد کنید" },
+      rules: {
+        required: "موبایل را وارد کنید",
+        maxLength: { value: 11, message: "موبایل باید 11 رقم باشد" },
+        minLength: { value: 11, message: "موبایل باید 11 رقم باشد" },
+      },
     },
     {
       type: "select",
@@ -85,14 +89,14 @@ const NewDriver = () => {
       labelKey: "name",
       valueKey: "value",
       control: control,
-      rules: { required: "جنسیت را وارد کنید" },
+      // rules: { required: "جنسیت را وارد کنید" },
     },
     {
       type: "date",
       name: "birth_date",
       label: "تاریخ تولد",
       control: control,
-      rules: { required: "تاریخ تولد را وارد کنید" },
+      // rules: { required: "تاریخ تولد را وارد کنید" },
     },
     {
       type: "number",
@@ -100,27 +104,36 @@ const NewDriver = () => {
       label: "کدملی",
       noInputArrow: true,
       control: control,
-      rules: { required: "کدملی را وارد کنید" },
+      // rules: {
+      //   required: "کدملی را وارد کنید",
+      //   maxLength: {value: 10, message: "کد ملی باید 10 رقم باشد"},
+      //   minLength: {value: 10, message: "کد ملی باید 10 رقم باشد"}
+      // },
     },
-    {
-      type: "email",
-      name: "email",
-      label: "ایمیل",
-      control: control,
-      rules: { required: "ایمیل را وارد کنید" },
-    },
-    {
-      type: "text",
-      name: "national_card",
-      label: "کارت هوشمند",
-      control: control,
-    },
+    // {
+    //   type: "email",
+    //   name: "email",
+    //   label: "ایمیل",
+    //   control: control,
+    //   rules: { required: "ایمیل را وارد کنید"},
+    // },
+    // {
+    //   type: "text",
+    //   name: "national_card",
+    //   label: "شماره کارت هوشمند",
+    //   control: control,
+    // },
     {
       type: "number",
-      name: "license_card",
-      label: "گواهینامه",
+      name: "license_no",
+      label: "شماره گواهینامه",
       noInputArrow: true,
       control: control,
+      // rules: {
+      //   required: "شماره گواهینامه را وارد کنید",
+      //   maxLength: {value: 10, message: "شماره گواهینامه باید 10 رقم باشد"},
+      //   minLength: {value: 10, message: "شماره گواهینامه باید 10 رقم باشد"}
+      // },
     },
     {
       type: "custom",
@@ -128,32 +141,31 @@ const NewDriver = () => {
         <ChooseVehicle
           control={control}
           name={"vehicle"}
-          rules={{
-            required: "خودرو را وارد کنید",
-          }}
+          // rules={{
+          //   required: "خودرو را وارد کنید",
+          // }}
           label="خودرو"
         />
       ),
-      gridProps: { md: 4 },
+      gridProps: { md: 4.8 },
     },
   ];
 
   // handle on submit
   const onSubmit = (data) => {
     data = JSON.stringify({
-      vehicle_id: data.vehicle.id,
-      mobile: data.mobile,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      father_name: data.father_name,
-      national_code: data.national_code,
-      gender: data.gender,
-      email: data.email,
-      birth_date: data.birth_date.birth_date,
+      vehicle_id: data?.vehicle?.id,
+      mobile: data?.mobile,
+      first_name: data?.first_name,
+      last_name: data?.last_name,
+      father_name: data?.father_name,
+      national_code: data?.national_code,
+      gender: data?.gender,
+      birth_date: data?.birth_date?.birth_date,
       inquiry: null,
-      avatar: data.avatar,
-      national_card: data.national_card,
-      license_card: data.license_card,
+      avatar: data?.avatar,
+      national_card: data?.national_card,
+      license_no: data?.license_no,
     });
     addDriverMutation.mutate(data);
   };

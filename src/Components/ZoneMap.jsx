@@ -1,6 +1,7 @@
 /* eslint-disable array-callback-return */
 import {
   Box,
+  CircularProgress,
   FormControl,
   Grid,
   InputLabel,
@@ -15,8 +16,8 @@ import Map from "Components/Map";
 import { useProvince } from "hook/useProvince";
 import { useState } from "react";
 import Button from "@mui/material/Button";
-import { useRef } from "react";
 import { SvgSPrite } from "./SvgSPrite";
+import MapSpinnerLoader from "./MapSpinnerLoader";
 
 const sColor = "red";
 const dColor = "green";
@@ -49,22 +50,23 @@ const ZoneMap = ({
 
   const [addressType, setAddressType] = useState(ADDRESS_TYPES[0].id);
   const [levelType, setLevelType] = useState(level);
+  const [loading, setLoading] = useState(false);
   const [province, setProvince] = useState(29);
-  const id = useRef(0);
 
-  const setAddressId = (ids) => {
-    if (ids.length > 0) {
-      let newArr = [];
-      if (data[addressType].includes(id.current)) {
-        newArr = data[addressType].filter((item) => item !== id.current);
-      } else {
-        newArr = data[addressType].concat(id.current);
-      }
-      setData({
-        ...data,
-        [addressType]: newArr,
-      });
+  const setAddressId = (obj) => {
+    const id = obj.properties.id;
+
+    let newArr = [];
+    if (data[addressType].includes(id)) {
+      newArr = data[addressType].filter((item) => item !== id);
+    } else {
+      newArr = data[addressType].concat(id);
     }
+
+    setData({
+      ...data,
+      [addressType]: newArr,
+    });
   };
 
   if (isLoading || isFetching) {
@@ -86,7 +88,7 @@ const ZoneMap = ({
     <>
       <Grid container spacing={2}>
         <Grid item xs={12} md={12}>
-          <Box height={height} width={"100%"}>
+          <Box height={height} width={"100%"} position="relative">
             {renderMap(
               <>
                 <Zones
@@ -95,24 +97,22 @@ const ZoneMap = ({
                   onClick={(e) => {
                     setAddressId(e);
                   }}
-                  onHover={(value) => {
-                    if (value?.zone?.id) {
-                      id.current = value?.zone?.id;
-                    }
-                  }}
-                  // visibleZones={[
-                  //   ...data.source_zones,
-                  //   ...data.destination_zones,
-                  //   ...bothIds,
-                  // ]}
-                  zonesColor={[
-                    { zones: data?.source_zones ?? [], color: sourceColor },
+                  selectedZones={[
                     {
-                      zones: data?.destination_zones ?? [],
-                      color: destinationColor,
+                      color: sourceColor,
+                      ids: data?.source_zones ?? [],
                     },
-                    { zones: bothIds ?? [], color: bothColor },
+                    {
+                      color: destinationColor,
+                      ids: data?.destination_zones ?? [],
+                    },
+                    {
+                      color: bothColor,
+                      ids: bothIds,
+                    },
                   ]}
+                  loading={loading}
+                  setLoading={setLoading}
                 />
 
                 <Stack
@@ -262,6 +262,8 @@ const ZoneMap = ({
                 </Stack>
               </>
             )}
+
+            {loading && <MapSpinnerLoader />}
           </Box>
         </Grid>
       </Grid>

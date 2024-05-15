@@ -14,6 +14,7 @@ import {
   Button,
   FormControlLabel,
   Checkbox,
+  Switch,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
@@ -42,13 +43,9 @@ import Table from "Components/versions/Table";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import TableActionCell from "Components/versions/TableActionCell";
 import InputCheckBoxEndAdornment from "Components/InputCheckBoxEndAdornment";
+import MultiSuperAppClient from "Components/multiSelects/MultiSuperAppClient";
 
 const HeadCells = [
-  {
-    id: "id",
-    label: "شناسه",
-    sortable: true,
-  },
   {
     id: "title",
     label: "عنوان",
@@ -114,6 +111,22 @@ export default function SuperAppList() {
     }
   );
 
+  // change status
+  const changeStatusMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/super-app/group/${formData.id}`,
+        method: "put",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["superApp"]);
+        toast.success("با موفقیت تغییرات اعمال شد");
+      },
+    }
+  );
+
   const showModalToRemove = (superAppGroup) => {
     setSuperAppGroup(superAppGroup);
     setAcceptRemoveModal(true);
@@ -124,6 +137,22 @@ export default function SuperAppList() {
     deleteMutation.mutate(superAppGroup.id);
     setAcceptRemoveModal(false);
     setSuperAppGroup(null);
+  };
+
+  // change status group
+  const handleChangeStatus = async (id, value) => {
+    try {
+      const res = await changeStatusMutation.mutateAsync({
+        id: id,
+        data: {
+          status: value,
+        },
+      });
+
+      return res;
+    } catch (error) {
+      return error;
+    }
   };
 
   return (
@@ -140,6 +169,7 @@ export default function SuperAppList() {
           isLoading ||
           isFetching ||
           deleteMutation.isLoading ||
+          changeStatusMutation.isLoading ||
           setDefaultMutation.isLoading
         }
         setFilters={setSearchParamsFilter}
@@ -149,32 +179,42 @@ export default function SuperAppList() {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.id)}
-                </TableCell>
-                <TableCell align="center" scope="row">
                   {enToFaNumber(row.title) ?? "-"}
                 </TableCell>
-                <TableCell align="center">{renderChip(row?.status)}</TableCell>
+                <TableCell align="center">
+                  <Switch
+                    defaultChecked
+                    color="info"
+                    checked={row?.status}
+                    onChange={(e) => {
+                      handleChangeStatus(row.id, e.target.checked);
+                    }}
+                  />
+                </TableCell>
 
                 {row?.default ? (
                   <TableCell align="center">
                     <SvgSPrite icon="check" MUIColor="success" />
                   </TableCell>
                 ) : (
-                  <TableCell
-                    align="center"
-                    sx={{ display: "flex", justifyContent: "center" }}
-                  >
-                    <TableActionCell
-                      buttons={[
-                        {
-                          tooltip: "پیش‌فرض",
-                          color: "primary",
-                          icon: "check",
-                          onClick: () => setDefaultMutation.mutate(row.id),
-                        },
-                      ]}
-                    />
+                  <TableCell align="center">
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <TableActionCell
+                        buttons={[
+                          {
+                            tooltip: "پیش‌فرض",
+                            color: "primary",
+                            icon: "check",
+                            onClick: () => setDefaultMutation.mutate(row.id),
+                          },
+                        ]}
+                      />
+                    </Box>
                   </TableCell>
                 )}
 
@@ -298,20 +338,16 @@ const AddNewSuperGroup = () => {
       name: "start_date",
       label: "تاریخ شروع ",
       control: control,
-      rules: {
-        required: "تاریخ شروع را وارد کنید",
-      },
-      gridProps: { md: 6 },
     },
     {
       type: "date",
       name: "end_date",
       label: "تاریخ پایان ",
       control: control,
-      rules: {
-        required: "تاریخ پایان را وارد کنید",
-      },
-      gridProps: { md: 6 },
+    },
+    {
+      type: "custom",
+      customView: <MultiSuperAppClient control={control} name={"clients"} />,
     },
     {
       type: "textarea",
@@ -330,6 +366,7 @@ const AddNewSuperGroup = () => {
       start_date: data?.start_date?.start_date,
       default: Number(data?.default),
       status: Number(data?.status),
+      clients: data?.clients.map((item) => item.serial),
     };
 
     try {

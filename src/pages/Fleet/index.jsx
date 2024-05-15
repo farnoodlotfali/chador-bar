@@ -54,10 +54,10 @@ const HeadCells = [
     id: "status",
     label: "وضعیت",
   },
-  {
-    id: "inquiry",
-    label: "استعلام",
-  },
+  // {
+  //   id: "inquiry",
+  //   label: "استعلام",
+  // },
   {
     id: "actions",
     label: "عملیات",
@@ -219,14 +219,14 @@ export default function FleetList() {
                     }}
                   />
                 </TableCell>
-                <TableCell align="center" scope="row">
+                {/* <TableCell align="center" scope="row">
                   <Switch
                     checked={Boolean(row.inquiry)}
                     onChange={() => {
                       changeFleetInquiry(row);
                     }}
                   />
-                </TableCell>
+                </TableCell> */}
                 <TableCell scope="row">
                   <TableActionCell
                     buttons={[

@@ -3,15 +3,14 @@ import { useState } from "react";
 import {
   Button,
   Stack,
-  Grid,
   Box,
   TableBody,
   TableRow,
   TableCell,
   Switch,
   Rating,
+  IconButton,
 } from "@mui/material";
-import LoadingButton from "@mui/lab/LoadingButton";
 import { toast } from "react-toastify";
 
 import Table from "Components/versions/Table";
@@ -22,7 +21,8 @@ import { FormContainer, FormInputs } from "Components/Form";
 import {
   enToFaNumber,
   removeInvalidValues,
-  renderSelectOptions,
+  renderChipForInquiry,
+  renderMobileFormat,
 } from "Utility/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { axiosApi } from "api/axiosApi";
@@ -36,6 +36,9 @@ import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
 import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
 import ShippingCompanyReportModal from "Components/modals/ShippingCompanyReportModal";
+import { AddNewShippingSection } from "./AddNewShippingSection";
+import { useNavigate } from "react-router-dom";
+import { SvgSPrite } from "Components/SvgSPrite";
 
 const HeadCells = [
   {
@@ -65,6 +68,10 @@ const HeadCells = [
     label: "وضعیت",
   },
   {
+    id: "inquiry",
+    label: "وضعیت استعلام",
+  },
+  {
     id: "company_id",
     label: "شناسه شرکت",
   },
@@ -77,11 +84,12 @@ const HeadCells = [
 
 const ShippingCompanyList = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [selectedShippingCompany, setSelectedShippingCompany] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [openModal, setOpenModal] = useState(null);
-
+  const [editCompany, setEditCompany] = useState(null);
   const {
     data: shippingCompany,
     isLoading,
@@ -109,7 +117,24 @@ const ShippingCompanyList = () => {
       },
     }
   );
-
+  const inquiryMutation = useMutation(
+    (id) =>
+      axiosApi({ url: `/shipping-company-inquiry/${id}`, method: "post" }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["shippingCompany"]);
+        toast.success("با موفقیت اعمال شد");
+      },
+      onError: (err) => {
+        if (err?.response?.data?.Status === 400) {
+          queryClient.invalidateQueries(["shippingCompany"]);
+        }
+      },
+    }
+  );
+  const changeInquiry = (id) => {
+    inquiryMutation.mutate(id);
+  };
   const deleteShippingCompanyMutation = useMutation(
     (id) => axiosApi({ url: `shipping-company/${id}`, method: "delete" }),
     {
@@ -163,7 +188,10 @@ const ShippingCompanyList = () => {
     <>
       <HelmetTitlePage title="شرکت حمل" />
 
-      <AddNewShippingSection companyTypes={companyTypes} />
+      <AddNewShippingSection
+        companyTypes={companyTypes}
+        editData={editCompany}
+      />
 
       <SearchBoxShipping />
 
@@ -182,7 +210,7 @@ const ShippingCompanyList = () => {
         }
       >
         <TableBody>
-          {shippingCompany?.data?.map((row) => {
+          {shippingCompany?.items?.data?.map((row) => {
             return (
               <TableRow hover tabIndex={-1} key={row.id}>
                 <TableCell align="center" scope="row">
@@ -206,7 +234,7 @@ const ShippingCompanyList = () => {
                   />
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {enToFaNumber(row.mobile)}
+                  {enToFaNumber(renderMobileFormat(row.mobile))}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   <Switch
@@ -217,7 +245,27 @@ const ShippingCompanyList = () => {
                   />
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.company_id}
+                  <Stack direction={"row"} justifyContent={"center"}>
+                    {renderChipForInquiry(row?.company?.inquiry)}
+                    <IconButton
+                      onClick={() => {
+                        if (row?.company?.id) {
+                          changeInquiry(row?.company?.id);
+                        } else {
+                          toast.error("شرکتی برای این آیتم ثبت نشده است");
+                        }
+                      }}
+                    >
+                      <SvgSPrite
+                        icon="rotate-right"
+                        MUIColor="primary"
+                        size="small"
+                      />
+                    </IconButton>
+                  </Stack>
+                </TableCell>
+                <TableCell align="center" scope="row">
+                  {enToFaNumber(row.company_id)}
                 </TableCell>
 
                 <TableCell scope="row">
@@ -243,6 +291,34 @@ const ShippingCompanyList = () => {
                         onClick: () =>
                           handleShowShippingCompanyReportModal(row),
                       },
+                      {
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => setEditCompany(row),
+                      },
+                      {
+                        tooltip: "ساخت پنل",
+                        color: "warning",
+                        icon: "user",
+                        onClick: () => {
+                          navigate("/user", {
+                            state: { row, type: "company" },
+                          });
+                        },
+                      },
+                      {
+                        tooltip: "صورتحساب",
+                        color: "info",
+                        icon: "receipt",
+                        link: `/financial/invoice?person_type=legal&person_id=${row?.company_id}`,
+                      },
+                      {
+                        tooltip: "تراکنش",
+                        color: "info",
+                        icon: "money-bill-transfer",
+                        link: `/financial/transaction?person_type=legal&person_id=${row?.company_id}`,
+                      },
                     ]}
                   />
                 </TableCell>
@@ -266,7 +342,7 @@ const ShippingCompanyList = () => {
 
       <ShowPersonScoreModal
         show={openModal === "personScore"}
-        data={selectedShippingCompany}
+        dataId={selectedShippingCompany?.id}
         onClose={toggleOpenModal}
       />
     </>
@@ -345,169 +421,6 @@ const SearchBoxShipping = () => {
                 اعمال فیلتر
               </Button>
             </Stack>
-          </FormContainer>
-        </Box>
-      </form>
-    </CollapseForm>
-  );
-};
-
-const AddNewShippingSection = ({ companyTypes }) => {
-  const queryClient = useQueryClient();
-  const [openCollapse, setOpenCollapse] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-  } = useForm();
-
-  const AddShippingCompanyMutation = useMutation(
-    (data) => axiosApi({ url: "shipping-company", method: "post", data: data }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["shippingCompany"]);
-        toast.success("با موفقیت اضافه شد");
-        reset();
-      },
-    }
-  );
-
-  const Inputs = [
-    {
-      type: "text",
-      name: "code",
-      label: "کد",
-      control: control,
-      rules: { required: "کد را وارد کنید" },
-    },
-    {
-      type: "text",
-      name: "name",
-      label: "نام",
-      control: control,
-      rules: { required: "نام را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "economic_code",
-      label: "کد اقتصادی",
-      noInputArrow: true,
-      control: control,
-      rules: { required: "کد اقتصادی را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "mobile",
-      label: "شماره تماس رابط",
-      noInputArrow: true,
-      control: control,
-      rules: { required: "موبایل را وارد کنید" },
-    },
-
-    {
-      type: "email",
-      name: "email",
-      label: "ایمیل",
-      control: control,
-      rules: { required: "ایمیل را وارد کنید" },
-    },
-    {
-      type: "number",
-      name: "registration_code",
-      label: "کد ثبت",
-      control: control,
-      noInputArrow: true,
-      rules: { required: "کد ثبت را وارد کنید" },
-    },
-    {
-      type: "date",
-      name: "registration_date",
-      label: "تاریخ ثبت ",
-      control: control,
-      rules: {
-        required: "تاریخ ثبت را وارد کنید",
-      },
-    },
-    {
-      type: "select",
-      name: "type",
-      label: "نوع",
-      options: renderSelectOptions(companyTypes),
-      valueKey: "id",
-      labelKey: "title",
-      control: control,
-      rules: { required: "نوع را وارد کنید" },
-    },
-    {
-      type: "custom",
-      customView: (
-        <ChoosePerson
-          control={control}
-          name={"ceo"}
-          rules={{
-            required: "مدیرعامل را وارد کنید",
-          }}
-          label="مدیرعامل"
-        />
-      ),
-      gridProps: { md: 4 },
-    },
-  ];
-
-  // handle on submit new ShippingCompany
-  const onSubmit = async (data) => {
-    data = JSON.stringify({
-      code: data.code,
-      name: data.name,
-      ceo_id: data.ceo.id,
-      mobile: data.mobile,
-      email: data.email,
-      economic_code: data.economic_code,
-      registration_date: data.registration_date.registration_date,
-      registration_code: data.registration_code,
-      type: data.type,
-      status: 1,
-    });
-    try {
-      const res = await AddShippingCompanyMutation.mutateAsync(data);
-      return res;
-    } catch (error) {
-      return error;
-    }
-  };
-
-  // handle on change inputs
-  const handleChange = (name, value) => {
-    setValue(name, value);
-  };
-  return (
-    <CollapseForm
-      onToggle={setOpenCollapse}
-      open={openCollapse}
-      title="افزودن شرکت حمل و نقل"
-      name="shipping-company.store"
-    >
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Box sx={{ p: 2 }}>
-          <FormContainer data={watch()} setData={handleChange} errors={errors}>
-            <FormInputs inputs={Inputs} gridProps={{ md: 3 }}>
-              <Grid item xs={12} md={2}>
-                <LoadingButton
-                  sx={{
-                    width: "100%",
-                    height: "56px",
-                  }}
-                  variant="contained"
-                  loading={isSubmitting}
-                  type="submit"
-                >
-                  افزودن
-                </LoadingButton>
-              </Grid>
-            </FormInputs>
           </FormContainer>
         </Box>
       </form>

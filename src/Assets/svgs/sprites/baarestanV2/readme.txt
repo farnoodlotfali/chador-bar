@@ -1,1 +1,0 @@
-this duotone icons for barestanV2

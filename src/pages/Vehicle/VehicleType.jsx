@@ -174,10 +174,10 @@ export default function VehicleType() {
                   {enToFaNumber(row.id)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.title}
+                  {enToFaNumber(row.title)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.code}
+                  {enToFaNumber(row.code)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {renderWeight(row.max_weight)}
@@ -372,13 +372,12 @@ const AddNewVehicleType = ({ vehicleCategory }) => {
   // handle on submit new Type
   const onSubmit = (data) => {
     data = JSON.stringify({
-      title: data.title,
-      code: data.code,
-      vehicle_category_id: data.vehicle_category_id,
+      title: data?.title,
+      code: data?.code,
+      vehicle_category_id: data?.vehicle_category_id,
       status: 1,
-      max_weight: data.max_weight,
+      max_weight: data?.max_weight,
     });
-    console.log("data = ", data);
     AddTypeMutation.mutate(data);
   };
 

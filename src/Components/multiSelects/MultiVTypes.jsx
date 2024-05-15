@@ -11,6 +11,7 @@ import {
   InputLabel,
   OutlinedInput,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { ChooseVCategory } from "Components/choosers/vehicle/category/ChooseVCategory";
@@ -20,7 +21,12 @@ import SearchInput from "Components/SearchInput";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInfiniteVehicleType } from "hook/useVehicleType";
 import React, { Fragment, useEffect, useState } from "react";
-import { useFieldArray, useForm, useFormState } from "react-hook-form";
+import {
+  useController,
+  useFieldArray,
+  useForm,
+  useFormState,
+} from "react-hook-form";
 import { useInView } from "react-intersection-observer";
 import { useLocation, useSearchParams } from "react-router-dom";
 import {
@@ -28,14 +34,31 @@ import {
   removeInvalidValues,
   stopPropagate,
 } from "Utility/utils";
+import { SvgSPrite } from "Components/SvgSPrite";
 
-const MultiVTypes = (props) => {
+const MultiVTypes = ({
+  name,
+  control,
+  rules,
+  openByIcon = false,
+  children,
+}) => {
   const [filters, setFilters] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [searchVal, setSearchVal] = useState("");
   const { ref, inView } = useInView();
   const [searchParams] = useSearchParams();
   const vehicle_type_id = searchParams.getAll("vehicle_type_id");
+
+  const {
+    field,
+    formState: {},
+    fieldState: { error },
+  } = useController({
+    name: name,
+    control: control,
+    defaultValue: [],
+  });
   const {
     data: allVTypes,
     isLoading,
@@ -85,22 +108,17 @@ const MultiVTypes = (props) => {
   };
 
   const { fields, append, remove } = useFieldArray({
-    control: props.control,
-    name: props.name,
+    control: control,
+    name: name,
     keyName: "customId",
-    rules: props.rules,
-  });
-
-  const { errors } = useFormState({
-    control: props.control,
-    name: props.name,
+    rules: rules,
   });
 
   const {
-    control,
+    control: filterFormControl,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
     setValue,
     watch,
   } = useForm();
@@ -110,13 +128,13 @@ const MultiVTypes = (props) => {
       type: "text",
       name: "q",
       label: "متن جستجو",
-      control: control,
+      control: filterFormControl,
     },
     {
       type: "custom",
       customView: (
         <ChooseVCategory
-          control={control}
+          control={filterFormControl}
           name={"vehicle_category"}
           label="نوع کامیون"
         />
@@ -126,15 +144,16 @@ const MultiVTypes = (props) => {
   const toggleShowModal = () => setShowModal((prev) => !prev);
 
   const renderValue = () => {
+    const array = field.value ?? [];
     if (isFetching) {
       return "";
     }
-    const length = Math.max(fields.length, vehicle_type_id.length);
-    if (!fields.length) {
+    const length = Math.max(array.length, vehicle_type_id.length);
+    if (!array.length) {
       return (length ? enToFaNumber(length) + " " : "") + "نوع بارگیر ";
     }
 
-    let str = enToFaNumber(fields?.[0]?.title) ?? "-";
+    let str = enToFaNumber(array?.[0]?.title) ?? "-";
 
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + " نوع کامیون دیگر...";
@@ -146,7 +165,7 @@ const MultiVTypes = (props) => {
     setValue(name, value);
   };
 
-  // handle on submit new vehicle
+  // handle on submit
   const onSubmit = (data) => {
     setFilters((prev) =>
       removeInvalidValues({
@@ -156,38 +175,85 @@ const MultiVTypes = (props) => {
       })
     );
   };
+
+  const handleClickOnReset = () => {
+    setSearchVal("");
+    setFilters({});
+    reset();
+  };
+
   return (
     <>
-      <FormControl variant="outlined" sx={{ width: "100%" }}>
-        <InputLabel>نوع بارگیر</InputLabel>
-        <OutlinedInput
-          sx={{ width: "100%" }}
-          label={"نوع بارگیر"}
-          name={props.name}
-          value={renderValue()}
-          readOnly
-          error={errors?.[props.name]}
-          endAdornment={
-            <InputAdornment position="end">
-              <Button color="secondary" onClick={toggleShowModal}>
-                انتخاب
-              </Button>
-            </InputAdornment>
-          }
-          startAdornment={
-            isFetching && (
-              <InputAdornment position="start">
-                <CircularProgress color="info" disableShrink />
+      {openByIcon ? (
+        <Tooltip title="فیلتر خودرو" placement="top">
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: !!field.value?.length
+                ? "primary.main"
+                : "background.paper",
+              color: !!field.value?.length
+                ? "primary.contrastText"
+                : "text.primary",
+              display: "flex",
+              boxShadow: 1,
+              cursor: "pointer",
+              position: "relative",
+              width: 44,
+              height: 44,
+            }}
+            onClick={toggleShowModal}
+          >
+            <SvgSPrite color="inherit" icon="truck" size={20} />
+            {!!field.value?.length && (
+              <Box
+                sx={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  bgcolor: "red",
+                  position: "absolute",
+                  right: 10,
+                  bottom: 10,
+                }}
+              />
+            )}
+          </Box>
+        </Tooltip>
+      ) : (
+        <FormControl variant="outlined" sx={{ width: "100%" }}>
+          <InputLabel>نوع بارگیر</InputLabel>
+          <OutlinedInput
+            sx={{ width: "100%" }}
+            label={"نوع بارگیر"}
+            name={name}
+            value={renderValue()}
+            readOnly
+            error={!!error}
+            endAdornment={
+              <InputAdornment position="end">
+                <Button color="secondary" onClick={toggleShowModal}>
+                  انتخاب
+                </Button>
               </InputAdornment>
-            )
-          }
-        />
-        {errors?.[props.name]?.root?.message && (
-          <FormHelperText error variant="outlined">
-            {errors?.[props.name]?.root?.message}
-          </FormHelperText>
-        )}
-      </FormControl>
+            }
+            startAdornment={
+              isFetching && (
+                <InputAdornment position="start">
+                  <CircularProgress color="info" disableShrink />
+                </InputAdornment>
+              )
+            }
+          />
+          {!!error?.message && (
+            <FormHelperText error variant="outlined">
+              {error.message}
+            </FormHelperText>
+          )}
+        </FormControl>
+      )}
+
       <Modal open={showModal} onClose={toggleShowModal}>
         <Typography variant="h5" mb={2}>
           انتخاب نوع بارگیر خودرو
@@ -201,11 +267,10 @@ const MultiVTypes = (props) => {
               errors={errors}
             >
               <FormInputs inputs={Inputs} gridProps={{ md: 3 }}>
-                <Grid item xs={12} md={2}>
+                <Grid item xs={12} md={2} alignSelf="center">
                   <LoadingButton
                     sx={{
                       width: "100%",
-                      height: "56px",
                     }}
                     variant="contained"
                     type="submit"
@@ -214,6 +279,21 @@ const MultiVTypes = (props) => {
                     فیلتر
                   </LoadingButton>
                 </Grid>
+                <Grid item xs={12} md={2} alignSelf="center">
+                  <Button
+                    variant="contained"
+                    type="submit"
+                    color="error"
+                    onClick={() => {
+                      handleClickOnReset();
+                    }}
+                    startIcon={
+                      <SvgSPrite color="inherit" icon="filter-circle-xmark" />
+                    }
+                  >
+                    حذف فیلترها
+                  </Button>
+                </Grid>
               </FormInputs>
             </FormContainer>
           </Box>
@@ -221,7 +301,7 @@ const MultiVTypes = (props) => {
 
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
-            {props?.children}
+            {children}
           </Grid>
         </Grid>
         <Box sx={{ maxHeight: "300px", overflowY: "scroll", mt: 1, p: 3 }}>
@@ -230,7 +310,7 @@ const MultiVTypes = (props) => {
               allVTypes?.pages.map((page, i) => (
                 <Fragment key={i}>
                   {page?.data.map((vType) => {
-                    const findIndex = fields.findIndex(
+                    const findIndex = field.value?.findIndex(
                       (item) => item.id === vType.id
                     );
 

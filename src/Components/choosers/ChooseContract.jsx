@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Button,
   FormControl,
@@ -5,7 +6,6 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import FormTypography from "Components/FormTypography";
@@ -66,9 +66,7 @@ export const ChooseContract = ({ control, name, rules }) => {
   return (
     <>
       <Modal open={showModal} onClose={toggleShowModal}>
-        <FormTypography>
-          انتخاب قرارداد
-        </FormTypography>
+        <FormTypography>انتخاب قرارداد</FormTypography>
 
         <SelectContract data={field.value} setData={selectContract} />
       </Modal>

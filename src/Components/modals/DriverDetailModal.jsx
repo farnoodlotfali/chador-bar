@@ -11,15 +11,22 @@ import {
 } from "@mui/material";
 import { SvgSPrite } from "Components/SvgSPrite";
 import Modal from "Components/versions/Modal";
-import { enToFaNumber, genderType, handleDate } from "Utility/utils";
+import {
+  enToFaNumber,
+  genderType,
+  handleDate,
+  renderMobileFormat,
+} from "Utility/utils";
 import ShowPersonScoreModal from "./ShowPersonScoreModal";
 import { useState } from "react";
 
 const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState({});
 
-  const toggleShowHistory = () => {
-    setShowHistory((prev) => !prev);
+  const toggleShowHistory = (driver) => {
+    setShowHistory(true);
+    setSelectedDriver(driver);
   };
 
   return (
@@ -28,7 +35,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
         <Modal onClose={onClose} open={show} maxWidth="md">
           <Card sx={{ p: 2 }}>
             <CardHeader
-              title={<Typography variant="h5">اطلاعات راننده اول</Typography>}
+              title={<Typography variant="h5">اطلاعات راننده </Typography>}
             />
             <CardContent>
               <Grid container spacing={2}>
@@ -38,7 +45,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                   title={"نام‌خانوادگی"}
                 />
                 <DriverDetailItem
-                  value={enToFaNumber(data.mobile)}
+                  value={renderMobileFormat(data.mobile)}
                   title={"شماره موبایل"}
                 />
                 <DriverDetailItem
@@ -67,7 +74,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                       <Tooltip placement="top" title="مشاهده تاریخچه امتیازات">
                         <Box
                           sx={{ cursor: "pointer" }}
-                          onClick={toggleShowHistory}
+                          onClick={() => toggleShowHistory(data)}
                         >
                           <SvgSPrite
                             icon="rectangle-history-circle-user"
@@ -77,7 +84,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                       </Tooltip>
                     </Stack>
                   }
-                  title={"امتیاز فیک"}
+                  title={"امتیاز"}
                 />
               </Grid>
             </CardContent>
@@ -99,7 +106,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                     title={"نام‌خانوادگی"}
                   />
                   <DriverDetailItem
-                    value={enToFaNumber(secondDriver?.mobile)}
+                    value={renderMobileFormat(secondDriver?.mobile)}
                     title={"شماره موبایل"}
                   />
                   <DriverDetailItem
@@ -137,7 +144,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                         >
                           <Box
                             sx={{ cursor: "pointer" }}
-                            onClick={toggleShowHistory}
+                            onClick={() => toggleShowHistory(secondDriver)}
                           >
                             <SvgSPrite
                               icon="rectangle-history-circle-user"
@@ -147,7 +154,7 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
                         </Tooltip>
                       </Stack>
                     }
-                    title={"امتیاز فیک"}
+                    title={"امتیاز "}
                   />
                 </Grid>
               </CardContent>
@@ -155,7 +162,11 @@ const DriverDetailModal = ({ data, secondDriver, show, onClose }) => {
           )}
         </Modal>
 
-        <ShowPersonScoreModal show={showHistory} onClose={toggleShowHistory} />
+        <ShowPersonScoreModal
+          show={showHistory}
+          onClose={() => setShowHistory(false)}
+          dataId={selectedDriver?.id}
+        />
       </>
     )
   );

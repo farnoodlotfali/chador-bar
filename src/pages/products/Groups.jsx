@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -14,7 +15,6 @@ import { toast } from "react-toastify";
 
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
-import ActionConfirm from "Components/ActionConfirm";
 import { FormContainer, FormInputs } from "Components/Form";
 
 import { enToFaNumber, removeInvalidValues } from "Utility/utils";
@@ -26,6 +26,8 @@ import CollapseForm from "Components/CollapseForm";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import Modal from "Components/versions/Modal";
+import FormTypography from "Components/FormTypography";
 
 const HeadCells = [
   {
@@ -35,7 +37,7 @@ const HeadCells = [
   },
   {
     id: "code",
-    label: "شناسه",
+    label: "کد",
   },
   {
     id: "title",
@@ -48,11 +50,10 @@ const HeadCells = [
 ];
 
 export default function ProductGroups() {
-  const queryClient = useQueryClient();
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const [deleteGroupId, setDeleteGroupId] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const {
     data: productGroup,
     isLoading,
@@ -60,35 +61,22 @@ export default function ProductGroups() {
     isError,
   } = useProductGroup(searchParamsFilter);
 
-  const deleteGroupMutation = useMutation(
-    (id) => axiosApi({ url: `/product-group/${id}`, method: "delete" }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["productGroup"]);
-        toast.success("با موفقیت حذف شد");
-      },
-    }
-  );
-
   if (isError) {
     return <div className="">isError</div>;
   }
 
-  const handleDeleteGroup = (id) => {
-    setShowConfirmModal(true);
-    setDeleteGroupId(id);
+  const handleUpdateGroup = (item) => {
+    setSelectedGroup(item);
+    toggleModal();
   };
 
-  // handle delete Group
-  const deleteGroup = () => {
-    deleteGroupMutation.mutate(deleteGroupId);
-    setShowConfirmModal(false);
-    setDeleteGroupId(null);
+  const toggleModal = () => {
+    setShowModal((prev) => !prev);
   };
 
   return (
     <>
-      <HelmetTitlePage title="دسته‌بندی محصولات" />
+      <HelmetTitlePage title="گروه محصولات" />
 
       <AddNewGroupProduct />
 
@@ -99,7 +87,7 @@ export default function ProductGroups() {
         headCells={HeadCells}
         filters={searchParamsFilter}
         setFilters={setSearchParamsFilter}
-        loading={isLoading || isFetching || deleteGroupMutation.isLoading}
+        loading={isLoading || isFetching}
       >
         <TableBody>
           {productGroup?.data.map((row) => {
@@ -109,7 +97,7 @@ export default function ProductGroups() {
                   {enToFaNumber(row.id)}
                 </TableCell>
                 <TableCell align="center" scope="row">
-                  {row.code}
+                  {enToFaNumber(row.code)}
                 </TableCell>
                 <TableCell align="center" scope="row">
                   {row.title}
@@ -118,11 +106,11 @@ export default function ProductGroups() {
                   <TableActionCell
                     buttons={[
                       {
-                        tooltip: "حذف",
-                        color: "error",
-                        icon: "trash-xmark",
-                        onClick: () => handleDeleteGroup(row.id),
-                        name: "product-group.destroy",
+                        tooltip: "ویرایش",
+                        color: "warning",
+                        icon: "pencil",
+                        onClick: () => handleUpdateGroup(row),
+                        name: "product-group.update",
                       },
                     ]}
                   />
@@ -132,11 +120,11 @@ export default function ProductGroups() {
           })}
         </TableBody>
       </Table>
-      <ActionConfirm
-        open={showConfirmModal}
-        onClose={() => setShowConfirmModal((prev) => !prev)}
-        onAccept={deleteGroup}
-        message="آیا از حذف دسته‌بندی مطمئن هستید؟"
+
+      <EditGroupProduct
+        onClose={toggleModal}
+        open={showModal}
+        groupProduct={selectedGroup}
       />
     </>
   );
@@ -280,7 +268,7 @@ const AddNewGroupProduct = () => {
     <CollapseForm
       onToggle={setOpenCollapse}
       open={openCollapse}
-      title="افزودن دسته‌بندی محصول"
+      title="افزودن گروه محصول"
       name="product-group.store"
     >
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -305,5 +293,97 @@ const AddNewGroupProduct = () => {
         </Box>
       </form>
     </CollapseForm>
+  );
+};
+
+const EditGroupProduct = ({ open, onClose, groupProduct }) => {
+  const queryClient = useQueryClient();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm();
+
+  useEffect(() => {
+    reset(groupProduct);
+  }, [groupProduct]);
+
+  const updateGroupMutation = useMutation(
+    (formData) =>
+      axiosApi({
+        url: `/product-group/${formData.id}`,
+        method: "put",
+        data: formData.data,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["productGroup"]);
+        toast.success("با موفقیت ویرایش شد");
+        onClose();
+      },
+    }
+  );
+
+  const Inputs = [
+    {
+      type: "text",
+      name: "title",
+      label: "عنوان",
+      control: control,
+      rules: { required: "عنوان را وارد کنید" },
+    },
+    {
+      type: "text",
+      name: "code",
+      label: "کد",
+      control: control,
+      rules: { required: "کد را وارد کنید" },
+    },
+  ];
+
+  // handle on submit
+  const onSubmit = async (data) => {
+    try {
+      const res = await updateGroupMutation.mutateAsync({
+        id: groupProduct.id,
+        data: data,
+      });
+      return res;
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // handle on change inputs
+  const handleChange = (name, value) => {
+    setValue(name, value);
+  };
+
+  return (
+    <Modal onClose={onClose} open={open} maxWidth="md">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormTypography>ویرایش گروه</FormTypography>
+        <FormContainer data={watch()} setData={handleChange} errors={errors}>
+          <FormInputs inputs={Inputs} gridProps={{ md: 4 }}>
+            <Grid item xs={12} md={2}>
+              <LoadingButton
+                sx={{
+                  width: "100%",
+                  height: "56px",
+                }}
+                variant="contained"
+                loading={isSubmitting}
+                type="submit"
+              >
+                ویرایش
+              </LoadingButton>
+            </Grid>
+          </FormInputs>
+        </FormContainer>
+      </form>
+    </Modal>
   );
 };

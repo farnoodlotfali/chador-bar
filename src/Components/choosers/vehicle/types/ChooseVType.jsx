@@ -13,7 +13,7 @@ import SelectVType from "Components/selects/vehicle/types/SelectVType";
 import { useState } from "react";
 import { useController } from "react-hook-form";
 
-export const ChooseVType = ({ control, name, rules }) => {
+export const ChooseVType = ({ control, name, rules, weight = null }) => {
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -40,7 +40,7 @@ export const ChooseVType = ({ control, name, rules }) => {
       <Modal open={showModal} onClose={toggleShowModal}>
         <FormTypography>انتخاب نوع بارگیر خودرو</FormTypography>
 
-        <SelectVType data={field.value} setData={selectVType} />
+        <SelectVType data={field.value} setData={selectVType} weight={weight} />
       </Modal>
 
       <FormControl variant="outlined" sx={{ width: "100%" }}>

@@ -1,3 +1,5 @@
+/* eslint-disable no-empty-pattern */
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Box,
   Button,
@@ -9,6 +11,7 @@ import {
   InputLabel,
   OutlinedInput,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import FormTypography from "Components/FormTypography";
@@ -17,18 +20,36 @@ import SearchInput from "Components/SearchInput";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
 import { useInfiniteDriver } from "hook/useDriver";
 import { Fragment, useEffect, useState } from "react";
-import { useFieldArray, useFormState } from "react-hook-form";
+import { useController, useFieldArray } from "react-hook-form";
 import { useInView } from "react-intersection-observer";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { enToFaNumber } from "Utility/utils";
+import { enToFaNumber, renderMobileFormat } from "Utility/utils";
+import { SvgSPrite } from "Components/SvgSPrite";
 
-const MultiDrivers = (props) => {
+/**
+ * here we 2 type of ui for Multi-Drivers-select.
+ *  one-1: with input (openByIcon = false)
+ *  two-2: with icon (openByIcon = true)
+ *
+ * we control these with openByIcon props
+ */
+
+const MultiDrivers = ({ name, openByIcon = false, control, rules }) => {
   const [filters, setFilters] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [searchVal, setSearchVal] = useState("");
   const [searchParams] = useSearchParams();
   const driver_id = searchParams.getAll("driver_id");
   const location = useLocation();
+  const {
+    field,
+    formState: {},
+    fieldState: { error },
+  } = useController({
+    name: name,
+    control: control,
+    defaultValue: [],
+  });
 
   const { ref, inView } = useInView();
   const {
@@ -45,7 +66,7 @@ const MultiDrivers = (props) => {
 
   useEffect(() => {
     // reset list
-    if (location.search.includes("driver_id")) {
+    if (location?.search?.includes("driver_id")) {
       remove();
     }
   }, [location.search]);
@@ -58,9 +79,9 @@ const MultiDrivers = (props) => {
       // check if fields has all chosen drivers
       // reset list
       remove();
-      allDrivers?.pages.forEach((page, i) =>
-        page?.items.data.forEach((item) => {
-          if (driver_id.includes(item.id.toString())) {
+      allDrivers?.pages?.forEach((page, i) =>
+        page?.items?.data?.forEach((item) => {
+          if (driver_id?.includes(item?.person_id?.toString())) {
             append(item);
           }
         })
@@ -79,33 +100,29 @@ const MultiDrivers = (props) => {
     setFilters({ q: value });
   };
 
-  const { fields, append, remove } = useFieldArray({
-    control: props.control,
-    name: props.name,
+  const { remove, append } = useFieldArray({
+    control: control,
+    name: name,
     keyName: "customId",
-    rules: props.rules,
-  });
-
-  const { errors } = useFormState({
-    control: props.control,
-    name: props.name,
+    rules: rules,
   });
 
   const toggleShowModal = () => setShowModal((prev) => !prev);
 
   const renderValue = () => {
+    const array = field.value ?? [];
     if (isFetching) {
       return "";
     }
-    const length = Math.max(fields.length, driver_id.length);
+    const length = Math.max(array.length, driver_id.length);
 
-    if (!fields.length) {
+    if (!array.length) {
       return (length ? enToFaNumber(length) + " " : "") + "راننده";
     }
     let str =
-      (fields?.[0]?.person?.first_name ?? "-") +
+      (array?.[0]?.person?.first_name ?? "-") +
       " " +
-      (fields?.[0]?.person?.last_name ?? " ");
+      (array?.[0]?.person?.last_name ?? " ");
 
     if (length > 1) {
       str = str + " و " + enToFaNumber(length - 1) + " راننده دیگر...";
@@ -114,41 +131,85 @@ const MultiDrivers = (props) => {
     return str;
   };
 
+  const handleClickOnReset = () => {
+    setSearchVal("");
+    setFilters({});
+  };
   return (
     <>
-      <FormControl variant="outlined" sx={{ width: "100%" }}>
-        <InputLabel>راننده</InputLabel>
-        <OutlinedInput
-          sx={{ width: "100%" }}
-          name={props.name}
-          value={renderValue()}
-          label={"راننده"}
-          readOnly
-          error={errors?.[props.name]}
-          endAdornment={
-            <InputAdornment position="end">
-              <Button color="secondary" onClick={toggleShowModal}>
-                انتخاب
-              </Button>
-            </InputAdornment>
-          }
-          startAdornment={
-            isFetching && (
-              <InputAdornment position="start">
-                <CircularProgress color="info" disableShrink />
+      {openByIcon ? (
+        <Tooltip title="فیلتر راننده" placement="top">
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: !!field.value?.length
+                ? "primary.main"
+                : "background.paper",
+              color: !!field.value?.length
+                ? "primary.contrastText"
+                : "text.primary",
+              display: "flex",
+              boxShadow: 1,
+              cursor: "pointer",
+              position: "relative",
+              width: 44,
+              height: 44,
+            }}
+            onClick={toggleShowModal}
+          >
+            <SvgSPrite color="inherit" icon="steering-wheel" size={20} />
+            {!!field.value?.length && (
+              <Box
+                sx={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  bgcolor: "red",
+                  position: "absolute",
+                  right: 10,
+                  bottom: 10,
+                }}
+              />
+            )}
+          </Box>
+        </Tooltip>
+      ) : (
+        <FormControl variant="outlined" sx={{ width: "100%" }}>
+          <InputLabel>راننده</InputLabel>
+          <OutlinedInput
+            sx={{ width: "100%" }}
+            name={name}
+            value={renderValue()}
+            label={"راننده"}
+            readOnly
+            error={!!error}
+            endAdornment={
+              <InputAdornment position="end">
+                <Button color="secondary" onClick={toggleShowModal}>
+                  انتخاب
+                </Button>
               </InputAdornment>
-            )
-          }
-        />
-        {errors?.[props.name]?.root?.message && (
-          <FormHelperText error variant="outlined">
-            {errors?.[props.name]?.root?.message}
-          </FormHelperText>
-        )}
-      </FormControl>
+            }
+            startAdornment={
+              isFetching && (
+                <InputAdornment position="start">
+                  <CircularProgress color="info" disableShrink />
+                </InputAdornment>
+              )
+            }
+          />
+          {!!error?.message && (
+            <FormHelperText error variant="outlined">
+              {error?.message}
+            </FormHelperText>
+          )}
+        </FormControl>
+      )}
+
       <Modal open={showModal} onClose={toggleShowModal}>
         <FormTypography>انتخاب راننده</FormTypography>
-        <Grid container>
+        <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <SearchInput
               sx={{ width: "100%" }}
@@ -158,6 +219,21 @@ const MultiDrivers = (props) => {
               setSearchVal={setSearchVal}
             />
           </Grid>
+          <Grid item xs={12} md={4} alignSelf="center">
+            <Button
+              variant="contained"
+              type="submit"
+              color="error"
+              onClick={() => {
+                handleClickOnReset();
+              }}
+              startIcon={
+                <SvgSPrite color="inherit" icon="filter-circle-xmark" />
+              }
+            >
+              حذف فیلترها
+            </Button>
+          </Grid>
         </Grid>
         <Box sx={{ maxHeight: "300px", overflowY: "scroll", mt: 1, p: 3 }}>
           <Grid container spacing={2}>
@@ -165,8 +241,8 @@ const MultiDrivers = (props) => {
               allDrivers?.pages.map((page, i) => (
                 <Fragment key={i}>
                   {page?.items.data.map((driver) => {
-                    const findIndex = fields.findIndex(
-                      (item) => item.person_id === driver.person_id
+                    const findIndex = field?.value?.findIndex(
+                      (item) => item?.person_id === driver?.person_id
                     );
 
                     return (
@@ -196,7 +272,7 @@ const MultiDrivers = (props) => {
                               driver.person.last_name || ""
                             }`}</Typography>
                             <Typography>
-                              {enToFaNumber(driver.mobile)}
+                              {renderMobileFormat(driver.mobile)}
                             </Typography>
                           </Stack>
                         </Button>

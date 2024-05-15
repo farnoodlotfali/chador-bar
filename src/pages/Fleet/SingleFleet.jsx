@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 
-import { enToFaNumber, handleDate } from "Utility/utils";
+import { enToFaNumber, handleDate, renderMobileFormat } from "Utility/utils";
 import Modal from "Components/versions/Modal";
 import { toast } from "react-toastify";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
@@ -229,7 +229,7 @@ const SingleFleet = () => {
                       (item.last_name ?? " ")}
                   </TableCell>
                   <TableCell align="center" scope="row">
-                    {enToFaNumber(item.mobile)}{" "}
+                    {renderMobileFormat(item.mobile)}{" "}
                   </TableCell>
                   <TableCell align="center" scope="row">
                     {enToFaNumber(item.national_code) ?? "-"}
@@ -399,7 +399,7 @@ const AddNewFreeDriver = () => {
                         (row.person.last_name || " ")}
                     </TableCell>
                     <TableCell align="center" scope="row">
-                      {enToFaNumber(row.mobile)}
+                      {renderMobileFormat(row.mobile)}
                     </TableCell>
                     <TableCell align="center" scope="row">
                       {enToFaNumber(row.person.national_code ?? "-")}

@@ -1,8 +1,8 @@
-import { TableBody, TableCell, TableRow, Typography } from "@mui/material";
+import { TableBody, TableCell, TableRow } from "@mui/material";
 import FormTypography from "Components/FormTypography";
+import NormalTable from "Components/NormalTable";
 import Modal from "Components/versions/Modal";
-import Table from "Components/versions/Table";
-import { enToFaNumber } from "Utility/utils";
+import { renderMobileFormat } from "Utility/utils";
 
 const HeadCells = [
   {
@@ -27,7 +27,7 @@ export default function ShowDriverFleet({ show, onClose, data }) {
         <Modal open={show} onClose={onClose}>
           <FormTypography>لیست رانندگان</FormTypography>
 
-          <Table {...data} headCells={HeadCells} filters={null}>
+          <NormalTable {...data} headCells={HeadCells} filters={null}>
             <TableBody>
               {data.map((row) => {
                 return (
@@ -36,16 +36,16 @@ export default function ShowDriverFleet({ show, onClose, data }) {
                       {row.id}
                     </TableCell>
                     <TableCell align="center" scope="row">
-                      {row.first_name + " " + row?.last_name}
+                      {row.first_name ?? "-" + " " + row?.last_name ?? ""}
                     </TableCell>
                     <TableCell align="center" scope="row">
-                      {enToFaNumber(row.mobile)}
+                      {renderMobileFormat(row.mobile)}
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
-          </Table>
+          </NormalTable>
         </Modal>
       </>
     )

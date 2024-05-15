@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import Modal from "Components/versions/Modal";
-import { enToFaNumber, handleDate, numberWithCommas } from "Utility/utils";
+import {enToFaNumber, handleDate, numberWithCommas, renderWeight} from "Utility/utils";
 
 import { Link } from "react-router-dom";
 import { SvgSPrite } from "Components/SvgSPrite";
@@ -111,7 +111,7 @@ const ContractDetailModal = ({ data, show, onClose }) => {
               <Typography variant="h5">اطلاعات بار</Typography>
               <Grid container spacing={2} mt={2}>
                 {RowLabelAndData(
-                  "حداکثر وزن قابل حمل در ماه(کیلوگرم)",
+                  "حداکثر وزن قابل حمل در ماه",
                   enToFaNumber(numberWithCommas(data.monthly_limit)) ?? "-",
                   <SvgSPrite
                     icon="weight-scale"
@@ -126,7 +126,7 @@ const ContractDetailModal = ({ data, show, onClose }) => {
                 )}
                 {RowLabelAndData(
                   "وزن",
-                  enToFaNumber(numberWithCommas(data.weight)) ?? "-",
+                  renderWeight(data.weight),
                   <SvgSPrite
                     icon="weight-scale"
                     size="small"

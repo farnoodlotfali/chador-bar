@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Typography, Grid, Button, Stack, Box } from "@mui/material";
 
 import SearchInput from "Components/SearchInput";
-import { enToFaNumber } from "Utility/utils";
+import { enToFaNumber, renderMobileFormat } from "Utility/utils";
 import { useInfinitePerson } from "hook/usePerson";
 import { Fragment, useEffect, useState } from "react";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
@@ -16,7 +17,6 @@ export default function SelectPerson({ data, setData, label }) {
     isLoading,
     isFetching,
     isError,
-    isSuccess,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -86,7 +86,9 @@ export default function SelectPerson({ data, setData, label }) {
                           <Typography>{`${person.first_name || ""} ${
                             person.last_name || ""
                           }`}</Typography>
-                          <Typography>{enToFaNumber(person.mobile)}</Typography>
+                          <Typography>
+                            {renderMobileFormat(person.mobile)}
+                          </Typography>
                         </Stack>
                       </Button>
                     </Grid>

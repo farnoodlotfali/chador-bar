@@ -15,12 +15,12 @@ import FormTypography from "Components/FormTypography";
 import Modal from "Components/versions/Modal";
 import SearchInput from "Components/SearchInput";
 import LoadingSpinner from "Components/versions/LoadingSpinner";
-import { useInfiniteProject } from "hook/useProject";
-import React, { Fragment, useEffect, useState } from "react";
-import { useFieldArray, useFormState } from "react-hook-form";
-import { useInView } from "react-intersection-observer";
-import { useLocation, useSearchParams } from "react-router-dom";
-import { enToFaNumber, numberWithCommas } from "Utility/utils";
+import {useInfiniteProject} from "hook/useProject";
+import React, {Fragment, useEffect, useState} from "react";
+import {useFieldArray, useFormState} from "react-hook-form";
+import {useInView} from "react-intersection-observer";
+import {useLocation, useSearchParams} from "react-router-dom";
+import {enToFaNumber, renderWeight} from "Utility/utils";
 
 const MultiProjects = (props) => {
   const [filters, setFilters] = useState({});
@@ -222,25 +222,21 @@ const MultiProjects = (props) => {
                             )}
                             {renderItem(
                               "تعداد درخواست های فعال",
-                              enToFaNumber(project.active_requests.length)
+                              enToFaNumber(project.active_requests_count)
                             )}
                             {renderItem(
                               " تناژ کل",
-                              enToFaNumber(numberWithCommas(project.weight))
+                                renderWeight(project.weight)
                             )}
                             {renderItem(
                               " تناژ باقیمانده",
-                              enToFaNumber(
-                                numberWithCommas(project.remaining_weight)
-                              )
+                                renderWeight(project.remaining_weight)
                             )}
                             {renderItem(
                               " تناژ حمل شده",
-                              enToFaNumber(
-                                numberWithCommas(
-                                  project.weight - project.remaining_weight
+                                renderWeight(
+                                    project.requests_total_weight
                                 )
-                              )
                             )}
                           </Grid>
                         </Button>

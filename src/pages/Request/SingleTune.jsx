@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { LoadingButton } from "@mui/lab";
 import {
   Stack,
@@ -34,6 +35,8 @@ import ChooseAddressModal from "Components/modals/ChooseAddressModal";
 import { toast } from "react-toastify";
 import FormTypography from "Components/FormTypography";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import { ChooseVType } from "Components/choosers/vehicle/types/ChooseVType";
+import { ChooseSalon } from "Components/choosers/ChooseSalon";
 
 const limeOptions = { color: "lime" };
 
@@ -283,10 +286,183 @@ const SingleTune = () => {
       gridProps: { md: 12 },
     },
   ];
+  const Inputs = [
+    {
+      type: "text",
+      name: "title",
+      label: "عنوان",
+      control: control,
+      noInputArrow: true,
+      rules: { required: "عنوان را وارد کنید" },
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseProject
+          control={control}
+          name={"project"}
+          rules={{
+            required: "پروژه را وارد کنید",
+          }}
+          readOnly
+        />
+      ),
+    },
+    {
+      type: "number",
+      name: "weight",
+      label: "وزن درخواست (تن)",
+      control: control,
+      noInputArrow: true,
+      rules: { required: "وزن را وارد کنید" },
+    },
+    {
+      type: "number",
+      name: "price",
+      label: "قیمت",
+      control: control,
+      noInputArrow: true,
+      splitter: true,
+      rules: { required: "قیمت را وارد کنید" },
+    },
+    {
+      type: "custom",
+      customView: (
+        <ChooseVType
+          control={control}
+          name={"vehicleType"}
+          weight={watch("weight") * 1000}
+          rules={{
+            required: "نوع بارگیر را وارد کنید",
+          }}
+        />
+      ),
+    },
+    {
+      type: "number",
+      name: "daily_requests",
+      label: "حداکثر درخواست در روز",
+      noInputArrow: true,
+      control: control,
+      rules: {
+        required: "حداکثر درخواست در روز",
+        validate: (value) =>
+          Number(value) >= watch("load_concurrency_limit") ||
+          "باید از مقدار تعداد بارگیری، بزرگتر یا مساوی باشد ",
+      },
+    },
+    {
+      type: "number",
+      name: "shipping_duration",
+      label: "مدت زمان حمل محموله(ساعت)",
+      noInputArrow: true,
+      control: control,
+      rules: {
+        required: "مدت زمان را وارد کنید",
+      },
+    },
+    {
+      type: "custom",
+      customView: <ChooseSalon control={control} name={"salon"} />,
+    },
+    {
+      type: "weekdays",
+      name: "working_days",
+      label: "روز های انتخابی",
+      control: control,
+      rules: { required: "حداقل یک روز را وارد کنید" },
+      gridProps: { md: 12 },
+    },
+  ];
+  const Inputs1 = [
+    {
+      type: "time",
+      name: "start_load_time",
+      label: "ساعت شروع فعالیت مبداء",
+      control: control,
+      rules: { required: "ساعت بارگیری را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "end_load_time",
+      label: "ساعت پایان فعالیت مبداء",
+      control: control,
+      rules: { required: "ساعت پایان را وارد کنید" },
+    },
+    {
+      type: "number",
+      name: "load_concurrency_limit",
+      label: "تعداد صف موازی بارگیری",
+      control: control,
+      rules: { required: "تعداد را وارد کنید" },
+      noInputArrow: true,
+    },
 
+    {
+      type: "time",
+      name: "load_tolerance",
+      label: "حداکثر تاخیر در ورود به مبداء",
+      tooltip: "حداکثر زمان تاخیر مجاز در ورود به مبداء",
+      control: control,
+      rules: { required: "حداکثر تاخیر در بارگیری را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "dispatch_interval",
+      label: "فواصل ورود به مبداء",
+      control: control,
+      rules: {
+        required: "فواصل ورود به مبداء",
+      },
+    },
+  ];
+  const Inputs2 = [
+    {
+      type: "time",
+      name: "start_discharge_time",
+      label: "ساعت شروع فعالیت مقصد",
+      control: control,
+      rules: { required: "ساعت شروع تخلیه را وارد کنید" },
+    },
+    {
+      type: "time",
+      name: "end_discharge_time",
+      label: "ساعت پایان فعالیت مقصد",
+      control: control,
+      rules: { required: "ساعت پایان  تخلیه را وارد کنید" },
+    },
+    {
+      type: "number",
+      name: "discharge_concurrency_limit",
+      label: "تعداد صف موازی تخلیه",
+      noInputArrow: true,
+      control: control,
+      rules: {
+        required: "تعداد صفهای موازی تخلیه را وارد کنید",
+      },
+    },
+
+    {
+      type: "time",
+      name: "discharge_interval",
+      label: "فواصل ورود ناوگان به مقصد",
+      control: control,
+      rules: { required: "فواصل ورود ناوگان به مقصد را وارد کنید" },
+    },
+
+    {
+      type: "time",
+      name: "discharge_tolerance",
+      label: "حداکثر تاخیر در ورود ناوگان به مقصد",
+      control: control,
+      tooltip: "حداکثر زمان تاخیر مجاز در ورود ناوگان به مقصد",
+      rules: { required: "حداکثر تاخیر در ورود ناوگان به مقصد را وارد کنید" },
+    },
+  ];
   const SourceInputs = [
     {
       type: "custom",
+
       customView: (
         <ChoosePerson
           control={control}
@@ -294,6 +470,7 @@ const SingleTune = () => {
           rules={{
             required: "فرستنده را وارد کنید",
           }}
+          readOnly
           label="فرستنده"
         />
       ),
@@ -303,6 +480,7 @@ const SingleTune = () => {
       name: "source_address",
       label: "آدرس مبداء",
       control: control,
+      readOnly: true,
       rules: {
         required: { value: true, message: " آدرس مبداء را وارد کنید" },
       },
@@ -311,6 +489,7 @@ const SingleTune = () => {
       type: "text",
       name: "source_zip_code",
       label: "کد پستی مبداء",
+      readOnly: true,
       control: control,
       rules: {
         required: " کد پستی مبداء را وارد کنید",
@@ -333,6 +512,7 @@ const SingleTune = () => {
   const DestinationInputs = [
     {
       type: "custom",
+
       customView: (
         <ChoosePerson
           control={control}
@@ -340,6 +520,7 @@ const SingleTune = () => {
           rules={{
             required: "گیرنده را وارد کنید",
           }}
+          readOnly
           label="گیرنده"
         />
       ),
@@ -350,6 +531,7 @@ const SingleTune = () => {
       name: "destination_address",
       label: "آدرس مقصد",
       control: control,
+      readOnly: true,
       rules: {
         required: { value: true, message: " آدرس مقصد را وارد کنید" },
       },
@@ -359,6 +541,7 @@ const SingleTune = () => {
       name: "destination_zip_code",
       label: "کدپستی مقصد",
       control: control,
+      readOnly: true,
       rules: {
         required: " کد پستی مقصد را وارد کنید",
         maxLength: {
@@ -425,7 +608,12 @@ const SingleTune = () => {
         <FormContainer data={watch()} setData={handleChange} errors={errors}>
           <Card sx={{ p: 2, boxShadow: 1 }}>
             <FormTypography>اطلاعات کلی</FormTypography>
-            <FormInputs gridProps={{ md: 3 }} inputs={DataInputs} />
+            {/* <FormInputs gridProps={{ md: 3 }} inputs={DataInputs} /> */}
+            <FormInputs inputs={Inputs} gridProps={{ md: 4 }} />
+            <Divider sx={{ my: 5 }} />
+            <FormInputs inputs={Inputs1} gridProps={{ md: 4 }} />
+            <Divider sx={{ my: 5 }} />
+            <FormInputs inputs={Inputs2} gridProps={{ md: 4 }} />
 
             <Divider sx={{ my: 5 }} />
             <Grid container spacing={3}>

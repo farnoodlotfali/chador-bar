@@ -7,14 +7,21 @@ import {
   Tooltip,
   Rating,
 } from "@mui/material";
-import { enToFaNumber, renderTimeCalender, stopPropagate } from "Utility/utils";
+import {
+  enToFaNumber,
+  renderMobileFormat,
+  renderTimeCalender,
+  stopPropagate,
+} from "Utility/utils";
 import { useMemo, useState } from "react";
 import { SvgSPrite } from "Components/SvgSPrite";
 import ShowPersonScoreModal from "Components/modals/ShowPersonScoreModal";
 import DriverReportModal from "Components/modals/DriverReportModal";
+import { axiosApi } from "api/axiosApi";
+import { useQuery } from "@tanstack/react-query";
+import LoadingSpinner from "Components/versions/LoadingSpinner";
 
 const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
-  const [openDriverTime, setOpenDriverTime] = useState(false);
   const [openModal, setOpenModal] = useState(false);
 
   const toggleShowScores = () => {
@@ -33,9 +40,14 @@ const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
         sx={{
           boxShadow: 1,
           cursor: "pointer",
-          bgcolor: data?.id === driver.id ? "primary.main" : "background.paper",
+          bgcolor:
+            data?.id === driver?.account_id
+              ? "primary.main"
+              : "background.paper",
           color: (theme) =>
-            data?.id === driver.id ? theme.palette.common.white : "inherit",
+            data?.id === driver?.account_id
+              ? theme.palette.common.white
+              : "inherit",
           borderRadius: 1,
           p: 1,
         }}
@@ -55,10 +67,10 @@ const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
             sx={{ width: "100%" }}
           >
             <Typography>
-              {timeLine ? driver?.first_name : driver?.person?.first_name}{" "}
-              {timeLine ? driver?.last_name : driver?.person?.last_name}
+              {driver?.person ? driver?.person?.first_name : driver?.first_name}{" "}
+              {driver?.person ? driver?.person?.last_name : driver?.last_name}
             </Typography>
-            <Typography>{enToFaNumber(driver?.mobile)}</Typography>
+            <Typography>{renderMobileFormat(driver?.mobile)}</Typography>
             <Stack direction="row" spacing={1}>
               <Rating
                 precision={0.2}
@@ -69,7 +81,8 @@ const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
                 sx={{
                   "& .MuiSvgIcon-root": {
                     fill: (theme) =>
-                      data?.id === driver.id || theme.palette.mode === "dark"
+                      data?.id === driver?.account_id ||
+                      theme.palette.mode === "dark"
                         ? theme.palette.common.white
                         : "inherit",
                   },
@@ -101,39 +114,14 @@ const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
         </Box>
         {timeLine && (
           <>
-            <Tooltip title="مشاهده تقویم کاری راننده" placement="left" arrow>
-              <IconButton
-                size="small"
-                onClick={() => {
-                  setOpenDriverTime((prev) => !prev);
-                }}
-                sx={{
-                  color: (theme) =>
-                    data?.id === driver.id
-                      ? theme.palette.common.white
-                      : "grey",
-                }}
-              >
-                {openDriverTime ? (
-                  <SvgSPrite icon="chevron-up" size="small" />
-                ) : (
-                  <SvgSPrite icon="chevron-down" size="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-
-            <DriverTimeMonth
-              key={driver.id}
-              selected={data?.id === driver.id}
-              row={fleet}
-              open={openDriverTime}
-            />
+            <DriverTimeMonth key={driver?.account_id} data={data} row={fleet} />
           </>
         )}
       </Box>
       <ShowPersonScoreModal
         show={openModal === "personScore"}
         onClose={toggleOpenModal}
+        dataId={driver?.account_id}
       />
 
       <DriverReportModal
@@ -145,30 +133,76 @@ const DriverItem = ({ driver, data, setData, fleet, timeLine }) => {
   );
 };
 
-const DriverTimeMonth = ({ row, open }) => {
+const DriverTimeMonth = ({ row, data }) => {
+  const [openDriverTime, setOpenDriverTime] = useState(false);
+
+  const {
+    data: driverTimeline,
+    isSuccess,
+    isLoading,
+    isFetching,
+  } = useQuery(
+    ["driver", "driver-timeline", row?.account_id],
+    () =>
+      axiosApi({ url: `/driver-timeline/${row.account_id}` }).then(
+        (res) => res.data.Data.timeline
+      ),
+    {
+      enabled: !!row?.account_id && openDriverTime,
+    }
+  );
   const calender = useMemo(() => {
-    return Object.entries(row.timeline).map((item) => {
-      const [day, requests] = item;
+    if (isSuccess) {
+      return Object.entries(driverTimeline).map((item) => {
+        const [day, requests] = item;
 
-      return renderTimeCalender(day, requests);
-    });
-  }, []);
-
+        return renderTimeCalender(day, requests);
+      });
+    }
+  }, [isSuccess]);
   return (
-    <Collapse
-      in={open}
-      unmountOnExit
-      sx={{ overflowX: "auto", cursor: "default" }}
-    >
-      <Box sx={{ margin: 1 }}>
-        <Typography my={2} gutterBottom>
-          تقویم راننده (ماه)
-        </Typography>
-        <Stack direction="row" justifyContent="space-between">
-          {calender}
-        </Stack>
-      </Box>
-    </Collapse>
+    <>
+      <Tooltip title="مشاهده تقویم کاری راننده" placement="left" arrow>
+        <IconButton
+          size="small"
+          onClick={() => {
+            setOpenDriverTime((prev) => !prev);
+          }}
+          sx={{
+            color: (theme) =>
+              (data?.id ?? data) === row.id
+                ? theme.palette.common.white
+                : "inherit",
+          }}
+        >
+          {openDriverTime ? (
+            <SvgSPrite icon="chevron-up" size="small" color="inherit" />
+          ) : (
+            <SvgSPrite icon="chevron-down" size="small" color="inherit" />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      <Collapse
+        in={openDriverTime}
+        unmountOnExit
+        sx={{ overflowX: "auto", cursor: "default" }}
+      >
+        <Box sx={{ margin: 1 }}>
+          <Typography my={2} gutterBottom>
+            تقویم راننده (ماه)
+          </Typography>
+
+          {isLoading || isFetching ? (
+            <LoadingSpinner />
+          ) : (
+            <Stack direction="row" justifyContent="space-between">
+              {calender}
+            </Stack>
+          )}
+        </Box>
+      </Collapse>
+    </>
   );
 };
 

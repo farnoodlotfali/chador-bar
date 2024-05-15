@@ -16,13 +16,22 @@ module.exports = function override(config, env) {
   // Define the name of the file to remove
   const fileNameToRemove = otherVersions;
 
-  // Create a new IgnorePlugin instance to exclude the files
-  const ignoreFilesPlugin = new webpack.IgnorePlugin({
-    resourceRegExp: new RegExp(fileNameToRemove.join("|"), "i"),
+  // Update the IgnorePlugin to modify the passed object instead of returning it
+  config.plugins.forEach((plugin) => {
+    if (plugin instanceof webpack.IgnorePlugin) {
+      plugin.checkIgnore = (resource, context) => {
+        for (const regExp of plugin.resourceRegExp) {
+          if (regExp.test(resource)) {
+            return true;
+          }
+        }
+        return false;
+      };
+      // Update the IgnorePlugin resourceRegExp
+      const updatedResourceRegExp = fileNameToRemove.map((fileName) => new RegExp(fileName, "i"));
+      plugin.resourceRegExp = updatedResourceRegExp;
+    }
   });
-
-  // Add the IgnorePlugin to the plugins array in the Webpack configuration
-  config.plugins.push(ignoreFilesPlugin);
 
   return config;
 };

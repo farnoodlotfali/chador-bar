@@ -56,8 +56,16 @@ export default function SelectVColor({ data, setData }) {
                       width: "100%",
                       boxShadow: 1,
                     }}
-                    variant={(data ?? data) === enColor ? "contained" : "text"}
-                    color={(data ?? data) === enColor ? "primary" : "secondary"}
+                    variant={
+                      (Array.isArray(data) ? data[1] : data) === faColor
+                        ? "contained"
+                        : "text"
+                    }
+                    color={
+                      (Array.isArray(data) ? data[1] : data) === faColor
+                        ? "primary"
+                        : "secondary"
+                    }
                     onClick={() => setData(item)}
                   >
                     <Stack

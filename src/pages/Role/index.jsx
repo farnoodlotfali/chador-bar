@@ -21,7 +21,11 @@ import ActionConfirm from "Components/ActionConfirm";
 import SearchInput from "Components/SearchInput";
 import { FormContainer, FormInputs } from "Components/Form";
 
-import { enToFaNumber, removeInvalidValues } from "Utility/utils";
+import {
+  enToFaNumber,
+  removeInvalidValues,
+  renderSelectOptions,
+} from "Utility/utils";
 import { usePermission } from "hook/usePermission";
 import { useRole } from "hook/useRole";
 import { useForm } from "react-hook-form";
@@ -194,7 +198,7 @@ export default function Role() {
       <HelmetTitlePage title="نقش ها" />
 
       <AddNewRole />
-      <SearchBoxRole />
+      <SearchBoxRole userTypes={allRoles?.user_types} />
 
       <Table
         {...allRoles?.items}
@@ -264,7 +268,7 @@ export default function Role() {
   );
 }
 
-const SearchBoxRole = () => {
+const SearchBoxRole = ({ userTypes }) => {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
   const [openCollapse, setOpenCollapse] = useState(false);
 
@@ -286,6 +290,19 @@ const SearchBoxRole = () => {
       label: "جستجو",
       placeholder: "جستجو",
       control: control,
+    },
+    {
+      type: "select",
+      name: "user_type",
+      label: "نوع",
+      options: renderSelectOptions({
+        all: "همه",
+        ...userTypes,
+      }),
+      valueKey: "id",
+      labelKey: "title",
+      control: control,
+      defaultValue: "all",
     },
   ];
   const { resetValues } = useLoadSearchParamsAndReset(Inputs, reset);

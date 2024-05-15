@@ -18,8 +18,8 @@ import {
   handleDate,
   renderWeight,
   removeInvalidValues,
+  renderMobileFormat,
 } from "Utility/utils";
-import DraftPaper from "Components/papers/DraftPaper";
 import WayBillPaper from "Components/papers/WaybillPaper";
 
 import { useDraft } from "hook/useDraft";
@@ -29,6 +29,8 @@ import { useForm } from "react-hook-form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import DraftDetailsModal from "Components/modals/DraftDetailsModal";
+import WaybillDetailsModal from "Components/modals/WaybillDetailsModal";
 
 const headCells = [
   {
@@ -75,9 +77,8 @@ const headCells = [
 export default function Draft() {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
 
-  const [showDetails, setShowDetails] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState();
-  const [showDraftDetails, setShowDraftDetails] = useState(false);
+  const [showModal, setShowModal] = useState(null);
 
   const {
     data: allDrafts,
@@ -94,13 +95,17 @@ export default function Draft() {
   // Logic functions
 
   const toggleShowDetails = (rowData) => {
-    setShowDetails((prev) => !prev);
+    setShowModal("waybillDetail");
     if (rowData) setSelectedRowData(rowData);
   };
 
   const toggleShowDraftDetails = (rowData) => {
-    setShowDraftDetails((prev) => !prev);
+    setShowModal("draftDetail");
     if (rowData) setSelectedRowData(rowData);
+  };
+
+  const closeModal = () => {
+    setShowModal(null);
   };
 
   return (
@@ -123,7 +128,7 @@ export default function Draft() {
                 tooltip: "نمایش حواله",
                 color: "secondary",
                 icon: "eye",
-                disabled: selectedRowData?.waybill === null,
+                disabled: row?.waybill === null,
                 onClick: () => toggleShowDraftDetails(row),
                 name: "draft.show",
               },
@@ -158,7 +163,7 @@ export default function Draft() {
                   {row.DriverFullName || "-"}
                 </TableCell>
                 <TableCell align="center">
-                  {enToFaNumber(row.DriverMobile) || "-"}
+                  {renderMobileFormat(row.DriverMobile) || "-"}
                 </TableCell>
                 <TableCell align="center">
                   {row.TrailerTypeName ||
@@ -186,15 +191,21 @@ export default function Draft() {
           })}
         </TableBody>
       </Table>
-      <DetailsModal
-        open={showDetails}
-        onClose={() => toggleShowDetails()}
+
+      {/* modals */}
+
+      {/* waybill details Modal */}
+      <WaybillDetailsModal
+        open={showModal === "waybillDetail"}
+        onClose={closeModal}
         data={selectedRowData?.waybill ?? {}}
       />
+
+      {/* draft details Modal */}
       <DraftDetailsModal
-        open={showDraftDetails}
-        onClose={() => toggleShowDraftDetails()}
-        data={selectedRowData ?? {}}
+        open={showModal === "draftDetail"}
+        onClose={closeModal}
+        data={selectedRowData}
       />
     </>
   );
@@ -276,21 +287,5 @@ const SearchBoxDraft = () => {
         </Box>
       </form>
     </CollapseForm>
-  );
-};
-
-const DetailsModal = ({ open, onClose, data }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <WayBillPaper data={data} />
-    </Modal>
-  );
-};
-
-const DraftDetailsModal = ({ open, onClose, data = {} }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <DraftPaper data={data} />
-    </Modal>
   );
 };

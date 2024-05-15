@@ -13,7 +13,7 @@ import SelectRole from "Components/selects/SelectRole";
 import { useState } from "react";
 import { useController } from "react-hook-form";
 
-export const ChooseRole = ({ control, name, rules }) => {
+export const ChooseRole = ({ control, name, rules, filters = {} }) => {
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -25,7 +25,6 @@ export const ChooseRole = ({ control, name, rules }) => {
     control,
     rules: rules,
   });
-
   const roleName = field.value ? `${field.value.slug}` : `نقش`;
 
   const selectRole = (role) => {
@@ -39,7 +38,11 @@ export const ChooseRole = ({ control, name, rules }) => {
       <Modal open={showModal} onClose={toggleShowModal}>
         <FormTypography>انتخاب نقش</FormTypography>
 
-        <SelectRole data={field.value} setData={selectRole} />
+        <SelectRole
+          data={field.value}
+          setData={selectRole}
+          outFilters={filters}
+        />
       </Modal>
 
       <FormControl variant="outlined" sx={{ width: "100%" }}>

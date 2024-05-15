@@ -10,7 +10,6 @@ import {
   Stack,
 } from "@mui/material";
 
-import Modal from "Components/versions/Modal";
 import Table from "Components/versions/Table";
 import TableActionCell from "Components/versions/TableActionCell";
 import {
@@ -19,10 +18,9 @@ import {
   handleDate,
   renderWeight,
   removeInvalidValues,
+  renderMobileFormat,
 } from "Utility/utils";
 import { useWaybill } from "hook/useWaybill";
-import DraftPaper from "Components/papers/DraftPaper";
-import WayBillPaper from "Components/papers/WaybillPaper";
 
 import CollapseForm from "Components/CollapseForm";
 import { useForm } from "react-hook-form";
@@ -30,6 +28,8 @@ import { FormContainer, FormInputs } from "Components/Form";
 import { useSearchParamsFilter } from "hook/useSearchParamsFilter";
 import { useLoadSearchParamsAndReset } from "hook/useLoadSearchParamsAndReset";
 import HelmetTitlePage from "Components/HelmetTitlePage";
+import DraftDetailsModal from "Components/modals/DraftDetailsModal";
+import WaybillDetailsModal from "Components/modals/WaybillDetailsModal";
 
 const headCells = [
   {
@@ -85,10 +85,9 @@ const headCells = [
 
 export default function WaybillList() {
   const { searchParamsFilter, setSearchParamsFilter } = useSearchParamsFilter();
-  const [showDetails, setShowDetails] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState();
 
-  const [showDraftDetails, setShowDraftDetails] = useState(false);
+  const [showModal, setShowModal] = useState(null);
 
   const {
     data: allWaybills,
@@ -105,13 +104,17 @@ export default function WaybillList() {
   // Logic functions
 
   const toggleShowDetails = (rowData) => {
-    setShowDetails((prev) => !prev);
+    setShowModal("waybillDetail");
     if (rowData) setSelectedRowData(rowData);
   };
 
   const toggleShowDraftDetails = (rowData) => {
-    setShowDraftDetails((prev) => !prev);
+    setShowModal("draftDetail");
     if (rowData) setSelectedRowData(rowData);
+  };
+
+  const closeModal = () => {
+    setShowModal(null);
   };
 
   return (
@@ -150,7 +153,7 @@ export default function WaybillList() {
               <TableRow
                 hover
                 tabIndex={-1}
-                key={row.WayBillNumber}
+                key={row.id}
                 onDoubleClick={() => toggleShowDetails(row)}
               >
                 <TableCell align="center" scope="row">
@@ -173,7 +176,7 @@ export default function WaybillList() {
                   {row.DriverFullName || "-"}
                 </TableCell>
                 <TableCell align="center">
-                  {enToFaNumber(row.DriverMobile) || "-"}
+                  {renderMobileFormat(row.DriverMobile) || "-"}
                 </TableCell>
                 <TableCell align="center">
                   {row.TrailerTypeName || "-"}
@@ -200,15 +203,21 @@ export default function WaybillList() {
           })}
         </TableBody>
       </Table>
-      <DetailsModal
-        open={showDetails}
-        onClose={() => toggleShowDetails()}
+
+      {/* modals */}
+
+      {/* waybill details Modal */}
+      <WaybillDetailsModal
+        open={showModal === "waybillDetail"}
+        onClose={closeModal}
         data={selectedRowData}
       />
+
+      {/* draft details Modal */}
       <DraftDetailsModal
-        open={showDraftDetails}
-        onClose={() => toggleShowDraftDetails()}
-        data={selectedRowData?.draft ?? {}}
+        open={showModal === "draftDetail"}
+        onClose={closeModal}
+        data={selectedRowData?.draft}
       />
     </>
   );
@@ -290,21 +299,5 @@ const SearchBoxWaybill = () => {
         </Box>
       </form>
     </CollapseForm>
-  );
-};
-
-const DetailsModal = ({ open, onClose, data }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <WayBillPaper data={data} />
-    </Modal>
-  );
-};
-
-const DraftDetailsModal = ({ open, onClose, data = {} }) => {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <DraftPaper data={data} />
-    </Modal>
   );
 };
